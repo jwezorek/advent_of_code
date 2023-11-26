@@ -5,6 +5,8 @@
 #include <stdexcept>
 
 namespace aoc {
+
+    std::string input_path(int year, int day, const std::string& tag = {});
     std::vector<std::string> file_to_string_vector(const std::string& filename);
     std::string file_to_string(const std::string& filename);
     std::string collapse_whitespace(const std::string& str);

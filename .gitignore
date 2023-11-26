@@ -399,3 +399,4 @@ FodyWeavers.xsd
 
 out/
 CMakeSettings.json
+src/*/input/

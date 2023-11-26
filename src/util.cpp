@@ -6,9 +6,11 @@
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
+#include <filesystem>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
+namespace fs = std::filesystem;
 
 /*------------------------------------------------------------------------------------------------*/
 
@@ -25,6 +27,43 @@ namespace {
             return !std::isspace(ch);
             }).base(), s.end());
     }
+
+    // We assume the executable is being run from the build the directory and that the
+    // build directory is somewhere in the project directory. 
+
+    fs::path aoc_directory() {
+        auto dir = fs::current_path();
+        while (!dir.empty() && !dir.filename().string().contains("advent_of_code")) {
+            dir = dir.parent_path();
+        }
+        if (dir.empty()) {
+            throw std::runtime_error("exe is not in a child of an 'advent_of_code' directory");
+        }
+        return dir;
+    }
+}
+
+// Input files are placed in <aoc directory>/src/<year>/input
+
+std::string aoc::input_path(int year, int day, const std::string& tag) {
+
+    std::stringstream filename;
+    filename << "day_";
+
+    if (day < 10) {
+        filename << '0';
+    }
+    filename << day;
+
+    if (!tag.empty()) {
+        filename << "_" << tag;
+    }
+
+    filename << ".txt";
+
+    auto inp_path = aoc_directory() / "src" / 
+        std::to_string(year) / "input" / filename.str();
+    return inp_path.string();
 }
 
 std::vector<std::string> aoc::file_to_string_vector(const std::string& filename) {
@@ -116,13 +155,12 @@ std::string aoc::remove_nonnumeric(const std::string& str) {
 
 std::vector<std::string> aoc::extract_alphabetic(const std::string& str) {
     auto just_letters = aoc::collapse_whitespace(
-        str |
-        rv::transform(
+        str | rv::transform(
             [](char ch)->char {
                 return (std::isalpha(ch)) ? ch : ' ';
             }
         ) | r::to<std::string>()
-                );
+    );
     return split(just_letters, ' ');
 }
 
