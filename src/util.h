@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <map>
+#include <unordered_map>
 
 namespace aoc {
 
@@ -34,4 +36,39 @@ namespace aoc {
         auto vec = split(s, delim);
         return create_tuple<N>(vec);
     }
+ 
+    template<typename V, typename H = std::hash< V>>
+    class priority_queue {
+        using map_impl = std::multimap<int, V>;
+        map_impl priority_to_item_;
+        std::unordered_map<V, typename map_impl::iterator, H> item_to_mmap_iter_;
+
+    public:
+        priority_queue()
+        {}
+
+        V extract_min() {
+            auto first = priority_to_item_.begin();
+            auto loc = first->second;
+            priority_to_item_.erase(first);
+            item_to_mmap_iter_.erase(loc);
+            return loc;
+        }
+
+        void insert(const V& loc, int priority) {
+            auto iter = priority_to_item_.insert({ priority, loc });
+            item_to_mmap_iter_[loc] = iter;
+        }
+
+        void change_priority(const V& loc, int priority) {
+            auto iter = item_to_mmap_iter_[loc];
+            priority_to_item_.erase(iter);
+            item_to_mmap_iter_.erase(loc);
+            insert(loc, priority);
+        }
+
+        bool empty() const {
+            return priority_to_item_.empty();
+        }
+    };
 }
