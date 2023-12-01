@@ -5,45 +5,39 @@
 #include <numeric>
 #include <algorithm>
 
-
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
 
 namespace {
-    std::vector<std::string> g_num_strings = {
-        "0","1","2","3","4","5","6","7","8", "9",
-        "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"
+
+    struct num_val {
+        std::string str;
+        int val;
     };
 
-    std::vector<int> g_num_val = {
-        0,1,2,3,4,5,6,7,8,9,
-        1,2,3,4,5,6,7,8,9
+    std::vector<num_val> g_nums = {
+        {"0",0},{"1",1},{"2",2},{"3",3},{"4",4},{"5",5},
+        {"6",6},{"7",7},{"8",8},{"9",9},{"one",1}, {"two",2},
+        {"three",3}, {"four",4}, {"five",5}, {"six",6}, 
+        {"seven",7}, {"eight",8}, {"nine",9}
     };
 
-    int leftmost_num(const std::string& inp_str) {
-        auto leftmost_pos = static_cast<int>(inp_str.size());
-        int val = -1;
-        for (const auto& [index, str] : rv::enumerate(g_num_strings)) {
-            auto i = inp_str.find(str);
-            if (i != std::string::npos && i < leftmost_pos) {
-                leftmost_pos = i;
-                val = g_num_val[index];
+    int left_num(const std::string& inp_str) {
+        return r::min_element(
+            g_nums,
+            [inp_str](auto&& lhs, auto&& rhs)->bool {
+                return inp_str.find(lhs.str) < inp_str.find(rhs.str);
             }
-        }
-        return val;
+        )->val;
     }
 
-    int rightmost_num(const std::string& inp_str) {
-        auto rightmost_pos = -1;
-        int val = -1;
-        for (const auto& [index, str] : rv::enumerate(g_num_strings)) {
-            int i = inp_str.rfind(str);
-            if (i != std::string::npos && i > rightmost_pos) {
-                rightmost_pos = i;
-                val = g_num_val[index];
+    int right_num(const std::string& inp_str) {
+        return r::max_element(
+            g_nums,
+            [inp_str](auto&& lhs, auto&& rhs)->bool {
+                return inp_str.rfind(lhs.str) > inp_str.rfind(rhs.str);
             }
-        }
-        return val;
+        )->val;
     }
 }
 
@@ -69,7 +63,7 @@ void aoc::y2023::day_01(const std::string& title) {
             input |
             rv::transform(
                 [](auto&& str)->int {
-                    return 10 * leftmost_num(str) + rightmost_num(str);
+                    return 10 * left_num(str) + right_num(str);
                 }
         ), 0, std::plus<>())
     );
