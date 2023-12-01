@@ -24,7 +24,7 @@ namespace {
         auto leftmost_pos = static_cast<int>(inp_str.size());
         int val = -1;
         for (const auto& [index, str] : rv::enumerate(g_num_strings)) {
-            auto i = inp_str.find(str,0);
+            auto i = inp_str.find(str);
             if (i != std::string::npos && i < leftmost_pos) {
                 leftmost_pos = i;
                 val = g_num_val[index];
@@ -53,8 +53,8 @@ void aoc::y2023::day_01(const std::string& title) {
 
     auto input = aoc::file_to_string_vector(aoc::input_path(2023, 1));
 
-    std::println("*** day 1 : {0} ***\n", title);
-    std::println("{0}", 
+    std::println("--- Day 1: {0} ---\n", title);
+    std::println("part 1: {0}", 
         r::fold_left(
             input |
             rv::transform(aoc::remove_nonnumeric) |
@@ -64,8 +64,7 @@ void aoc::y2023::day_01(const std::string& title) {
                 }
         ), 0, std::plus<>())
     );
-
-    std::println("{0}", 
+    std::println("part 2: {0}", 
         r::fold_left(
             input |
             rv::transform(
