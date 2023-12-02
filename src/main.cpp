@@ -12,7 +12,8 @@ namespace {
     int do_advent_of_code_2023(int day) {
         const static auto advent_of_code_2022 = std::vector<std::function<void()>>{
             []() {aoc::y2023::day_01( "Trebuchet?!" ); },
-            []() {aoc::y2023::day_02( "unknown" ); }
+            []() {aoc::y2023::day_02( "Cube Conundrum" ); },
+            []() {aoc::y2023::day_03("unknown"); }
         };
         auto index = day - 1;
         if (index < 0) {
