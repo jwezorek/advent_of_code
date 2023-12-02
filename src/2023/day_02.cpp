@@ -67,29 +67,6 @@ namespace {
         return output;
     }
 
-    std::string to_str(color col) {
-        if (col == color::red) {
-            return "red";
-        }
-        if (col == color::green) {
-            return "green";
-        }
-        if (col == color::blue) {
-            return "blue";
-        }
-    }
-
-    void print_game_info(const game_info& gi) {
-        std::print("game {0}: ", gi.id);
-        for (const auto& set : gi.sets) {
-            for (const auto& ci : set) {
-                std::print("{0} {1},", to_str(ci.col), ci.count);
-            }
-            std::print("; ");
-        }
-        std::print("\n");
-    }
-
     int get_color(color col, const cube_item& ci) {
         return ci.col == col ? ci.count : 0;
     }
