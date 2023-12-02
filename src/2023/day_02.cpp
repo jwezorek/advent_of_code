@@ -17,7 +17,7 @@ namespace {
         color_count max_color_count;
     };
 
-    color_count color_count_from_tuple(int count, int color) {
+    color_count make_count_array(int count, int color) {
         std::vector<int> counts(3, 0);
         counts[color] = count;
         return counts;
@@ -47,7 +47,7 @@ namespace {
         auto color_counts = nums | rv::drop(1) |
             rv::chunk(2) | rv::transform(
                 [](auto rng) {
-                    return color_count_from_tuple(rng[0], rng[1]); 
+                    return make_count_array(rng[0], rng[1]);
                 }
             ) | r::to<std::vector<color_count>>();
         return {
