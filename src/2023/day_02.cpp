@@ -17,9 +17,9 @@ namespace {
         color_count max_color_count;
     };
 
-    color_count make_count_array(int count, int color) {
+    color_count make_count_array(r::random_access_range auto rng) {
         std::vector<int> counts(3, 0);
-        counts[color] = count;
+        counts[rng[1]] = rng[0];
         return counts;
     }
 
@@ -46,9 +46,7 @@ namespace {
     game_info parse_nums(const std::vector<int>& nums) {
         auto color_counts = nums | rv::drop(1) |
             rv::chunk(2) | rv::transform(
-                [](auto rng) {
-                    return make_count_array(rng[0], rng[1]);
-                }
+                [](auto rng) {return make_count_array(rng); }
             ) | r::to<std::vector<color_count>>();
         return {
             nums.front(),
