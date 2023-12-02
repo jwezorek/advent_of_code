@@ -4,108 +4,70 @@
 #include <ranges>
 #include <numeric>
 #include <algorithm>
+#include <regex>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
 
 namespace {
-
-    enum class color {
-        red, green, blue
-    };
-
-    struct cube_item {
-        color col;
-        int count;
-    };
-
-    using cube_set = std::vector<cube_item>;
-
+    
+    using color_count = std::vector<int>;
     struct game_info {
         int id;
-        std::vector<cube_set> sets;
+        color_count max_color_count;
     };
 
-    color get_color(const std::string& str) {
-        if (str.contains('d')) {
-            return color::red;
-        }
-        if (str.contains('g')) {
-            return color::green;
-        }
-        if (str.contains('b')) {
-            return color::blue;
-        }
-        throw std::runtime_error("parsing color");
+    color_count color_count_from_tuple(int count, int color) {
+        std::vector<int> counts(3, 0);
+        counts[color] = count;
+        return counts;
     }
 
-    cube_item parse_cube_item(const std::string& str) {
+    int max_color_count(int color, const std::vector<color_count>& col_counts) {
+        return r::max(
+            col_counts | 
+                rv::transform(
+                    [color](const auto& ary) {
+                        return ary[color];
+                    }
+                )
+        );
+    }
+
+    color_count max_color_counts(const std::vector<color_count>& col_counts) {
+        return rv::iota(0,3) |
+            rv::transform(
+                [&col_counts](auto color) {
+                    return max_color_count(color, col_counts);
+                }
+        ) | r::to<color_count>();
+    }
+
+    game_info parse_nums(const std::vector<int>& nums) {
+        auto color_counts = nums | rv::drop(1) |
+            rv::chunk(2) | rv::transform(
+                [](auto rng) {
+                    return color_count_from_tuple(rng[0], rng[1]); 
+                }
+            ) | r::to<std::vector<color_count>>();
         return {
-            get_color(str),
-            std::stoi(aoc::remove_nonnumeric(str))
+            nums.front(),
+            max_color_counts(color_counts)
         };
     }
 
-    cube_set parse_set(const std::string& inp) {
-        return aoc::split(inp, ',') |
-            rv::transform(parse_cube_item) |
-            r::to<std::vector< cube_item>>();
-    }
-
-    std::vector<cube_set> parse_sets(const std::string& inp) {
-        auto str = aoc::trim(inp);
-        return aoc::split(str, ';') |
-            rv::transform(parse_set) |
-            r::to<std::vector<cube_set>>();
-    }
-
-    game_info parse_line(const std::string& str) {
-        auto game_pair = aoc::split(str, ':');
-        game_info output;
-        output.id = std::stoi(aoc::remove_nonnumeric(game_pair.front()));
-        output.sets = parse_sets(game_pair.back());
-        return output;
-    }
-
-    int get_color(color col, const cube_item& ci) {
-        return ci.col == col ? ci.count : 0;
-    }
-
-    int max_color(color col, const cube_set& cs) {
-        return r::max(cs | rv::transform([col](const auto& ci) {return get_color(col, ci); }));
+    game_info parse_line(const std::string& line) {
+        auto numeric_str = std::regex_replace(line, std::regex("red"), "0");
+        numeric_str = std::regex_replace(numeric_str, std::regex("green"), "1");
+        numeric_str = std::regex_replace(numeric_str, std::regex("blue"), "2");
+        auto nums = aoc::extract_numbers(numeric_str);
+        return parse_nums(nums);
     }
 
     bool is_possible(const game_info& gi) {
-        int red = r::max(gi.sets | rv::transform([](const auto& cs) {return max_color(color::red, cs); }));
-        int green = r::max(gi.sets | rv::transform([](const auto& cs) {return max_color(color::green, cs); }));
-        int blue = r::max(gi.sets | rv::transform([](const auto& cs) {return max_color(color::blue, cs); }));
-
-        return red <= 12 && green <= 13 && blue <= 14;
-    }
-
-    int do_part_1(const std::vector<game_info> games) {
-        int sum = 0;
-        for (const auto& gi : games) {
-            if (is_possible(gi)) {
-                sum += gi.id;
-            }
-        }
-        return sum;
-    }
-
-    int power(const game_info& gi) {
-        int red = r::max(gi.sets | rv::transform([](const auto& cs) {return max_color(color::red, cs); }));
-        int green = r::max(gi.sets | rv::transform([](const auto& cs) {return max_color(color::green, cs); }));
-        int blue = r::max(gi.sets | rv::transform([](const auto& cs) {return max_color(color::blue, cs); }));
-        return red * blue * green;
-    }
-
-    int do_part_2(const std::vector<game_info> games) {
-        int sum = 0;
-        for (const auto& gi : games) {
-            sum += power(gi);
-        }
-        return sum;
+        return gi.max_color_count[0] <= 12 && 
+            gi.max_color_count[1] <= 13 && 
+            gi.max_color_count[2] <= 14;
     }
 }
 
@@ -119,6 +81,23 @@ void aoc::y2023::day_02(const std::string& title) {
 
     std::println("--- Day 2: {0} ---\n", title);
     
-    std::println("  part 1: {0}", do_part_1(input));
-    std::println("  part 2: {0}", do_part_2(input));
+    std::println("  part 1: {0}", 
+        r::fold_left(
+            input | rv::filter(is_possible) | rv::transform([](auto&& gi) {return gi.id; }), 
+            0, std::plus<>()
+        )
+    );
+    std::println("  part 2: {0}",
+        r::fold_left(
+            input | rv::transform(
+                [](auto&& gi) {
+                    return r::fold_left(
+                        gi.max_color_count,
+                        1, std::multiplies<>()
+                    );
+                }
+            ),
+            0, std::plus<>()
+        )
+    );
 }
