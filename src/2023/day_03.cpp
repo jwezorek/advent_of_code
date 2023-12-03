@@ -114,7 +114,6 @@ namespace {
     }
 
     loc_tbl<std::vector<int>> build_gear_table(const std::vector<std::string>& grid) {
-
         loc_tbl<std::vector<int>> tbl;
         visit_numbers(grid,
             [&](const std::string& num_str, int col, int row) {
