@@ -18,7 +18,7 @@ namespace {
         int row;
     };
 
-    struct loc_hasher {
+    struct loc_hash {
         size_t operator()(const loc& loc) const {
             size_t seed = 0;
             boost::hash_combine(seed, loc.col);
@@ -34,7 +34,7 @@ namespace {
     };
 
     template<typename T>
-    using loc_tbl = std::unordered_map<loc, T, loc_hasher, loc_equal>;
+    using loc_tbl = std::unordered_map<loc, T, loc_hash, loc_equal>;
 
     std::vector<loc> adjacent_locs(int col, int row, int len) {
         std::vector<loc> adj_locs;
@@ -55,9 +55,15 @@ namespace {
         return adj_locs;
     }
 
+    std::tuple<int, int> grid_dimensions(const std::vector<std::string>& grid) {
+        return {
+            static_cast<int>(grid.front().size()),
+            static_cast<int>(grid.size())
+        };
+    }
+
     char get_grid_item(const std::vector<std::string>& grid, int col, int row) {
-        int cols = static_cast<int>(grid.front().size());
-        int rows = static_cast<int>(grid.size());
+        auto [cols, rows] = grid_dimensions(grid);
         if (col < 0 || col >= cols || row < 0 || row >= rows) {
             return '.';
         }
@@ -69,37 +75,27 @@ namespace {
     }
 
     bool adjacent_to_symbol(const std::vector<std::string>& grid, int col, int row, int len) {
-        for (const auto& loc : adjacent_locs(col, row, len)) {
-            if (is_symbol(get_grid_item(grid, loc.col, loc.row))) {
-                return true;
+        auto adj_locs = adjacent_locs(col, row, len);
+        return r::find_if(adj_locs, 
+            [&](auto&& loc) { 
+                return is_symbol(get_grid_item(grid, loc.col, loc.row)); 
             }
-        }
-        return false;
+        ) != adj_locs.end();
     }
 
-    std::string valid_number_str(const std::vector<std::string>& grid, int col, int row) {
-        std::stringstream ss;
-        int i = col;
-        int cols = static_cast<int>(grid.front().size());
-        while (i < cols && std::isdigit(grid[row][i])) {
-            ss << grid[row][i++];
-        }
-        if (adjacent_to_symbol(grid, col, row, i - col)) {
-            return ss.str();
-        } else {
-            return {};
-        }
-    }
-
-    template<typename F> requires std::invocable<F, int, int>
+    template<typename F> requires std::invocable<F, std::string, int, int>
     void visit_numbers(const std::vector<std::string>& grid, F visit) {
-        int cols = static_cast<int>(grid.front().size());
-        int rows = static_cast<int>(grid.size());
+        auto [cols, rows] = grid_dimensions(grid);
         for (int row = 0; row < rows; ++row) {
             for (int col = 0; col < cols; ++col) {
                 if (std::isdigit(grid[row][col])) {
-                    auto skip_cols = visit(col, row);
-                    col += skip_cols;
+                    std::stringstream ss;
+                    int i = col;
+                    while (std::isdigit(grid[row][i])) {
+                        ss << get_grid_item(grid, i++, row);
+                    }
+                    visit(ss.str(), col, row);
+                    col += static_cast<int>(ss.str().size() - 1);
                 }
             }
         }
@@ -108,13 +104,10 @@ namespace {
     int do_part_1(const std::vector<std::string>& grid) {
         int sum = 0;
         visit_numbers(grid,
-            [&](int col, int row)->int {
-                auto num_str = valid_number_str(grid, col, row);
-                if (!num_str.empty()) {
-                    sum += std::stoi(num_str);
-                    return static_cast<int>(num_str.size()) - 1;
+            [&](const std::string& str, int col, int row) {
+                if (adjacent_to_symbol(grid, col, row, static_cast<int>(str.size()))) {
+                    sum += std::stoi(str);
                 }
-                return 0;
             }
         );
         return sum;
@@ -124,18 +117,13 @@ namespace {
 
         loc_tbl<std::vector<int>> tbl;
         visit_numbers(grid,
-            [&](int col, int row)->int {
-                auto num_str = valid_number_str(grid, col, row);
-                if (!num_str.empty()) {
-                    int len = static_cast<int>(num_str.size());
-                    for (const auto& adj : adjacent_locs(col, row, len)) {
-                        if (get_grid_item(grid, adj.col, adj.row) == '*') {
-                            tbl[adj].push_back(std::stoi(num_str));
-                        }
+            [&](const std::string& num_str, int col, int row) {
+                int len = static_cast<int>(num_str.size());
+                for (const auto& adj : adjacent_locs(col, row, len)) {
+                    if (get_grid_item(grid, adj.col, adj.row) == '*') {
+                        tbl[adj].push_back(std::stoi(num_str));
                     }
-                    return static_cast<int>(num_str.size()) - 1;
                 }
-                return 0;
             }
         );
         return tbl;
