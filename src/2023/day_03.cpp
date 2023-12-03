@@ -18,6 +18,24 @@ namespace {
         int row;
     };
 
+    struct loc_hasher {
+        size_t operator()(const loc& loc) const {
+            size_t seed = 0;
+            boost::hash_combine(seed, loc.col);
+            boost::hash_combine(seed, loc.row);
+            return seed;
+        }
+    };
+
+    struct loc_equal {
+        bool operator()(const loc& loc1, const loc& loc2) const {
+            return loc1.col == loc2.col && loc1.row == loc2.row;
+        }
+    };
+
+    template<typename T>
+    using loc_tbl = std::unordered_map<loc, T, loc_hasher, loc_equal>;
+
     std::vector<loc> adjacent_locs(int col, int row, int len) {
         std::vector<loc> adj_locs;
 
@@ -73,67 +91,53 @@ namespace {
         }
     }
 
-    int do_part_1(const std::vector<std::string>& grid) {
+    template<typename F> requires std::invocable<F, int, int>
+    void visit_numbers(const std::vector<std::string>& grid, F visit) {
         int cols = static_cast<int>(grid.front().size());
         int rows = static_cast<int>(grid.size());
-        
-        int sum = 0;
         for (int row = 0; row < rows; ++row) {
             for (int col = 0; col < cols; ++col) {
                 if (std::isdigit(grid[row][col])) {
-                    auto num_str = valid_number_str(grid, col, row);
-                    if (!num_str.empty()) {
-                        sum += std::stoi(num_str);
-                        col += static_cast<int>(num_str.size()) - 1;
-                    }
+                    auto skip_cols = visit(col, row);
+                    col += skip_cols;
                 }
             }
         }
+    }
 
+    int do_part_1(const std::vector<std::string>& grid) {
+        int sum = 0;
+        visit_numbers(grid,
+            [&](int col, int row)->int {
+                auto num_str = valid_number_str(grid, col, row);
+                if (!num_str.empty()) {
+                    sum += std::stoi(num_str);
+                    return static_cast<int>(num_str.size()) - 1;
+                }
+                return 0;
+            }
+        );
         return sum;
     }
 
-    struct loc_hasher {
-        size_t operator()(const loc& loc) const {
-            size_t seed = 0;
-            boost::hash_combine(seed, loc.col);
-            boost::hash_combine(seed, loc.row);
-            return seed;
-        }
-    };
-
-    struct loc_equal {
-        bool operator()(const loc& loc1, const loc& loc2) const {
-            return loc1.col == loc2.col && loc1.row == loc2.row;
-        }
-    };
-
-    template<typename T>
-    using loc_tbl = std::unordered_map<loc, T, loc_hasher, loc_equal>;
-
     loc_tbl<std::vector<int>> build_gear_table(const std::vector<std::string>& grid) {
 
-        int cols = static_cast<int>(grid.front().size());
-        int rows = static_cast<int>(grid.size());
-
         loc_tbl<std::vector<int>> tbl;
-        int sum = 0;
-        for (int row = 0; row < rows; ++row) {
-            for (int col = 0; col < cols; ++col) {
-                if (std::isdigit(grid[row][col])) {
-                    auto num_str = valid_number_str(grid, col, row);
-                    if (!num_str.empty()) {
-                        int len = static_cast<int>(num_str.size());
-                        for (const auto& adj : adjacent_locs(col, row, len)) {
-                            if (get_grid_item(grid, adj.col, adj.row) == '*') {
-                                tbl[adj].push_back(std::stoi(num_str));
-                            }
+        visit_numbers(grid,
+            [&](int col, int row)->int {
+                auto num_str = valid_number_str(grid, col, row);
+                if (!num_str.empty()) {
+                    int len = static_cast<int>(num_str.size());
+                    for (const auto& adj : adjacent_locs(col, row, len)) {
+                        if (get_grid_item(grid, adj.col, adj.row) == '*') {
+                            tbl[adj].push_back(std::stoi(num_str));
                         }
-                        col += static_cast<int>(num_str.size()) - 1;
                     }
+                    return static_cast<int>(num_str.size()) - 1;
                 }
+                return 0;
             }
-        }
+        );
         return tbl;
     }
 
