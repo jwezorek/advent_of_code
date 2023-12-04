@@ -14,7 +14,7 @@ namespace {
             []() {aoc::y2023::day_01( "Trebuchet?!" ); },
             []() {aoc::y2023::day_02( "Cube Conundrum" ); },
             []() {aoc::y2023::day_03( "Gear Ratios" ); },
-            []() {aoc::y2023::day_04( "unknown"); }
+            []() {aoc::y2023::day_04( "Scratchcards" ); }
         };
         auto index = day - 1;
         if (index < 0) {
