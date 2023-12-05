@@ -15,6 +15,7 @@ namespace fs = std::filesystem;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
+
     void ltrim(std::string& s) {
         s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
             return !std::isspace(ch);
@@ -185,4 +186,30 @@ std::vector<int> aoc::extract_numbers(const std::string& str, bool allow_negativ
                 return std::stoi(p);
             }
     ) | r::to<std::vector<int>>();
+}
+
+std::vector<int64_t> aoc::extract_numbers_int64(const std::string& str, bool allow_negatives) {
+    std::function<bool(char)> is_digit = (allow_negatives) ?
+        [](char ch)->bool {return std::isdigit(ch); } :
+        [](char ch)->bool {return std::isdigit(ch) || ch == '-'; };
+    auto just_numbers = aoc::collapse_whitespace(str |
+        rv::transform(
+            [is_digit](char ch)->char {
+                return (is_digit(ch)) ? ch : ' ';
+            }
+        ) | r::to<std::string>()
+                );
+    auto pieces = split(just_numbers, ' ');
+    pieces = pieces |
+        rv::filter([](auto&& str) {return !str.empty(); }) |
+        r::to<std::vector<std::string>>();
+    return pieces |
+        rv::transform(
+            [](const auto& str)->int64_t {
+                int64_t value;
+                std::istringstream iss(str);
+                iss >> value;
+                return value;
+            }
+    ) | r::to<std::vector<int64_t>>();
 }
