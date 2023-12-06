@@ -61,7 +61,14 @@ namespace {
 
     int64_t do_part_2(const std::vector<race>& races) {
         auto race = get_part_2_input(races);
-        return count_ways_to_win(race);
+
+        auto D = static_cast<double>(race.distance);
+        auto T = static_cast<double>(race.time);
+        auto determinant = std::sqrt(-4.0 * D + T * T);
+        auto u = T / 2.0 - 0.5 * determinant;
+        auto v = T / 2.0 + 0.5 * determinant;
+
+        return static_cast<int64_t>( v - u);
     }
 }
 
