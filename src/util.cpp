@@ -188,6 +188,14 @@ std::vector<int> aoc::extract_numbers(const std::string& str, bool allow_negativ
     ) | r::to<std::vector<int>>();
 }
 
+
+int64_t aoc::string_to_int64(const std::string& str) {
+    int64_t value;
+    std::istringstream iss(str);
+    iss >> value;
+    return value;
+}
+
 std::vector<int64_t> aoc::extract_numbers_int64(const std::string& str, bool allow_negatives) {
     std::function<bool(char)> is_digit = (allow_negatives) ?
         [](char ch)->bool {return std::isdigit(ch); } :
@@ -205,11 +213,6 @@ std::vector<int64_t> aoc::extract_numbers_int64(const std::string& str, bool all
         r::to<std::vector<std::string>>();
     return pieces |
         rv::transform(
-            [](const auto& str)->int64_t {
-                int64_t value;
-                std::istringstream iss(str);
-                iss >> value;
-                return value;
-            }
-    ) | r::to<std::vector<int64_t>>();
+            string_to_int64
+        ) | r::to<std::vector<int64_t>>();
 }
