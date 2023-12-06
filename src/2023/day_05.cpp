@@ -27,7 +27,7 @@ namespace {
     };
 
     class almanac_map {
-        std::map<int, map_range> map_;
+        std::map<int64_t, map_range> map_;
     public:
         almanac_map(const std::vector<map_range>& ranges) {
             for (const auto& rng : ranges) {
@@ -36,7 +36,7 @@ namespace {
         }
 
         int64_t value(int64_t val) const {
-            auto iter = map_.lower_bound(val);
+            auto iter = map_.upper_bound(val);
             if (iter == map_.begin()) {
                 return val;
             }
