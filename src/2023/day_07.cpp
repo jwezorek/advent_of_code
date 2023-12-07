@@ -141,11 +141,12 @@ namespace {
 
         std::string nonjokers = hand |
             rv::filter([](char card) {return card != 'J'; }) | r::to<std::string>();
-        std::string unique_nonjokers = nonjokers | r::to<std::set<char>>() | r::to<std::string>();
-        int num_jokers = 5 - nonjokers.size();
+        std::string unique_nonjokers_plus_ace = (nonjokers + "A") | 
+            r::to<std::set<char>>() | r::to<std::string>();
+        int num_jokers = 5 - static_cast<int>(nonjokers.size());
 
         return r::max(
-            combos_with_repitition(unique_nonjokers + "A", num_jokers) |
+            combos_with_repitition(unique_nonjokers_plus_ace, num_jokers) |
                 rv::transform(
                     [&nonjokers](const std::string& joker_assignment)->hand_type {
                         return get_hand_type(nonjokers + joker_assignment);
