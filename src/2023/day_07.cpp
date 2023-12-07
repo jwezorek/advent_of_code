@@ -121,13 +121,10 @@ namespace {
     {
         if (k == 0) {
             return { "" };
-        }
-        else if (!items.empty()) {
+        } else if (!items.empty()) {
             std::vector<std::string> output;
             for (auto combo : combos_with_repitition(items, k - 1)) {
-                std::stringstream ss;
-                ss << items[0] << combo;
-                output.push_back(ss.str());
+                output.push_back(std::string(1, items[0]) + combo );
             }
             for (auto combo : combos_with_repitition(items | rv::drop(1) | r::to<std::string>(), k)) {
                 output.push_back(combo);
@@ -141,17 +138,20 @@ namespace {
         if (r::find_if(hand, [](char card) {return card == 'J'; }) == hand.end()) {
             return get_hand_type(hand);
         }
+
         std::string nonjokers = hand |
             rv::filter([](char card) {return card != 'J'; }) | r::to<std::string>();
         std::string unique_nonjokers = nonjokers | r::to<std::set<char>>() | r::to<std::string>();
         int num_jokers = 5 - nonjokers.size();
-        hand_type highest_type = hand_type::high_card;
-        for (auto joker_assignment : combos_with_repitition(unique_nonjokers + "A", num_jokers)) {
-            std::string new_hand = nonjokers + joker_assignment;
-            auto typ = get_hand_type(new_hand);
-            highest_type = (typ > highest_type) ? typ : highest_type;
-        }
-        return highest_type;
+
+        return r::max(
+            combos_with_repitition(unique_nonjokers + "A", num_jokers) |
+                rv::transform(
+                    [&nonjokers](const std::string& joker_assignment)->hand_type {
+                        return get_hand_type(nonjokers + joker_assignment);
+                    }
+                )
+        );
     }
 
     bool compare_hands(const std::string& lhs, const std::string& rhs, bool use_jokers) {
