@@ -66,19 +66,6 @@ namespace {
         five_of_a_kind
     };
 
-    std::string to_str(hand_type ht) {
-        const static std::vector<std::string> names = {
-            "high_card",
-            "one_pair",
-            "two_pair",
-            "three_of_a_kind",
-            "full_house",
-            "four_of_a_kind",
-            "five_of_a_kind"
-        };
-        return names[static_cast<int>(ht)];
-    }
-
     int card_strength(char card, bool use_jokers) {
         std::unordered_map<char, int> strengths = {
             {'A',12}, {'K',11}, {'Q',10}, {'J', use_jokers ? -1 : 9}, {'T',8}, {'9',7}, {'8',6}, {'7',5}, {'6',4},
