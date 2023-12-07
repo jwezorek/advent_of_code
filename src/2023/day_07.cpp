@@ -141,8 +141,10 @@ namespace {
 
         std::string nonjokers = hand |
             rv::filter([](char card) {return card != 'J'; }) | r::to<std::string>();
+
         std::string unique_nonjokers_plus_ace = (nonjokers + "A") | 
             r::to<std::set<char>>() | r::to<std::string>();
+
         int num_jokers = 5 - static_cast<int>(nonjokers.size());
 
         return r::max(
