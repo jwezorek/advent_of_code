@@ -167,8 +167,8 @@ std::vector<std::string> aoc::extract_alphabetic(const std::string& str) {
 
 std::vector<int> aoc::extract_numbers(const std::string& str, bool allow_negatives) {
     std::function<bool(char)> is_digit = (allow_negatives) ?
-        [](char ch)->bool {return std::isdigit(ch); } :
-        [](char ch)->bool {return std::isdigit(ch) || ch == '-'; };
+        [](char ch)->bool {return std::isdigit(ch) || ch == '-'; } :
+        [](char ch)->bool {return std::isdigit(ch); };
     auto just_numbers = aoc::collapse_whitespace( str |
         rv::transform(
             [is_digit](char ch)->char {

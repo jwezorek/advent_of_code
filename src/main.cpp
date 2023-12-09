@@ -18,7 +18,8 @@ namespace {
             []() {aoc::y2023::day_05( "If You Give A Seed A Fertilizer" ); },
             []() {aoc::y2023::day_06( "Wait For It" ); },
             []() {aoc::y2023::day_07("Camel Cards"); },
-            []() {aoc::y2023::day_08("Haunted Wasteland"); } 
+            []() {aoc::y2023::day_08("Haunted Wasteland"); },
+            []() {aoc::y2023::day_09("Mirage Maintenance"); }
         };
         auto index = day - 1;
         if (index < 0) {
