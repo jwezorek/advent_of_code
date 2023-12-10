@@ -183,23 +183,21 @@ int count_interior_cells(const std::string& row) {
         auto tile = row[i];
         if (tile == '.' && wall_count % 2 == 1) {
             interior_count++;
-        } else if (tile == 'L' || tile == 'F') {
-            state = (tile == 'L') ?
-                wall_state::open_north_to_east :
-                wall_state::open_south_to_east;
+        } else if (tile == 'L') {
+            state = wall_state::open_north_to_east;
+        } else if( tile == 'F') {
+            state = wall_state::open_south_to_east;
         } else if (tile == 'J') {
             if (state == wall_state::open_south_to_east) {
                 wall_count++;
             }
             state = wall_state::none;
-        }
-        else if (tile == '7') {
+        } else if (tile == '7') {
             if (state == wall_state::open_north_to_east) {
                 wall_count++;
             }
             state = wall_state::none;
-        }
-        else if (tile == '|') {
+        } else if (tile == '|') {
             wall_count++;
         }
     }
