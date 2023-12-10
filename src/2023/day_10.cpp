@@ -62,8 +62,6 @@ namespace {
     template<typename T>
     using loc_map = std::unordered_map<loc, T, loc_hash, loc_equal>;
 
-
-
     std::array<loc, 2> neighbor_offsets(char ch) {
         if (ch == '.' || ch == 'S') {
             return { loc{-1,-1}, loc{-1,-1} };
