@@ -5,8 +5,10 @@
 #include <numeric>
 #include <algorithm>
 #include <unordered_set>
+#include <unordered_map>
 #include <array>
 #include <boost/functional/hash.hpp>
+#include <tuple>
 #include <optional>
 
 namespace r = std::ranges;
@@ -42,6 +44,9 @@ namespace {
 
     using loc_set = std::unordered_set<loc, loc_hash, loc_equal>;
 
+    template<typename T>
+    using loc_map = std::unordered_map<loc, T, loc_hash, loc_equal>;
+
     bool operator==(const loc& lhs, const loc& rhs) {
         return loc_equal()(lhs, rhs);
     }
@@ -57,7 +62,6 @@ namespace {
             {'|', { loc{0,-1}, loc{0,1}}},
             {'-', { loc{-1,0}, loc{1,0}}},
             {'L', { loc{0,-1}, loc{1,0}}},
-            {'J', { loc{-1,0}, loc{0,-1}}},
             {'7', { loc{-1,0}, loc{0,1}}},
             {'F', { loc{1,0}, loc{0,1}}}
         };
@@ -113,13 +117,13 @@ namespace {
     }
 }
 
-loc move_cursor(const loc_set& visited, const std::vector<std::vector<cell>>& grid, const loc& current) {
+std::optional<loc> move_cursor(const loc_set& visited, const std::vector<std::vector<cell>>& grid, const loc& current) {
     for (const auto& next : grid[current.row][current.col]) {
         if (!visited.contains(next)) {
             return next;
         }
     }
-    throw std::runtime_error("something is wrong");
+    return {};
 }
 
 int do_part_1(const std::vector<std::vector<cell>>& grid, const loc& start) {
@@ -131,8 +135,8 @@ int do_part_1(const std::vector<std::vector<cell>>& grid, const loc& start) {
     visited.insert(cursor_2);
     int dist = 1;
     while (cursor_1 != cursor_2) {
-        cursor_1 = move_cursor(visited, grid, cursor_1);
-        cursor_2 = move_cursor(visited, grid, cursor_2);
+        cursor_1 = *move_cursor(visited, grid, cursor_1);
+        cursor_2 = *move_cursor(visited, grid, cursor_2);
         ++dist;
         visited.insert(cursor_1);
         visited.insert(cursor_2);
@@ -140,15 +144,87 @@ int do_part_1(const std::vector<std::vector<cell>>& grid, const loc& start) {
     return dist;
 }
 
+loc_set get_loop( const std::vector<std::vector<cell>>& grid, const loc& start) {
+    loc_set visited;
+    loc cursor = start;
 
+    do {
+        visited.insert(cursor);
+        auto next = move_cursor(visited, grid, cursor);
+        cursor = (next) ? *next : start;
+    } while (cursor != start);
+
+    return visited;
+}
+
+std::vector<std::string> paint_loop(const loc_set& loop, const std::vector<std::string>& txt_grid, char start_tile) {
+    int rows = static_cast<int>(txt_grid.size());
+    int cols = static_cast<int>(txt_grid.front().size());
+    std::vector<std::string> output(rows, std::string(cols, '.'));
+    for (const auto& p : loop) {
+        auto tile = txt_grid[p.row][p.col];
+        output[p.row][p.col] = (tile != 'S') ? tile : start_tile;
+    }
+    return output;
+}
+
+enum class wall_state {
+    open_south_to_east,
+    open_north_to_east,
+    none
+};
+
+int count_interior_cells(const std::string& row) {
+    wall_state state = wall_state::none;
+    int wall_count = 0;
+    int interior_count = 0;
+
+    for (int i = 0; i < row.size(); ++i) {
+        auto tile = row[i];
+        if (tile == '.' && wall_count % 2 == 1) {
+            interior_count++;
+        } else if (tile == 'L' || tile == 'F') {
+            state = (tile == 'L') ?
+                wall_state::open_north_to_east :
+                wall_state::open_south_to_east;
+        } else if (tile == 'J') {
+            if (state == wall_state::open_south_to_east) {
+                wall_count++;
+            }
+            state = wall_state::none;
+        }
+        else if (tile == '7') {
+            if (state == wall_state::open_north_to_east) {
+                wall_count++;
+            }
+            state = wall_state::none;
+        }
+        else if (tile == '|') {
+            wall_count++;
+        }
+    }
+    return interior_count;
+}
+
+char get_start_tile(const std::vector<std::vector<cell>>& grid, loc start) {
+    return '|';
+}
 
 /*------------------------------------------------------------------------------------------------*/
 
 void aoc::y2023::day_10(const std::string& title) {
 
-    const auto [start, grid] = parse_input(aoc::file_to_string_vector(aoc::input_path(2023, 10)));
+    const auto input = aoc::file_to_string_vector(aoc::input_path(2023, 10));
+    const auto [start, grid] = parse_input(input);
 
     std::println("--- Day 10: {0} ---\n", title);
     std::println("  part 1: {}", do_part_1(grid, start));
+    auto loop = get_loop(grid, start);
+    auto loop_painting = paint_loop(loop, input, get_start_tile(grid, start));
 
+    int sum = 0;
+    for (auto row : loop_painting) {
+        sum += count_interior_cells(row);
+    }
+    std::println("  part 2: {}",sum);
 }
