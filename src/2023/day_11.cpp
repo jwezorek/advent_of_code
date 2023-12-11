@@ -101,11 +101,7 @@ namespace {
         int64_t extra_rows = count_between(blank_rows, u.row, v.row);
         int64_t extra_cols = count_between(blank_cols, u.col, v.col);
 
-        if (scale == 1) {
-            return dist + extra_rows + extra_cols;
-        } else {
-            return dist + extra_rows * (scale - 1) + extra_cols * (scale - 1);
-        }
+        return dist + extra_rows * (scale - 1) + extra_cols * (scale - 1);
     }
 
     int64_t sum_of_distances(const std::vector<loc>& stars, const std::vector<int64_t>& blank_rows,
@@ -135,7 +131,7 @@ void aoc::y2023::day_11(const std::string& title) {
 
     std::println("--- Day 11: {0} ---\n", title);
     std::println("  part 1: {}",
-        sum_of_distances(stars, blank_rows, blank_cols, 1)
+        sum_of_distances(stars, blank_rows, blank_cols, 2)
     );
     std::println("  part 2: {}",
         sum_of_distances(stars, blank_rows, blank_cols, 1000000)
