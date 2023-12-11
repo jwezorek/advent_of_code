@@ -12,25 +12,25 @@ namespace rv = std::ranges::views;
 
 namespace {
     struct loc {
-        int col;
-        int row;
+        int64_t col;
+        int64_t row;
     };
 
-    std::tuple<int, int> dimensions(const std::vector<std::string>& inp) {
+    std::tuple<int64_t, int64_t> dimensions(const std::vector<std::string>& inp) {
         return {
-            static_cast<int>(inp.front().size()),
-            static_cast<int>(inp.size())
+            static_cast<int64_t>(inp.front().size()),
+            static_cast<int64_t>(inp.size())
         };
     }
 
-    std::vector<int> bound(const std::vector<int>& vals, int max) {
-        std::vector<int> bounded = { -1 };
+    std::vector<int64_t> bound(const std::vector<int64_t>& vals, int64_t max) {
+        std::vector<int64_t> bounded = { -1 };
         r::copy(vals, std::back_inserter(bounded));
         bounded.emplace_back(max);
         return bounded;
     }
 
-    std::vector<int> empty_rows(const std::vector<std::string>& inp) {
+    std::vector<int64_t> empty_rows(const std::vector<std::string>& inp) {
         auto [cols, rows] = dimensions(inp);
         return bound(
             rv::enumerate(inp) | rv::filter(
@@ -39,33 +39,33 @@ namespace {
                         return row.find('#') == std::string::npos;
                     }
                 ) | rv::transform(
-                    [](auto&& i_row)->int {
+                    [](auto&& i_row)->int64_t {
                         return std::get<0>(i_row);
                     }
-                ) | r::to<std::vector<int>>(),
+                ) | r::to<std::vector<int64_t>>(),
             rows
         );
     }
 
-    std::vector<int> empty_cols(const std::vector<std::string>& inp) {
+    std::vector<int64_t> empty_cols(const std::vector<std::string>& inp) {
         auto [cols, rows] = dimensions(inp);
         return bound(
             rv::iota(0, cols) | rv::filter(
-                    [&](int col)->bool {
+                    [&](int64_t col)->bool {
                         auto column = rv::iota(0, rows) |
                             rv::transform(
-                                [&](int row)->char {
+                                [&](int64_t row)->char {
                                     return inp.at(row).at(col);
                                 }
                         ) | r::to<std::string>();
                         return column.find('#') == std::string::npos;
                     }
-                ) | r::to<std::vector<int>>(),
+                ) | r::to<std::vector<int64_t>>(),
             cols
         );
     }
 
-    std::tuple<std::vector<loc>, std::vector<int>, std::vector<int>> parse_input(
+    std::tuple<std::vector<loc>, std::vector<int64_t>, std::vector<int64_t>> parse_input(
             const std::vector<std::string>& inp) {
         std::vector<loc> stars;
         for (const auto& [row_index, row] : rv::enumerate(inp)) {
@@ -82,36 +82,41 @@ namespace {
         };
     }
 
-    int count_between(const std::vector<int>& vals, int u, int v) {
+    int64_t count_between(const std::vector<int64_t>& vals, int64_t u, int64_t v) {
         auto iter_u = r::lower_bound(vals, u);
         auto iter_v = r::lower_bound(vals, v);
         return std::abs(iter_v - iter_u);
     }
 
-    int manhattan_distance(const loc& u, const loc& v) {
+    int64_t manhattan_distance(const loc& u, const loc& v) {
         return std::abs(u.col - v.col) + std::abs(u.row - v.row);
     }
 
-    int expanded_distance(const loc& u, const loc& v,
-            const std::vector<int>& blank_rows,
-            const std::vector<int>& blank_cols) {
+    int64_t expanded_distance(const loc& u, const loc& v,
+            const std::vector<int64_t>& blank_rows,
+            const std::vector<int64_t>& blank_cols,
+            int64_t scale) {
 
-        int dist = manhattan_distance(u, v);
-        int extra_rows = count_between(blank_rows, u.row, v.row);
-        int extra_cols = count_between(blank_cols, u.col, v.col);
+        int64_t dist = manhattan_distance(u, v);
+        int64_t extra_rows = count_between(blank_rows, u.row, v.row);
+        int64_t extra_cols = count_between(blank_cols, u.col, v.col);
 
-        return dist + extra_rows + extra_cols;
+        if (scale == 1) {
+            return dist + extra_rows + extra_cols;
+        } else {
+            return dist + extra_rows * (scale - 1) + extra_cols * (scale - 1);
+        }
     }
 
-    int do_part_1(const std::vector<loc>& stars, const std::vector<int>& blank_rows,
-            const std::vector<int>& blank_cols) {
-        int n = static_cast<int>(stars.size());
-        int sum = 0;
+    int64_t sum_of_distances(const std::vector<loc>& stars, const std::vector<int64_t>& blank_rows,
+            const std::vector<int64_t>& blank_cols, int64_t scale) {
+        int64_t n = static_cast<int64_t>(stars.size());
+        int64_t sum = 0;
 
-        for (int i = 0; i < n - 1; ++i) {
-            for (int j = i + 1; j < n; ++j) {
+        for (int64_t i = 0; i < n - 1; ++i) {
+            for (int64_t j = i + 1; j < n; ++j) {
                 sum += expanded_distance(
-                    stars[i], stars[j], blank_rows, blank_cols
+                    stars[i], stars[j], blank_rows, blank_cols, scale
                 );
             }
         }
@@ -128,9 +133,11 @@ void aoc::y2023::day_11(const std::string& title) {
         aoc::file_to_string_vector(aoc::input_path(2023, 11))
     );
 
-
     std::println("--- Day 11: {0} ---\n", title);
     std::println("  part 1: {}",
-        do_part_1(stars, blank_rows, blank_cols)
+        sum_of_distances(stars, blank_rows, blank_cols, 1)
+    );
+    std::println("  part 2: {}",
+        sum_of_distances(stars, blank_rows, blank_cols, 1000000)
     );
 }
