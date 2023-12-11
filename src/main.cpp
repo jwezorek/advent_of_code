@@ -20,7 +20,8 @@ namespace {
             []() {aoc::y2023::day_07( "Camel Cards"); },
             []() {aoc::y2023::day_08( "Haunted Wasteland"); },
             []() {aoc::y2023::day_09( "Mirage Maintenance"); },
-            []() {aoc::y2023::day_10( "Pipe Maze"); }
+            []() {aoc::y2023::day_10( "Pipe Maze"); },
+            []() {aoc::y2023::day_11( "Cosmic Expansion"); }
         };
         auto index = day - 1;
         if (index < 0) {
