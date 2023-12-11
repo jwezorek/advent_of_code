@@ -10,7 +10,7 @@
 
 namespace {
     int do_advent_of_code_2023(int day) {
-        const static auto advent_of_code_2022 = std::vector<std::function<void()>>{
+        const static auto advent_of_code_2023 = std::vector<std::function<void()>>{
             []() {aoc::y2023::day_01( "Trebuchet?!" ); },
             []() {aoc::y2023::day_02( "Cube Conundrum" ); },
             []() {aoc::y2023::day_03( "Gear Ratios" ); },
@@ -20,8 +20,21 @@ namespace {
             []() {aoc::y2023::day_07( "Camel Cards"); },
             []() {aoc::y2023::day_08( "Haunted Wasteland"); },
             []() {aoc::y2023::day_09( "Mirage Maintenance"); },
-            []() {aoc::y2023::day_10( "Pipe Maze"); },
-            []() {aoc::y2023::day_11( "Cosmic Expansion"); }
+            []() {aoc::y2023::day_10( "Pipe Maze" ); },
+            []() {aoc::y2023::day_11( "Cosmic Expansion"); },
+            []() {aoc::y2023::day_12( "???" ); },
+            []() {aoc::y2023::day_13( "???" ); },
+            []() {aoc::y2023::day_14( "???" ); },
+            []() {aoc::y2023::day_15( "???" ); },
+            []() {aoc::y2023::day_16( "???" ); },
+            []() {aoc::y2023::day_17( "???" ); },
+            []() {aoc::y2023::day_18( "???" ); },
+            []() {aoc::y2023::day_20( "???" ); },
+            []() {aoc::y2023::day_21( "???" ); },
+            []() {aoc::y2023::day_22( "???" ); },
+            []() {aoc::y2023::day_23( "???" ); },
+            []() {aoc::y2023::day_24( "???" ); },
+            []() {aoc::y2023::day_25( "???" ); }
         };
         auto index = day - 1;
         if (index < 0) {
@@ -29,8 +42,8 @@ namespace {
             return -1;
         }
 
-        if (index < advent_of_code_2022.size()) {
-            advent_of_code_2022[index]();
+        if (index < advent_of_code_2023.size()) {
+            advent_of_code_2023[index]();
         } else {
             std::print("Day {0} is not complete.\n", day);
         }
