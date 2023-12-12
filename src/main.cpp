@@ -22,7 +22,7 @@ namespace {
             []() {aoc::y2023::day_09( "Mirage Maintenance"); },
             []() {aoc::y2023::day_10( "Pipe Maze" ); },
             []() {aoc::y2023::day_11( "Cosmic Expansion"); },
-            []() {aoc::y2023::day_12( "???" ); },
+            []() {aoc::y2023::day_12( "Hot Springs" ); },
             []() {aoc::y2023::day_13( "???" ); },
             []() {aoc::y2023::day_14( "???" ); },
             []() {aoc::y2023::day_15( "???" ); },
