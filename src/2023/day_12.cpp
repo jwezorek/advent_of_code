@@ -43,36 +43,6 @@ namespace {
         );
     }
 
-    int get_run_length(const std::string& str, int i) {
-        char ch = str[i];
-        int j;
-        for (j = i; j < str.size(); ++j) {
-            if (str[j] != ch) {
-                break;
-            }
-        }
-        return j - i;
-    }
-
-    std::vector<std::string> get_pieces(const std::string& str) {
-        int i = 0;
-        std::vector<std::string> pieces;
-        while (i < str.size()) {
-            int run = get_run_length(str, i);
-            pieces.emplace_back(run, str[i]);
-            i += run;
-        }
-        return pieces;
-    }
-
-    std::string pieces_to_string(const std::vector<std::string>& pieces) {
-        std::stringstream ss;
-        for (auto piece : pieces) {
-            ss << piece;
-        }
-        return ss.str();
-    }
-
     std::vector<record> parse_input(const std::vector<std::string>& lines) {
         return lines | rv::transform(
             [](const std::string& line)->record {
