@@ -9,6 +9,7 @@
 #include <numeric>
 #include <format>
 #include <span>
+#include <unordered_map>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -38,7 +39,7 @@ namespace {
 
     std::string record_to_string(const record& rec) {
         return std::format(
-            "[ {0} : {1} ]", rec.row, join(rec.groups)
+            "{0}:{1}", rec.row, join(rec.groups)
         );
     }
 
@@ -74,220 +75,100 @@ namespace {
 
     std::vector<record> parse_input(const std::vector<std::string>& lines) {
         return lines | rv::transform(
-                [](const std::string& line)->record {
-                    auto parts = aoc::split(line, ' ');
-                    return {
-                        parts.front(),
-                        aoc::extract_numbers(parts.back())
-                    };
-                }
-            ) | r::to<std::vector<record>>();
+            [](const std::string& line)->record {
+                auto parts = aoc::split(line, ' ');
+                return {
+                    parts.front(),
+                    aoc::extract_numbers(parts.back())
+                };
+            }
+        ) | r::to<std::vector<record>>();
     }
 
-    bool check_row(const std::string& row, std::vector<int> groups) {
-        if (row.find('?') != std::string::npos) {
-            throw std::runtime_error("row not assigned");
-        }
-        auto new_row = row;
-        r::replace(new_row, '.', ' ');
-        new_row = aoc::collapse_whitespace(new_row);
-        auto row_groups = aoc::split(new_row, ' ');
-        if (row_groups.size() != groups.size()) {
+    bool is_valid_opening(const std::string& row, int i, int block_sz) {
+        // no "#' to the left...
+        if (row.substr(0, i).contains('#')) {
             return false;
         }
-        auto pairs = rv::zip(row_groups, groups);
-        return r::find_if(pairs,
-                [](const auto& pair)->bool {
-                    auto [str, sz] = pair;
-                    return str.size() != sz;
-                }
-            ) == pairs.end();
-    }
-
-    std::string assignment(int n, unsigned int index) {
-        std::string output(n, '.');
-        for (auto i = 0; i < n; ++i) {
-            if (index & (1 << i)) {
-                output[i] = '#';
-            }
+        // the block fits...
+        auto block_str = row.substr(i, block_sz);
+        if (block_str.contains('.')) {
+            return false;
         }
-        return output;
-    }
-
-    int max_index(int n) {
-        return (1 << n);
-    }
-
-    std::string assign(const std::string& string_with_unknowns, const std::string& assignment) {
-        auto output = string_with_unknowns;
-        auto iter = assignment.begin();
-        for (auto out_iter = output.begin(); out_iter != output.end(); ++out_iter) {
-            if (*out_iter == '?') {
-                *out_iter = *(iter++);
-            }
+        // the block is properly terminated...
+        if ((i + block_sz < row.size() && row[i + block_sz] == '#') || (i + block_sz > row.size())) {
+            return false;
         }
-        return output;
+        return true;
     }
 
-    int number_of_unknowns(const std::string& input) {
-        return r::fold_left(
-            input | rv::transform(
-                [](char ch)->int {
-                    return ch == '?' ? 1 : 0;
-                }
-            ),
-            0,
-            std::plus<>()
-        );
-    }
-
-    int count_valid_assignments(const record& rec) {
-        int num_unknowns = number_of_unknowns(rec.row);
-        return r::fold_left(
-            rv::iota(0, max_index(num_unknowns)) |
-            rv::transform(
-                [&](auto index)->int {
-                    auto test = assignment(num_unknowns, index);
-                    auto filled_in = assign(rec.row, test);
-                    return check_row(filled_in, rec.groups) ? 1 : 0;
-                }
-            ),
-            0,
-            std::plus<>()
-        );
-    }
-
-    using rule_fn = std::function<std::optional<record>(const record&)>;
-
-    bool is_dot(char ch) {
-        return ch == '.';
-    }
-
-    void ltrim_dots(std::string& s) {
-        s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-            return !is_dot(ch);
-            }));
-    }
-
-    void rtrim_dots(std::string& s) {
-        s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
-            return !is_dot(ch);
-            }).base(), s.end());
-    }
-
-    std::string trim_dots(const std::string& str) {
-        auto trimmed = str;
-        ltrim_dots(trimmed);
-        rtrim_dots(trimmed);
-        return trimmed;
-    }
-
-    std::optional<record> exact_match_unk_bounded(const record& inp) {
-        record output;
-        auto pieces = get_pieces(inp.row);
-        if (pieces.empty() || inp.groups.empty()) {
-            return {};
-        }
-        auto i = pieces.begin();
-        int leading_unks = 0;
-        if (i->front() == '?') {
-            leading_unks = i->size();
-            ++i;
-        }
-        if (i == pieces.end() || i->front() != '#' || i->size() < leading_unks) {
-            return {};
-        }
-        if (i->size() != inp.groups.front()) {
-            return {};
-        }
-        ++i;
-        if (i != pieces.end() && i->front() != '?') {
-            return {};
+    record rec_from_opening(const record& rec, int i) {
+        auto block_sz = rec.groups.front();
+        auto end_of_block = i + block_sz;
+        auto new_row = rec.row.substr(end_of_block, rec.row.size() - end_of_block);
+        if (!new_row.empty()) {
+            // if it hasn't reached the end of the row
+            // then there needs to be space for the block
+            // terminating '.';
+            new_row.erase(new_row.begin());
         }
 
-        auto new_groups = inp.groups;
+        auto new_groups = rec.groups;
         new_groups.erase(new_groups.begin());
-
-        pieces.erase(pieces.begin(), i);
-        if (!pieces.empty()) {
-            pieces.front().erase(pieces.front().begin());
-            if (pieces.front().empty()) {
-                pieces.erase(pieces.begin());
-            }
-        }
-        return { {pieces_to_string(pieces), new_groups} };
+        return { new_row, new_groups };
     }
 
-    std::optional<record> exact_multi_match_dot_bounded(const record& inp) {
-        record output;
-        auto pieces = get_pieces(inp.row);
-        if (pieces.empty() || inp.groups.empty()) {
-            return {};
+    bool is_empty_or_dots(const std::string& str) {
+        if (str.empty()) {
+            return true;
         }
-        int len = 0;
-        decltype(pieces.begin()) i;
-        bool contains_block = false;
-        for (i = pieces.begin(); i != pieces.end(); ++i) {
-            if (len >= inp.groups.front()) {
-                break;
-            }
-            if (i->front() == '.') {
-                break;
-            }
-            contains_block = contains_block || ( i->front() == '#');
-            len += i->size();
-        }
-        std::string next_piece = (i != pieces.end()) ? *i : "";
-        if (contains_block && len == inp.groups.front()  && (next_piece.empty() || next_piece.front() == '.')) {
-
-            pieces.erase(pieces.begin(), i);
-            auto groups = inp.groups;
-            groups.erase(groups.begin());
-            return { {pieces_to_string(pieces), groups} };
-        }
-        return {};
+        return r::all_of(str, [](char ch) {return ch == '.'; });
     }
 
-    record reverse(const record& rec) {
-        auto output = rec;
-        r::reverse(output.row);
-        r::reverse(output.groups);
-        return output;
-    }
-
-    std::optional<record> apply_rule_backwards(rule_fn rule, const record& rec) {
-        auto reversed = reverse(rec);
-        return rule(reversed).transform(reverse);
-    }
-
-    std::optional<record> apply_rule(rule_fn rule, const record& r) {
-        record rec(trim_dots(r.row), r.groups);
-        auto forw_results = rule(rec).value_or(rec);
-        auto back_results = apply_rule_backwards(rule, forw_results);
-        if (back_results) {
-            return back_results;
+    int64_t count_valid(const record& rec, std::unordered_map<std::string, int64_t>& memos) {
+        if (!rec.row.contains('#') && rec.groups.empty()) {
+            return 1;
         }
-        if (forw_results.row == rec.row) {
-            return {};
-        } else {
-            return forw_results;
+        if (rec.row.contains('#') && rec.groups.empty()) {
+            return 0;
         }
+        if (is_empty_or_dots(rec.row) && !rec.groups.empty()) {
+            return 0;
+        }
+
+        auto key = record_to_string(rec);
+        auto iter = memos.find(key);
+        if (iter != memos.end()) {
+            return iter->second;
+        }
+
+        int64_t sum = 0;
+        for (int i = 0; i <= rec.row.size(); ++i) {
+            if (is_valid_opening(rec.row, i, rec.groups.front())) {
+                sum += count_valid(rec_from_opening(rec, i), memos);
+            };
+        }
+
+        memos.emplace(key, sum);
+
+        return sum;
     }
 
-    record apply_rules(std::span<rule_fn> rules, const record& r) {
-        bool reduced = false;
-        auto rec = r;
-        do {
-            reduced = false;
-            for (auto rule : rules) {
-                auto result = apply_rule(rule, rec);
-                if (result) {
-                    rec = *result;
-                    reduced = true;
+    std::vector<record> make_part2_input(const std::vector<record>& inp) {
+        std::vector<record> output;
+        for (const auto& rec : inp) {
+            std::stringstream ss;
+            std::vector<int> groups;
+            for (int i = 0; i < 5; ++i) {
+                ss << rec.row;
+                if (i != 4) {
+                    ss << '?';
                 }
+                r::copy(rec.groups, std::back_inserter(groups));
             }
-        } while (reduced);
-        return rec;
+            output.emplace_back(ss.str(), groups);
+        }
+        return output;
     }
 }
 
@@ -297,34 +178,30 @@ void aoc::y2023::day_12(const std::string& title) {
 
     auto input = parse_input(aoc::file_to_string_vector(aoc::input_path(2023, 12)));
 
-    std::vector<rule_fn> rules = {
-        exact_multi_match_dot_bounded,
-        exact_match_unk_bounded
-    };
-
-    //auto res = apply_rules(rules, test);
-
-    for (auto rec : input) {
-        auto new_rec = apply_rules(rules, rec);
-        int old_count = count_valid_assignments(rec);
-        int new_count = count_valid_assignments(new_rec);
-        std::println("{0} => {1}, {2}", record_to_string(rec), record_to_string(new_rec),
-            old_count == new_count
-        );
-        if (old_count != new_count) {
-            int old_count = count_valid_assignments(rec);
-            int new_count = count_valid_assignments(new_rec);
-        }
-    }
-    
-    std::println("--- Day 12: {0} ---\n", title);
+    std::unordered_map<std::string, int64_t> memos;
 
     std::println("  part 1: {}",
         r::fold_left(
-            input | rv::transform(count_valid_assignments),
+            input | rv::transform(
+                [&memos](auto&& rec) {
+                    return count_valid(rec, memos);
+                }
+            ),
             0,
             std::plus<>()
         )
     );
-
+    
+    auto part2_input = make_part2_input(input);
+    std::println("  part 2: {}",
+        r::fold_left(
+            part2_input | rv::transform(
+                [&memos](auto&& rec) {
+                    return count_valid(rec, memos);
+                }
+            ),
+            0,
+            std::plus<>()
+        )
+    );
 }
