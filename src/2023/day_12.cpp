@@ -21,26 +21,13 @@ namespace {
         std::vector<int> groups;
     };
 
-    std::string join(const std::vector<int>& vec)
-    {
-        if (vec.empty()) {
-            return {};
-        }
-        if (vec.size() == 1) {
-            return std::to_string(vec.front());
-        }
-        std::stringstream ss;
-        for (int i = 0; i < vec.size()-1; ++i) {
-            ss << vec[i] << ", ";
-        }
-        ss << vec.back();
-        return ss.str();
-    }
-
     std::string record_to_string(const record& rec) {
-        return std::format(
-            "{0}:{1}", rec.row, join(rec.groups)
-        );
+        std::stringstream ss;
+        ss << rec.row << " ";
+        for (auto v : rec.groups) {
+            ss << v << " ";
+        }
+        return ss.str();
     }
 
     std::vector<record> parse_input(const std::vector<std::string>& lines) {
