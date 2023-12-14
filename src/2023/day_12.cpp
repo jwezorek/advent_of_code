@@ -83,14 +83,12 @@ namespace {
     }
 
     int64_t count_valid(const record& rec, std::unordered_map<std::string, int64_t>& memos) {
-        if (!rec.row.contains('#') && rec.groups.empty()) {
-            return 1;
-        }
-        if (rec.row.contains('#') && rec.groups.empty()) {
-            return 0;
-        }
-        if (is_empty_or_dots(rec.row) && !rec.groups.empty()) {
-            return 0;
+        if (rec.groups.empty()) {
+            return rec.row.contains('#') ? 0 : 1;
+        } else {
+            if (is_empty_or_dots(rec.row) ) {
+                return 0;
+            }
         }
 
         auto key = record_to_string(rec);
