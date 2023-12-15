@@ -22,13 +22,14 @@ namespace {
     }
 
     int hash_string(const std::string& str) {
-        int hash = 0;
-        for (auto ch : str) {
-            hash += ch;
-            hash *= 17;
-            hash = hash % 256;
-        }
-        return hash;
+        return r::fold_left(str, 0,
+            [](int hash, char ch)->int {
+                hash += ch;
+                hash *= 17;
+                hash = hash % 256;
+                return hash;
+            }
+        );
     }
 
     struct lens {
@@ -38,12 +39,12 @@ namespace {
 
     using elf_hash_table = std::array<std::vector<lens>, 256>;
 
-    struct op {
+    struct hash_op {
         std::string label;
         std::optional<int> val;
     };
 
-    op parse_hash_table_op(const std::string& str) {
+    hash_op parse_hash_table_op(const std::string& str) {
         if (str.back() == '-') {
             auto label = str.substr(0, str.size() - 1);
             return { label, {} };
@@ -53,7 +54,7 @@ namespace {
     }
 
     elf_hash_table generate_table(const std::vector<std::string>& input) {
-        auto ops = input | rv::transform(parse_hash_table_op) | r::to<std::vector<op>>();
+        auto ops = input | rv::transform(parse_hash_table_op) | r::to<std::vector<hash_op>>();
         elf_hash_table tbl;
         for (auto op : ops) {
             auto& box = tbl[hash_string(op.label)];
