@@ -26,7 +26,7 @@ namespace {
             [](int hash, char ch)->int {
                 hash += ch;
                 hash *= 17;
-                hash = hash % 256;
+                hash %= 256;
                 return hash;
             }
         );
