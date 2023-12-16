@@ -26,13 +26,6 @@ namespace {
         };
     }
 
-    loc operator-(const loc& lhs, const loc& rhs) {
-        return {
-            lhs.col - rhs.col,
-            lhs.row - rhs.row
-        };
-    }
-
     bool operator==(const loc& lhs, const loc& rhs) {
         return lhs.col == rhs.col && lhs.row == rhs.row;
     }
@@ -187,16 +180,6 @@ namespace {
         }
         return beams;
     }
-
-    int max_energized(const grid& g, const std::vector<beam>& starts) {
-        return r::max(
-            starts | rv::transform(
-                [&](auto&& start)->int {
-                    return simulate_contraption(g, start);
-                }
-            )
-        );
-    }
 }
 
 /*------------------------------------------------------------------------------------------------*/
@@ -206,11 +189,19 @@ void aoc::y2023::day_16(const std::string& title) {
     auto input = aoc::file_to_string_vector(aoc::input_path(2023, 16));
 
     std::println("--- Day 16: {0} ---\n", title);
+
     std::println("  part 1: {}", 
         simulate_contraption(input, { {-1,0}, east })
     );
+
     std::println("  part 2: {}",
-        max_energized(input, edge_starts(input))
+        r::max( 
+            edge_starts(input) |  rv::transform(
+                [&](auto&& start)->int {
+                    return simulate_contraption(input, start);
+                }
+            )
+        )
     );
     
 }
