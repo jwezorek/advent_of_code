@@ -59,20 +59,17 @@ namespace {
         }
     };
 
-    template<typename T>
-    using grid = std::vector<std::vector<T>>;
+    using grid = std::vector<std::vector<int>>;
 
-    template<typename T>
-    grid<T> init_grid(std::tuple<int, int> dim, T val) {
+    grid init_grid(std::tuple<int, int> dim, int val) {
         auto [cols, rows] = dim;
-        return grid<T>(
+        return grid(
             rows,
-            std::vector<T>(cols, val)
+            std::vector<int>(cols, val)
         );
     }
 
-    template<typename T>
-    std::tuple<int, int> dimensions(const grid<T>& g) {
+    std::tuple<int, int> dimensions(const grid& g) {
         return {
             static_cast<int>(g.front().size()),
             static_cast<int>(g.size())
@@ -108,7 +105,7 @@ namespace {
                     }
                     return true;
                 }
-            ) | r::to< std::vector<direction>>();
+            ) | r::to<std::vector<direction>>();
     }
 
     loc direction_to_offset(direction dir) {
@@ -182,7 +179,7 @@ namespace {
         );
     }
 
-    int dijkstra_shortest_path(const grid<int>& g, const loc& start, const loc& end, neighbors_fn neigh_fn) {
+    int dijkstra_shortest_path(const grid& g, const loc& start, const loc& end, neighbors_fn neigh_fn) {
         auto [cols, rows] = dimensions(g);
 
         std::unordered_map<state, int, state_hash> dist;
