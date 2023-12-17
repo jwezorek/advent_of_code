@@ -61,14 +61,6 @@ namespace {
 
     using grid = std::vector<std::vector<int>>;
 
-    grid init_grid(std::tuple<int, int> dim, int val) {
-        auto [cols, rows] = dim;
-        return grid(
-            rows,
-            std::vector<int>(cols, val)
-        );
-    }
-
     std::tuple<int, int> dimensions(const grid& g) {
         return {
             static_cast<int>(g.front().size()),
