@@ -27,7 +27,7 @@ namespace {
             []() {aoc::y2023::day_14( "Parabolic Reflector Dish" ); },
             []() {aoc::y2023::day_15( "Lens Library" ); },
             []() {aoc::y2023::day_16( "The Floor Will Be Lava" ); },
-            []() {aoc::y2023::day_17( "???" ); },
+            []() {aoc::y2023::day_17( "Clumsy Crucible" ); },
             []() {aoc::y2023::day_18( "???" ); },
             []() {aoc::y2023::day_20( "???" ); },
             []() {aoc::y2023::day_21( "???" ); },

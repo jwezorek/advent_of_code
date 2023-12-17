@@ -62,6 +62,10 @@ namespace aoc {
             item_to_mmap_iter_[loc] = iter;
         }
 
+        bool contains(const V& v) const {
+            return item_to_mmap_iter_.contains(v);
+        }
+
         void change_priority(const V& loc, int priority) {
             auto iter = item_to_mmap_iter_[loc];
             priority_to_item_.erase(iter);
