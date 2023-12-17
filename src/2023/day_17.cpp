@@ -31,15 +31,6 @@ namespace {
         return lhs.col == rhs.col && lhs.row == rhs.row;
     }
 
-    struct loc_hash {
-        size_t operator()(const loc& loc) const {
-            size_t seed = 0;
-            boost::hash_combine(seed, loc.col);
-            boost::hash_combine(seed, loc.row);
-            return seed;
-        }
-    };
-
     enum direction {
         north = 0,
         west,
@@ -195,7 +186,7 @@ namespace {
         auto [cols, rows] = dimensions(g);
 
         std::unordered_map<state, int, state_hash> dist;
-        aoc::priority_queue<state,state_hash> queue;
+        aoc::priority_queue<state, state_hash> queue;
         state start_state = { start, north, 0 };
         queue.insert(start_state, 0);
         dist[start_state] = 0;
