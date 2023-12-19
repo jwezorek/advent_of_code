@@ -242,7 +242,7 @@ namespace {
         };
     }
 
-    int64_t count_accepted_ranges(const workflow_tbl& workflows, 
+    int64_t count_accepted_parts(const workflow_tbl& workflows, 
         const std::string& start, const part_range& input = full_ranges()) {
         int64_t output = 0;
         const auto& curr_workflow = workflows.at(start);
@@ -254,7 +254,7 @@ namespace {
             if (rule.dest == "A") {
                 output += applicable.size();
             } else if (rule.dest != "R") {
-                output += count_accepted_ranges(workflows, rule.dest, applicable);
+                output += count_accepted_parts(workflows, rule.dest, applicable);
             }
 
             current_range = inapplicable;
@@ -290,7 +290,7 @@ void aoc::y2023::day_19(const std::string& title) {
     );
 
     std::println("  part 2: {}",
-        count_accepted_ranges(workflows, "in")
+        count_accepted_parts(workflows, "in")
     );
 
 }
