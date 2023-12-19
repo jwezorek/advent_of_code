@@ -70,9 +70,6 @@ namespace {
 
     part parse_part(const std::string& line) {
         auto values = aoc::extract_numbers(line);
-        if (values.size() != 4) {
-            throw std::runtime_error("something is wrong");
-        }
         return {
             values[0],
             values[1],
