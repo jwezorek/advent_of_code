@@ -154,7 +154,6 @@ namespace {
     }
 
     using interval = icl::discrete_interval<int>;
-    using interval_set = icl::interval_set<int>;
 
     const int k_max_val = 4000;
 
@@ -171,23 +170,16 @@ namespace {
     }
 
     struct part_range {
-        interval_set x;
-        interval_set m;
-        interval_set a;
-        interval_set s;
+        interval x;
+        interval m;
+        interval a;
+        interval s;
 
-        part_range(interval_set x, interval_set m, interval_set a, interval_set s) :
+        part_range(interval x, interval m, interval a, interval s) :
             x(x), m(m), a(a), s(s)
         {}
 
-        part_range() {
-            x.insert(make_interval(1, k_max_val));
-            m.insert(make_interval(1, k_max_val));
-            a.insert(make_interval(1, k_max_val));
-            s.insert(make_interval(1, k_max_val));
-        }
-
-        interval_set& operator[](char ch) {
+        interval& operator[](char ch) {
             switch (ch) {
                 case 'x': return x;
                 case 'm': return m;
@@ -209,6 +201,14 @@ namespace {
         return { {}, {}, {}, {} };
     }
 
+    part_range full_ranges() {
+        return { make_interval(1, k_max_val),
+            make_interval(1, k_max_val),
+            make_interval(1, k_max_val),
+            make_interval(1, k_max_val) 
+        };
+    }
+
     part_range intersection_of_part_ranges(const part_range& lhs, const part_range& rhs) {
         return {
             lhs.x & rhs.x,
@@ -219,19 +219,19 @@ namespace {
     }
 
     std::tuple<part_range, part_range> split_ranges(const rule& r) {
-        interval_set applicable_range;
-        interval_set inapplicable_range;
+        interval applicable_range;
+        interval inapplicable_range;
+
         if (r.less_than) {
-            applicable_range = interval_set{ less_than(r.value) };
-            inapplicable_range = interval_set{ greater_than(r.value - 1) };
-        }
-        else {
-            applicable_range = interval_set{ greater_than(r.value) };
-            inapplicable_range = interval_set{ less_than(r.value + 1) };
+            applicable_range = less_than(r.value) ;
+            inapplicable_range = greater_than(r.value - 1);
+        } else {
+            applicable_range = greater_than(r.value);
+            inapplicable_range = less_than(r.value + 1);
         }
 
-        part_range applicable;
-        part_range inapplicable;
+        part_range applicable = full_ranges();
+        part_range inapplicable = full_ranges();
         applicable[r.category] = applicable_range;
         inapplicable[r.category] = inapplicable_range;
 
@@ -250,14 +250,14 @@ namespace {
     }
 
     int64_t count_accepted_ranges(const workflow_tbl& workflows, 
-        const std::string& start, const part_range& input = {}) {
+        const std::string& start, const part_range& input = full_ranges()) {
         int64_t output = 0;
         const auto& curr_workflow = workflows.at(start);
         auto current_range = input;
+
         for (const auto& rule : curr_workflow.rules) {
             auto [applicable, inapplicable] = split_range_on_rule(current_range, rule);
 
-            int64_t add_to_output = 0;
             if (rule.dest == "A") {
                 output += applicable.size();
             } else if (rule.dest != "R") {
@@ -266,9 +266,9 @@ namespace {
 
             current_range = inapplicable;
         }
+
         return output;
     }
-
 }
 
 /*------------------------------------------------------------------------------------------------*/
