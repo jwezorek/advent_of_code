@@ -29,13 +29,14 @@ namespace {
             []() {aoc::y2023::day_16( "The Floor Will Be Lava" ); },
             []() {aoc::y2023::day_17( "Clumsy Crucible" ); },
             []() {aoc::y2023::day_18( "Lavaduct Lagoon" ); },
+            []() {aoc::y2023::day_19( "Aplenty"); },
             []() {aoc::y2023::day_20( "???" ); },
             []() {aoc::y2023::day_21( "???" ); },
             []() {aoc::y2023::day_22( "???" ); },
             []() {aoc::y2023::day_23( "???" ); },
             []() {aoc::y2023::day_24( "???" ); },
             []() {aoc::y2023::day_25( "???" ); }
-        };
+        }; 
         auto index = day - 1;
         if (index < 0) {
             std::print("invalid day: {0}\n", day);
