@@ -156,7 +156,7 @@ namespace {
     using interval = icl::discrete_interval<int>;
     using interval_set = icl::interval_set<int>;
 
-    const int k_max_val = 4;
+    const int k_max_val = 4000;
 
     interval make_interval(int from, int to) {
         return interval(from, to, icl::interval_bounds::closed());
@@ -170,28 +170,17 @@ namespace {
         return make_interval(val + 1, k_max_val);
     }
 
-    interval_set union_of_sets(const interval_set& lhs, const interval_set& rhs) {
-        interval_set union_;
-        for (const auto& inter : lhs) {
-            union_.insert(inter);
-        }
-        for (const auto& inter : rhs) {
-            union_.insert(inter);
-        }
-        return union_;
-    }
-
-    struct part_ranges {
+    struct part_range {
         interval_set x;
         interval_set m;
         interval_set a;
         interval_set s;
 
-        part_ranges(interval_set x, interval_set m, interval_set a, interval_set s) :
+        part_range(interval_set x, interval_set m, interval_set a, interval_set s) :
             x(x), m(m), a(a), s(s)
         {}
 
-        part_ranges() {
+        part_range() {
             x.insert(make_interval(1, k_max_val));
             m.insert(make_interval(1, k_max_val));
             a.insert(make_interval(1, k_max_val));
@@ -216,20 +205,11 @@ namespace {
         }
     };
 
-    part_ranges empty_ranges() {
+    part_range empty_ranges() {
         return { {}, {}, {}, {} };
     }
 
-    part_ranges union_of_part_ranges(const part_ranges& lhs, const part_ranges& rhs) {
-        return {
-            union_of_sets(lhs.x, rhs.x),
-            union_of_sets(lhs.m, rhs.m),
-            union_of_sets(lhs.a, rhs.a),
-            union_of_sets(lhs.s, rhs.s)
-        };
-    }
-
-    part_ranges intersection_of_part_ranges(const part_ranges& lhs, const part_ranges& rhs) {
+    part_range intersection_of_part_ranges(const part_range& lhs, const part_range& rhs) {
         return {
             lhs.x & rhs.x,
             lhs.m & rhs.m,
@@ -238,7 +218,7 @@ namespace {
         };
     }
 
-    std::tuple<part_ranges, part_ranges> split_ranges(const rule& r) {
+    std::tuple<part_range, part_range> split_ranges(const rule& r) {
         interval_set applicable_range;
         interval_set inapplicable_range;
         if (r.less_than) {
@@ -250,15 +230,15 @@ namespace {
             inapplicable_range = interval_set{ less_than(r.value + 1) };
         }
 
-        part_ranges applicable;
-        part_ranges inapplicable;
+        part_range applicable;
+        part_range inapplicable;
         applicable[r.category] = applicable_range;
         inapplicable[r.category] = inapplicable_range;
 
         return { std::move(applicable), std::move(inapplicable) };
     }
 
-    std::tuple<part_ranges, part_ranges> split_range_on_rule(const part_ranges& input, const rule& rule) {
+    std::tuple<part_range, part_range> split_range_on_rule(const part_range& input, const rule& rule) {
         if (rule.is_default()) {
             return { input, empty_ranges() };
         }
@@ -269,28 +249,25 @@ namespace {
         };
     }
 
-    part_ranges find_accepted_ranges(const part_ranges& input, const workflow_tbl& workflows, const std::string& start) {
-        part_ranges output = empty_ranges();
+    int64_t count_accepted_ranges(const workflow_tbl& workflows, 
+        const std::string& start, const part_range& input = {}) {
+        int64_t output = 0;
         const auto& curr_workflow = workflows.at(start);
         auto current_range = input;
         for (const auto& rule : curr_workflow.rules) {
             auto [applicable, inapplicable] = split_range_on_rule(current_range, rule);
 
-            part_ranges add_to_output = empty_ranges();
+            int64_t add_to_output = 0;
             if (rule.dest == "A") {
-                add_to_output = applicable;
+                output += applicable.size();
             } else if (rule.dest != "R") {
-                add_to_output = find_accepted_ranges(applicable, workflows, rule.dest);
+                output += count_accepted_ranges(workflows, rule.dest, applicable);
             }
-
-            output = union_of_part_ranges(output, add_to_output);
-            auto debug = output.size();
 
             current_range = inapplicable;
         }
         return output;
     }
-
 
 }
 
@@ -299,16 +276,17 @@ namespace {
 
 void aoc::y2023::day_19(const std::string& title) {
 
-    auto [workflows, parts] = parse_input(
-        aoc::file_to_string_vector(aoc::input_path(2023, 19, "test2"))
+    auto [wfs, parts] = parse_input(
+        aoc::file_to_string_vector(aoc::input_path(2023, 19))
     );
-    auto tbl = make_workflow_table(workflows);
+    auto workflows = make_workflow_table(wfs);
+
     std::println("--- Day 19: {} ---\n", title);
     std::println("  part 1: {}",
         r::fold_left(
             parts | rv::filter(
-                [&tbl](auto&& p) {
-                    return part_is_accepted(tbl, p);
+                [&workflows](auto&& p) {
+                    return part_is_accepted(workflows, p);
                 }
             ) | rv::transform(
                 score_part
@@ -318,25 +296,9 @@ void aoc::y2023::day_19(const std::string& title) {
         )
     );
 
-    auto test = find_accepted_ranges(part_ranges(), tbl, "in");
+    std::println("  part 2: {}",
+        count_accepted_ranges(workflows, "in")
+    );
 
-    int64_t x = icl::cardinality(test.x);
-    int64_t m = icl::cardinality(test.m);
-    int64_t aa = icl::cardinality(test.a);
-    int64_t s = icl::cardinality(test.s);
-    std::println("{}", x * m * aa * s);
-
-    auto a = make_interval(6, 10);
-    auto b = make_interval(12, 13);
-    auto d = make_interval(1, 6);
-    auto e = make_interval(13, 20);
-    auto foo = union_of_sets(interval_set(a), interval_set(b));
-    auto bar = union_of_sets(interval_set(d), interval_set(e));
-
-    foo = foo & bar;
-
-    for (auto it = foo.begin(); it != foo.end(); it++) {
-        std::cout << it->lower() << ", " << it->upper() << "\n";
-    }
 }
     
