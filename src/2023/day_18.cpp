@@ -2,12 +2,9 @@
 #include "../util.h"
 #include <print>
 #include <ranges>
-#include <numeric>
-#include <algorithm>
 #include <unordered_map>
 #include <sstream>
 #include <boost/geometry.hpp>
-#include <boost/geometry/algorithms/envelope.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/geometries/register/point.hpp>
 
@@ -152,10 +149,11 @@ namespace {
     }
 
     std::vector<point> vertices_for_part2(const std::vector<dig_plan_item>& dig_plan) {
-        auto new_dig_plan = dig_plan | rv::transform(
+        return dig_plan_to_verts(
+            dig_plan | rv::transform(
                 make_part2_dig_plan_item
-            ) | r::to< std::vector<dig_plan_item>>();
-        return dig_plan_to_verts(new_dig_plan);
+            ) | r::to< std::vector<dig_plan_item>>()
+        );
     }
 }
 
