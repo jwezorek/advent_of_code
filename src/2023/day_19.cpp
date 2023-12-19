@@ -20,10 +20,6 @@ namespace {
         bool less_than;
         int value;
         std::string dest;
-
-        bool is_default() const {
-            return category == '\0';
-        }
     };
 
     struct workflow {
@@ -118,7 +114,7 @@ namespace {
     }
 
     std::string process_rule(const rule& r, const part& p) {
-        if (r.is_default()) {
+        if (! r.category) {
             return r.dest;
         }
         auto part_val = p[r.category];
@@ -239,7 +235,7 @@ namespace {
     }
 
     std::tuple<part_range, part_range> split_range_on_rule(const part_range& input, const rule& rule) {
-        if (rule.is_default()) {
+        if (! rule.category) {
             return { input, empty_ranges() };
         }
         auto [applicable, innapplicable] = split_ranges(rule);
