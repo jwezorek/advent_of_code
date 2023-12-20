@@ -30,7 +30,7 @@ namespace {
             []() {aoc::y2023::day_17( "Clumsy Crucible" ); },
             []() {aoc::y2023::day_18( "Lavaduct Lagoon" ); },
             []() {aoc::y2023::day_19( "Aplenty"); },
-            []() {aoc::y2023::day_20( "???" ); },
+            []() {aoc::y2023::day_20( "Pulse Propagation" ); },
             []() {aoc::y2023::day_21( "???" ); },
             []() {aoc::y2023::day_22( "???" ); },
             []() {aoc::y2023::day_23( "???" ); },
