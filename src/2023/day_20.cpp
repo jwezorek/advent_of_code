@@ -133,6 +133,7 @@ namespace {
                 input_state_ | rv::values, 
                 [](signal_type lvl) {return lvl == high; }
             );
+
             signal_type output_level = all_high ? low : high;
             return destinations_ | rv::transform(
                 [&](auto&& dest)->signal {
@@ -273,39 +274,42 @@ namespace {
         return low_total * high_total;
     }
 
-    bool do_button_press(module_graph& graph) {
-        std::queue<signal> queue;
-        queue.push({ "button", "broadcaster", low });
-
-        while (!queue.empty()) {
-            auto signal = queue.front();
-            queue.pop();
-
-            if (signal.dest == "rx" && signal.level == low) {
-                return true;
-            }
-
-            auto emitted_sigs = graph[signal.dest]->receive_signal(signal);
-            for (const auto& emitted : emitted_sigs) {
-                queue.push(emitted);
-            }
-        }
-
-        return false;
-    }
-
-    int64_t do_part_2(module_graph& graph) {
+    int64_t find_cycle(module_graph& graph, std::string from) {
         initialize_graph(graph);
 
-        bool done = false;
         int64_t button_count = 0;
+        int first_count = 0;
+        int second_count = 0;
 
-        while (!done) {
+        while (second_count == 0) {
             button_count++;
-            done = do_button_press(graph);
+            std::queue<signal> queue;
+            queue.push({ "button", "broadcaster", low });
+
+            while (!queue.empty()) {
+                auto signal = queue.front();
+                queue.pop();
+
+                if (signal.src == from && signal.level == high) {
+                    if (first_count == 0) {
+                        first_count = button_count;
+                    } else {
+                        second_count = button_count;
+                    }
+                    button_count = 0;
+                }
+
+                auto emitted_sigs = graph[signal.dest]->receive_signal(signal);
+                for (const auto& emitted : emitted_sigs) {
+                    queue.push(emitted);
+                }
+            }
+        }
+        if (first_count != second_count) {
+            throw std::runtime_error("more complicated cycle");
         }
 
-        return button_count;
+        return first_count;
     }
 
     void generate_dot_file(const std::string& fname, const module_graph& graph) {
@@ -337,7 +341,12 @@ void aoc::y2023::day_20(const std::string& title) {
     std::println("--- Day 20: {0} ---\n", title);
     std::println("  part 1: {}", do_part_1(graph));
 
-    generate_dot_file("C:\\test\\aoc_day_20.dot", graph);
-    //std::println("  part 2: {}", do_part_2(graph));
+    int64_t xm, nh, dr, tr;
+    xm = find_cycle(graph, "xm");
+    nh = find_cycle(graph, "nh");
+    dr = find_cycle(graph, "dr");
+    tr = find_cycle(graph, "tr");
+
+    std::println("  part 2: {}", std::lcm(xm, std::lcm(nh, std::lcm(dr, tr))));
 
 }
