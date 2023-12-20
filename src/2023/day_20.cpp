@@ -10,6 +10,9 @@
 #include <functional>
 #include <queue>
 
+#include <format>
+#include <fstream>
+
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
 
@@ -77,6 +80,18 @@ namespace {
     public:
         base_module(const std::string& name) : name_(name) {}
 
+        std::string name() const { 
+            return name_; 
+        }
+
+        virtual std::string shape() const {
+            return "plaintext";
+        }
+
+        std::vector<std::string> destinations() const { 
+            return destinations_; 
+        }
+
         virtual void add_source(const std::string& src) {
         }
 
@@ -108,6 +123,10 @@ namespace {
             }
         }
 
+        virtual std::string shape() const override {
+            return "circle";
+        }
+
         std::vector<signal> receive_signal(const signal& sig) override {
             input_state_[sig.src] = sig.level;
             auto all_high = r::all_of(
@@ -132,6 +151,10 @@ namespace {
 
         virtual void initialize() {
             is_on_ = false;
+        }
+
+        virtual std::string shape() const override {
+            return "diamond";
         }
 
         std::vector<signal> receive_signal(const signal& sig) override {
@@ -159,6 +182,10 @@ namespace {
                     return { name_, dest, sig.level };
                 }
             ) | r::to<std::vector<signal>>();
+        }
+
+        virtual std::string shape() const override {
+            return "doublecircle";
         }
     };
 
@@ -280,6 +307,24 @@ namespace {
 
         return button_count;
     }
+
+    void generate_dot_file(const std::string& fname, const module_graph& graph) {
+        std::ofstream out(fname);
+
+        out << "digraph aoc_day_20 {\n";
+        for (const auto& u : graph | rv::values) {
+            out << std::format("    {0} [shape=\"{1}\"]\n", u->name(), u->shape());
+        }
+
+        for (const auto& u : graph | rv::values) {
+            for (const auto& v : u->destinations()) {
+                out << std::format("    {0} -> {1}\n", u->name(), v);
+            }
+        }
+        out << "}\n";
+
+        out.close();
+    }
 }
 
 /*------------------------------------------------------------------------------------------------*/
@@ -291,6 +336,8 @@ void aoc::y2023::day_20(const std::string& title) {
 
     std::println("--- Day 20: {0} ---\n", title);
     std::println("  part 1: {}", do_part_1(graph));
-    std::println("  part 2: {}", do_part_2(graph));
+
+    generate_dot_file("C:\\test\\aoc_day_20.dot", graph);
+    //std::println("  part 2: {}", do_part_2(graph));
 
 }
