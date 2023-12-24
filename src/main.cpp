@@ -32,7 +32,7 @@ namespace {
             []() {aoc::y2023::day_19( "Aplenty"); },
             []() {aoc::y2023::day_20( "Pulse Propagation" ); },
             []() {aoc::y2023::day_21( "Step Counter" ); },
-            []() {aoc::y2023::day_22( "???" ); },
+            []() {aoc::y2023::day_22( "Sand Slabs" ); },
             []() {aoc::y2023::day_23( "???" ); },
             []() {aoc::y2023::day_24( "???" ); },
             []() {aoc::y2023::day_25( "???" ); }
