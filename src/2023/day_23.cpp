@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <tuple>
 #include <queue>
+#include <stack>
+#include <memory>
 #include <boost/functional/hash.hpp>
 
 
@@ -228,6 +230,62 @@ namespace {
         return actual_dist.back()-2;
     }
 
+    graph part2_graph(const graph& g) {
+        graph graph = g;
+        for (const auto& [u,node] : rv::enumerate(g)) {
+            for (auto [dist, v] : node.neighbors) {
+                graph[v].neighbors.emplace_back(dist, u);
+            }
+        }
+        return graph;
+    }
+
+    struct part2_state {
+        std::vector<int> path;
+        int length;
+    };
+
+    int longest_path_undirected(const graph& g) {
+        auto graph = part2_graph(g);
+        std::stack<std::shared_ptr<part2_state>> stack;
+        stack.push(std::make_shared<part2_state>(std::vector{ 0 }, 0));
+
+        int longest = 0;
+
+        while (!stack.empty()) {
+            auto state = stack.top();
+            stack.pop();
+
+            int u = state->path.back();
+            if (u == graph.size() - 1) {
+                if (state->length > longest) {
+                    longest = state->length;
+                    if (longest == 164) {
+                        for (int item : state->path) { 
+                            std::println("{} [{},{}]",
+                                item,
+                                g[item].pos.col,
+                                g[item].pos.row
+                            );
+                        }
+                    }
+                }
+                continue;
+            }
+
+            auto visited = state->path | r::to<std::unordered_set<int>>();
+            for (auto [dist, v] : graph.at(u).neighbors) {
+                if (visited.contains(v)) {
+                    continue;
+                }
+                auto new_path = state->path;
+                new_path.push_back(v);
+                stack.push(std::make_shared<part2_state>(new_path, state->length + dist));
+            }
+        }
+
+        return longest - 2;
+    }
 }
 
 /*------------------------------------------------------------------------------------------------*/
@@ -235,9 +293,10 @@ namespace {
 void aoc::y2023::day_23(const std::string& title) {
 
     auto graph = parse_input(
-        aoc::file_to_string_vector(aoc::input_path(2023, 23))
+        aoc::file_to_string_vector(aoc::input_path(2023, 23, "test"))
     );
 
     std::println("--- Day 23: {0} ---\n", title);
     std::println("  part 1: {}", longest_path(graph));
+    std::println("  part 2: {}", longest_path_undirected(graph));
 }
