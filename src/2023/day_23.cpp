@@ -108,7 +108,7 @@ namespace {
         int dist;
     };
 
-    std::vector<loc> neighbors(const grid& grid, const loc& pos) {
+    std::vector<loc> neighbors(const grid& grid, const loc& pos, bool part1 = true) {
         auto [cols, rows] = dimensions(grid);
         static const std::array<loc, 4> offsets = {{ {0,-1}, {-1,0}, {0,1}, {1,0} }};
         return offsets |
@@ -118,8 +118,10 @@ namespace {
                 }
             ) | rv::filter(
                 [&](auto&& p) {
-                    if (p == loc{ cols - 2, rows }) {
-                        return true;
+                    if (part1) {
+                        if (p == loc{ cols - 2, rows }) {
+                            return true;
+                        }
                     }
                     if (p.col < 0 || p.col >= cols || p.row < 0 || p.row >= rows) {
                         return false;
@@ -230,23 +232,89 @@ namespace {
         return actual_dist.back()-2;
     }
 
-    graph part2_graph(const graph& g) {
-        graph graph = g;
-        for (const auto& [u,node] : rv::enumerate(g)) {
-            for (auto [dist, v] : node.neighbors) {
-                graph[v].neighbors.emplace_back(dist, u);
+    int count_open_neighbors(const grid& inp, const loc& p) {
+        auto neigh = neighbors(inp, p, false);
+        return neigh.size();
+    }
+
+    loc_map<node> get_nodes_part2(const grid& inp) {
+        auto [cols, rows] = dimensions(inp);
+        loc_map<node> nodes;
+        int index = 0;
+        nodes[{1, 0}] = node{ {1,0}, index++, {} };
+        for (int row = 0; row < rows; ++row) {
+            for (int col = 0; col < cols; ++col) {
+                if (inp[row][col] != '#' && count_open_neighbors(inp, { col,row }) > 2) {
+                    nodes[{col,row}] = node{ {col,row}, index++, {} };
+                }
             }
         }
-        return graph;
+        nodes[{cols - 2, rows-1}] = { {cols - 2, rows-1}, index, {} };
+        return nodes;
+    }
+
+    bool has_edge(const node& u, int v) {
+        return r::find_if(u.neighbors,
+            [v](auto&& e) {
+                return e.dest == v;
+            }
+        ) != u.neighbors.end();
+    }
+
+    void find_edges_part2(const grid& grid, loc_map<node>& nodes, node& node) {
+        auto [cols, rows] = dimensions(grid);
+
+        loc_set visited;
+        std::queue<state> queue;
+
+        queue.push({ node.pos, 0 });
+        while (!queue.empty()) {
+            auto curr_state = queue.front();
+            queue.pop();
+            if (visited.contains(curr_state.pos)) {
+                continue;
+            }
+            visited.insert(curr_state.pos);
+            if (curr_state.pos != node.pos && nodes.contains(curr_state.pos)) {
+                if (!has_edge(nodes.at(curr_state.pos), node.index)) {
+                    node.neighbors.emplace_back(
+                        curr_state.dist,
+                        nodes.at(curr_state.pos).index
+                    );
+                    nodes.at(curr_state.pos).neighbors.emplace_back(
+                        curr_state.dist,
+                        node.index
+                    );
+                }
+                continue;
+            }
+
+            for (auto neighbor : neighbors(grid, curr_state.pos)) {
+                queue.push(
+                    { neighbor, curr_state.dist + 1 }
+                );
+            }
+        }
+    }
+
+    graph part2_graph(const grid& inp) {
+        auto nodes = get_nodes_part2(inp);
+        for (auto& key_val : nodes) {
+            find_edges_part2(inp, nodes, key_val.second);
+        }
+        graph g(nodes.size());
+        for (const auto& node : nodes) {
+            g[node.second.index] = node.second;
+        }
+        return g;
     }
 
     struct part2_state {
         std::vector<int> path;
         int length;
     };
-
-    int longest_path_undirected(const graph& g) {
-        auto graph = part2_graph(g);
+    
+    int longest_path_undirected(const graph& graph) {
         std::stack<std::shared_ptr<part2_state>> stack;
         stack.push(std::make_shared<part2_state>(std::vector{ 0 }, 0));
 
@@ -260,15 +328,6 @@ namespace {
             if (u == graph.size() - 1) {
                 if (state->length > longest) {
                     longest = state->length;
-                    if (longest == 164) {
-                        for (int item : state->path) { 
-                            std::println("{} [{},{}]",
-                                item,
-                                g[item].pos.col,
-                                g[item].pos.row
-                            );
-                        }
-                    }
                 }
                 continue;
             }
@@ -284,7 +343,7 @@ namespace {
             }
         }
 
-        return longest - 2;
+        return longest;
     }
 }
 
@@ -292,11 +351,10 @@ namespace {
 
 void aoc::y2023::day_23(const std::string& title) {
 
-    auto graph = parse_input(
-        aoc::file_to_string_vector(aoc::input_path(2023, 23, "test"))
-    );
+    auto input = aoc::file_to_string_vector(aoc::input_path(2023, 23));
+    auto digraph = parse_input( input );
 
     std::println("--- Day 23: {0} ---\n", title);
-    std::println("  part 1: {}", longest_path(graph));
-    std::println("  part 2: {}", longest_path_undirected(graph));
+    std::println("  part 1: {}", longest_path(digraph));
+    std::println("  part 2: {}", longest_path_undirected(part2_graph(input)));
 }
