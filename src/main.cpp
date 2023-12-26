@@ -34,8 +34,8 @@ namespace {
             []() {aoc::y2023::day_21( "Step Counter" ); },
             []() {aoc::y2023::day_22( "Sand Slabs" ); },
             []() {aoc::y2023::day_23( "A Long Walk" ); },
-            []() {aoc::y2023::day_24( "???" ); },
-            []() {aoc::y2023::day_25( "???" ); }
+            []() {aoc::y2023::day_24( "Never Tell Me The Odds" ); },
+            []() {aoc::y2023::day_25( "Snowverload" ); }
         }; 
         auto index = day - 1;
         if (index < 0) {
