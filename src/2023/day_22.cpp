@@ -56,26 +56,7 @@ namespace {
             ) | r::to<std::vector<box>>();
     }
 
-    std::tuple<std::vector<box>, rtree> make_rtree(const std::vector<box>& inp) {
-        auto bricks = inp;
-        r::sort(bricks,
-            [](auto&& lhs, auto&& rhs) {
-                return lhs.min_corner().z < rhs.min_corner().z;
-            }
-        );
-        ::rtree rtree;
-        for (const auto& [index,brick] : rv::enumerate(bricks)) {
-            rtree.insert({ brick,index });
-        }
-        return { std::move(bricks), std::move(rtree) };
-    }
-
-    void move_brick(rtree& rtree, const box& b, int z) {
-        std::vector<rtree_value> results;
-        rtree.query(bgi::intersects(b), std::back_inserter(results));
-        auto [brick,index] = results.front();
-        rtree.remove(results.front());
-
+    void place_brick(rtree& rtree, const box& brick, int z, int index) {
         point u = brick.min_corner();
         point v = brick.max_corner();
         int diff = u.z - z;
@@ -101,9 +82,10 @@ namespace {
 
     const int k_ground = -1;
 
-    std::vector<int> drop_brick(rtree& rtree, const box& brick) {
+    std::vector<int> drop_brick(rtree& rtree, const box& brick, int index) {
         point u = brick.min_corner();
         if (u.z == 1) {
+            place_brick(rtree, brick, 1, index);
             return { k_ground };
         }
         point v = brick.max_corner();
@@ -111,11 +93,11 @@ namespace {
         std::vector<rtree_value> bricks_under;
         rtree.query(bgi::intersects(area_under), std::back_inserter(bricks_under));
         if (bricks_under.empty()) {
-            move_brick(rtree, brick, 1);
+            place_brick(rtree, brick, 1, index);
             return { k_ground };
         }
         auto top = top_bricks(bricks_under);
-        move_brick(rtree, brick, top.front().first.max_corner().z + 1);
+        place_brick(rtree, brick, top.front().first.max_corner().z + 1, index);
         return top |
             rv::transform(
                 [](auto&& v)->int {
@@ -125,10 +107,11 @@ namespace {
     }
 
     using adjacency_graph = std::unordered_map<int, std::vector<int>>;
-    adjacency_graph drop_bricks(rtree& rtree, const std::vector<box>& bricks) {
+    adjacency_graph drop_bricks(const std::vector<box>& bricks) {
         adjacency_graph graph;
+        ::rtree rtree;
         for (const auto& [index, brick] : rv::enumerate(bricks)) {
-            auto bricks_beneath = drop_brick(rtree, brick);
+            auto bricks_beneath = drop_brick(rtree, brick, index);
             graph[index] = bricks_beneath;
         }
         return graph;
@@ -144,9 +127,8 @@ namespace {
         return bricks.size();
     }
 
-    int do_part_1(const std::vector<box>& inp) {
-        auto [bricks, rtree] = make_rtree(inp);
-        auto graph = drop_bricks(rtree, bricks);
+    int do_part_1(const std::vector<box>& bricks) {
+        auto graph = drop_bricks(bricks);
         return count_removable_bricks(graph, bricks.size());
     }
 
@@ -194,9 +176,8 @@ namespace {
         return count_bricks_not_connected_to_ground(graph);
     }
 
-    int do_part_2(const std::vector<box>& inp) {
-        auto [bricks, rtree] = make_rtree(inp);
-        auto graph = drop_bricks(rtree, bricks);
+    int do_part_2(const std::vector<box>& bricks) {
+        auto graph = drop_bricks(bricks);
         int n = static_cast<int>(bricks.size());
         return r::fold_left(
             rv::iota(0,n) | rv::transform(
@@ -216,6 +197,12 @@ void aoc::y2023::day_22(const std::string& title) {
 
     auto bricks = parse_input(
         aoc::file_to_string_vector(aoc::input_path(2023, 22))
+    );
+
+    r::sort(bricks,
+        [](auto&& lhs, auto&& rhs) {
+            return lhs.min_corner().z < rhs.min_corner().z;
+        }
     );
 
     std::println("--- Day 22: {0} ---\n", title);
