@@ -4,9 +4,11 @@
 #include <ranges>
 #include <numeric>
 #include <algorithm>
+#include <boost/multiprecision/cpp_bin_float.hpp>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
+namespace bm = boost::multiprecision;
 
 namespace {
     struct vec3 {
@@ -19,8 +21,12 @@ namespace {
         return { lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z };
     }
 
+    vec3 operator-(const vec3& lhs, const vec3& rhs) {
+        return { lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z };
+    }
+
     vec3 operator*(int64_t lhs, const vec3& rhs) {
-        return { lhs * rhs.x, lhs * rhs.y, lhs * rhs.z};
+        return { lhs * rhs.x, lhs * rhs.y, lhs * rhs.z };
     }
 
     bool operator==(const vec3& lhs, const vec3& rhs) {
@@ -32,15 +38,11 @@ namespace {
         vec3 vel;
     };
 
-    vec3 position_at_time(const particle& p, int64_t t) {
-        return p.pos + t * p.vel;
-    }
-
     struct vec2 {
         double x;
         double y;
 
-        vec2(int64_t ix, int64_t iy) : 
+        vec2(int64_t ix, int64_t iy) :
             x(ix), y(iy)
         {}
 
@@ -109,67 +111,90 @@ namespace {
         return count;
     }
 
-    struct collision {
-        vec3 where;
-        int64_t when;
-    };
+    std::optional<vec3> line_line_intersection( vec3 p1, vec3 p2, vec3 p3, vec3 p4) {
+        using number = boost::multiprecision::cpp_bin_float_quad;
 
-    std::optional<int64_t> find_collision(int64_t pa, int64_t pb, int64_t va, int64_t vb) {
-        auto pb_minus_pa = pb - pa;
-        auto va_minus_vb = va - vb;
+        vec3 p13, p43, p21;
+        number d1343, d4321, d1321, d4343, d2121;
+        number numer, denom;
 
-        if (va_minus_vb == 0) {
+        p13.x = p1.x - p3.x;
+        p13.y = p1.y - p3.y;
+        p13.z = p1.z - p3.z;
+        p43.x = p4.x - p3.x;
+        p43.y = p4.y - p3.y;
+        p43.z = p4.z - p3.z;
+        if (p43.x == 0 && p43.y == 0 && p43.z == 0)
             return {};
+
+        p21.x = p2.x - p1.x;
+        p21.y = p2.y - p1.y;
+        p21.z = p2.z - p1.z;
+        if (p21.x == 0 && p21.y == 0 && p21.z == 0)
+            return {};
+
+        d1343 = p13.x * p43.x + p13.y * p43.y + p13.z * p43.z;
+        d4321 = p43.x * p21.x + p43.y * p21.y + p43.z * p21.z;
+        d1321 = p13.x * p21.x + p13.y * p21.y + p13.z * p21.z;
+        d4343 = p43.x * p43.x + p43.y * p43.y + p43.z * p43.z;
+        d2121 = p21.x * p21.x + p21.y * p21.y + p21.z * p21.z;
+
+        denom = d2121 * d4343 - d4321 * d4321;
+        if (denom == 0)
+            return {};
+        numer = d1343 * d4321 - d1321 * d4343;
+
+        number mua = static_cast<number>(numer) / static_cast<number>(denom);
+        number mub = static_cast<number>(d1343 + d4321 * mua) / static_cast<number>(d4343);
+
+        auto ax = bm::round(static_cast<number>(p1.x) + mua * static_cast<number>(p21.x));
+        auto ay = bm::round(static_cast<number>(p1.y) + mua * static_cast<number>(p21.y));
+        auto az = bm::round(static_cast<number>(p1.z) + mua * static_cast<number>(p21.z));
+        auto bx = bm::round(static_cast<number>(p3.x) + mub * static_cast<number>(p43.x));
+        auto by = bm::round(static_cast<number>(p3.y) + mub * static_cast<number>(p43.y));
+        auto bz = bm::round(static_cast<number>(p3.z) + mub * static_cast<number>(p43.z));
+
+        vec3 a = { static_cast<int64_t>(ax), static_cast<int64_t>(ay), static_cast<int64_t>(az) };
+        vec3 b = { static_cast<int64_t>(bx), static_cast<int64_t>(by), static_cast<int64_t>(bz) };
+
+        if (a == b) {
+            return a;
         }
 
-        //we only want collisions with integer coordinates.
-        if (pb_minus_pa % va_minus_vb != 0) {
-            return {};
-        }
-        return pb_minus_pa / va_minus_vb;
+        return {};
     }
 
-    std::optional<collision> find_collision(const particle& a, const particle& b) {
-        auto t = find_collision(a.pos.x, b.pos.x, a.vel.x, b.vel.x);
-        if (!t) {
-            t = find_collision(a.pos.y, b.pos.y, a.vel.y, b.vel.y);
-        }
-        if (!t) {
-            t = find_collision(a.pos.z, b.pos.z, a.vel.z, b.vel.z);
-        }
+    std::optional<vec3> find_velocity(const std::vector<particle>& particles, int64_t range) {
+        for (int64_t y_vel = -range; y_vel <= range; ++y_vel) {
+            for (int64_t x_vel = -range; x_vel <= range; ++x_vel) {
+                for (int64_t z_vel = -range; z_vel <= range; ++z_vel) {
+                    vec3 delta = { x_vel, y_vel, z_vel };
 
-        if (!t) {
-            return {};
-        }
-        
-        //we only want collisions in the future
-        if (*t < 0) {
-            return {};
-        }
-
-        auto a_pos = position_at_time(a, *t);
-        auto b_pos = position_at_time(b, *t);
-        if (a_pos == b_pos) {
-            return collision{ a_pos, *t };
+                    std::optional<vec3> pt = {};
+                    int count = 0;
+                    for (int i = 1; i <= 5; ++i) {
+                        auto collision_pt = line_line_intersection(particles[0].pos, particles[0].pos + particles[0].vel + delta, 
+                            particles[i].pos, particles[i].pos + particles[i].vel + delta);
+                        if (!collision_pt) {
+                            count = 0;
+                            break;
+                        }
+                        if (!pt) {
+                            pt = *collision_pt;
+                        }
+                        if (*collision_pt == pt) {
+                            count++;
+                        }
+                    }
+                    if (count == 5) {
+                        return delta;
+                    }
+                }
+            }
         }
         return {};
     }
 
-    std::vector<collision> find_collisions(const std::vector<particle>& particles) {
-        int n = static_cast<int>(particles.size());
-        std::vector<collision> collisions;
-        for (int i = 0; i < n - 1; ++i) {
-            for (int j = i + 1; j < n; ++j) {
-                auto a = particles[i];
-                auto b = particles[j];
-                auto collision = find_collision(a, b);
-                if (collision) {
-                    collisions.push_back(*collision);
-                }
-            }
-        }
-        return collisions;
-    }
 }
 
 /*------------------------------------------------------------------------------------------------*/
@@ -183,6 +208,11 @@ void aoc::y2023::day_24(const std::string& title) {
     std::println("  part 1: {}", 
         count_2d_intersections( particles, 200000000000000.0, 400000000000000.0)
     );
-    auto collisions = find_collisions(particles);
-    std::println("{}", collisions.size());
+
+    auto vel = find_velocity(particles, 250);
+    auto pt = line_line_intersection(particles[0].pos, particles[0].pos + particles[0].vel + *vel,
+        particles[1].pos, particles[1].pos + particles[1].vel + *vel);
+
+    std::println("  part 2: {}", pt->x + pt->y + pt->z);
+
 }
