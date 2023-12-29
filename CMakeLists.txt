@@ -14,6 +14,7 @@ find_package(Eigen3 3.3 REQUIRED)
 add_executable(advent_of_code
     src/main.cpp
     src/util.cpp
+
     src/2023/day_01.cpp
     src/2023/day_02.cpp
     src/2023/day_03.cpp
@@ -40,6 +41,10 @@ add_executable(advent_of_code
     src/2023/day_24.cpp
     src/2023/day_25.cpp
     src/2023/y2023.cpp
+
+    src/2022/day_01.cpp
+    src/2022/day_02.cpp
+    src/2022/y2022.cpp
 )
 
 target_link_libraries(advent_of_code PRIVATE Eigen3::Eigen)

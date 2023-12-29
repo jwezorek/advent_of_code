@@ -1,4 +1,5 @@
 #include "2023/y2023.h"
+#include "2022/y2022.h"
 #include "util.h"
 #include <iostream>
 #include <vector>
@@ -10,6 +11,7 @@
 namespace {
     void do_advent_of_code(int year, int day) {
         static const std::unordered_map<int, std::function<void(int)>> years = {
+            {2022, aoc::y2022::do_advent_of_code},
             {2023, aoc::y2023::do_advent_of_code}
         };
         if (!years.contains(year)) {

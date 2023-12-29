@@ -74,11 +74,13 @@ namespace aoc {
         }
 
         bool empty() const {
-            return priority_to_item_.empty();
+            return priority_to_item_.empty(); 
         }
 
         size_t size() const {
             return priority_to_item_.size();
         }
     };
+
+
 }
