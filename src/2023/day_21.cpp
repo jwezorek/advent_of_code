@@ -94,7 +94,7 @@ namespace {
         int64_t count;
     };
 
-    loc_map<int> find_distances(const grid& g, const loc& start, int n) {
+    loc_map<int> find_distances(const grid& g, const loc& start, std::optional<int> n = {}) {
         loc_map<int> dist;
         std::queue<state> queue;
         queue.push({ start,0 });
@@ -106,7 +106,7 @@ namespace {
                 continue;
             }
             dist[curr_state.pos] = curr_state.count;
-            if (curr_state.count <= n) {
+            if (!n.has_value() || curr_state.count <= *n) {
                 for (auto neighbor : neighbors(g, curr_state.pos)) {
                     queue.push({ neighbor, curr_state.count + 1 });
                 }
@@ -128,129 +128,33 @@ namespace {
         );
     }
 
-    int count_odd_steps(const loc_map<int>& distances) {
-        return r::fold_left(
-            distances | rv::values | rv::transform(
-                [](int steps) {
-                    return steps % 2;
+    int64_t do_part_2(const grid& g) {
+        auto all_distances = find_distances(g, { 65,65 });
+
+        int64_t corners_odd = 0;
+        int64_t corners_even = 0;
+        int64_t full_odd = 0;
+        int64_t full_even = 0;
+
+        for (const auto dist : all_distances | rv::values) {
+            if (dist > 65) {
+                if (dist % 2 == 0) {
+                    ++corners_even;
+                } else {
+                    ++corners_odd;
                 }
-            ),
-            0,
-            std::plus<>()
-        );
-    }
-
-    grid tile_region(const grid& inp, int sz) {
-        auto one_big_row = inp | rv::transform(
-                [sz](auto&& row) {
-                    std::stringstream ss;
-                    for (int i = 0; i < sz; ++i) {
-                        ss << row;
-                    }
-                    return ss.str();
-                }
-            ) | r::to<grid>();
-
-        grid output;
-        output.reserve(inp.size() * sz);
-        for (int i = 0; i < sz; ++i) {
-            r::copy(one_big_row, std::back_inserter(output));
-        }
-
-        return output;
-    }
-
-    loc_map<int> find_distances_in_tiled_region(const grid& g, int sz) {
-        auto [cols, rows] = dimensions(g);
-        int tile_dim = cols;
-        int steps = (sz * tile_dim) / 2;
-        auto region = tile_region(g, sz);
-        int start = (tile_dim * sz) / 2 + 1;
-        return find_distances(region, { start,start }, steps);
-    }
-
-    loc_map<int> tile_distances(const loc_map<int>& rgn, int col, int row, int tile_dim) {
-        loc_map<int> output;
-        for (int j = row * tile_dim; j < row * tile_dim + tile_dim; ++j) {
-            for (int i = col * tile_dim; i < col * tile_dim + tile_dim; ++i) {
-                if (rgn.contains({ i,j })) {
-                    output[{ i, j }] = rgn.at({i, j});
-                }
+            } 
+            if (dist % 2 == 0) {
+                ++full_even;
+            } else {
+                ++full_odd;
             }
         }
-        return output;
+
+        int64_t n = ((26501365 - (g.size() / 2)) / g.size());
+
+        return ((n + 1) * (n + 1)) * full_odd + (n * n) * full_even - (n + 1) * corners_odd + n * corners_even;
     }
-}
-
-std::string summarize(const loc_map<int>& region, int sz, int tile_dim) {
-    std::map<int, int> unique_nums;
-    int sum = 0;
-    for (int row = 0; row < sz; ++row) {
-        for (int col = 0; col < sz; ++col) {
-            auto td = tile_distances(region, col, row, tile_dim);
-            auto count = count_odd_steps(td);
-            sum += count;
-            unique_nums[count] += 1;
-        }
-    }
-    std::stringstream ss;
-    ss << std::format("{:6} ", sum);
-    for (auto [num, count] : unique_nums) {
-        if (num > 0) {
-            ss << std::format("{:5}:{:3} ", num, count);
-        }
-    }
-    return ss.str();
-}
-
-int64_t get_index(int64_t sz) {
-    return sz / 4;
-}
-
-std::string summarize2(const loc_map<int>& region, int sz, int tile_dim) {
-    std::map<int, int> unique_nums;
-    int sum = 0;
-    for (int row = 0; row < sz; ++row) {
-        for (int col = 0; col < sz; ++col) {
-            auto td = tile_distances(region, col, row, tile_dim);
-            auto count = count_odd_steps(td);
-            sum += count;
-            unique_nums[count] += 1;
-        }
-    }
-
-    std::map<int, int> count_to_num_sum;
-    for (auto [num, count] : unique_nums) {
-        count_to_num_sum[count] += num;
-    }
-
-    std::stringstream ss;
-    ss << std::format("[{:6}] ", sum);
-    for (auto [count, num] : count_to_num_sum) {
-        if (num > 0) {
-            ss << std::format("{:5}:{:3} ", num, count);
-        }
-    }
-
-    return ss.str();
-}
-
-int64_t count_for_size(int64_t sz) {
-
-    auto i = get_index(sz);
-    int64_t count = 23386;
-    count += 27313 * (i * 2);
-    count += 4062 * (i * 2 + 1);
-
-    int64_t j = 2 * i;
-    int64_t squ = j * j;
-    count += 7747 * squ;
-
-    j++;
-    squ = j * j;
-    count += 7702 * squ;
-
-    return count;
 }
 
 /*------------------------------------------------------------------------------------------------*/
@@ -264,18 +168,6 @@ void aoc::y2023::day_21(const std::string& title) {
 
     std::println("--- Day 21: {0} ---\n", title);
     std::println("  part 1: {}", count_even_steps(find_distances(grid, start, 64)));
-
-    int tile_dim = cols;
-    int64_t part_2_steps = 26501365;
-    int64_t part_2_sz = (2*part_2_steps + 1)/tile_dim;
-
-    std::println("  part 2: {}", count_for_size(part_2_sz));
-
-    std::println("part 2 sz => {}, sanity check => {}", part_2_sz, (part_2_sz * tile_dim) / 2);
-    for (int sz = 127; sz < 183; sz += 4) {
-        auto region = find_distances_in_tiled_region(grid, sz);
-        std::println("{} {} {}", sz, count_for_size(sz), count_odd_steps(region));  
-    }
-    
+    std::println("  part 2: {}", do_part_2(grid));
 }
 
