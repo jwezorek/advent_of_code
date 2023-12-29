@@ -6,7 +6,8 @@
 void aoc::y2022::do_advent_of_code(int day) {
     const static auto advent_of_code_2022 = std::vector<std::function<void()>>{
         []() { day_01( "Calorie Counting" ); },
-        []() { day_02( "Rock Paper Scissors" );  }
+        []() { day_02( "Rock Paper Scissors" );  },
+        []() { day_03( "Rucksack Reorganization" );  }
     };
     auto index = day - 1;
     if (index < 0) {

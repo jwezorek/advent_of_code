@@ -44,6 +44,7 @@ add_executable(advent_of_code
 
     src/2022/day_01.cpp
     src/2022/day_02.cpp
+    src/2022/day_03.cpp
     src/2022/y2022.cpp
 )
 
