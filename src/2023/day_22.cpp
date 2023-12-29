@@ -37,9 +37,6 @@ namespace {
     using rtree = bgi::rtree<rtree_value, bgi::rstar<8>>;
 
     box line_to_brick(const point& u, const point& v) {
-        auto extent = [](int v1, int v2) {
-            return std::abs(v1 - v2) + 1;
-        };
         return {
             {std::min(u.x,v.x), std::min(u.y,v.y), std::min(u.z,v.z)},
             {std::max(u.x,v.x), std::max(u.y,v.y), std::max(u.z,v.z)}
