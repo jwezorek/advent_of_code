@@ -14,7 +14,12 @@ void aoc::y2022::do_advent_of_code(int day) {
         []() { day_07( "No Space Left On Device" );  },
         []() { day_08( "Treetop Tree House" );  },
         []() { day_09( "Rope Bridge" );  },
-        []() { day_10( "Cathode-Ray Tube" );  }
+        []() { day_10( "Cathode-Ray Tube" );  },
+        []() { day_11( "Monkey in the Middle"); },
+        []() { day_12( "Hill Climbing Algorithm");  },
+        []() { day_13( "Distress Signal");  },
+        []() { day_14( "Regolith Reservoir");  },
+        []() { day_15( "Beacon Exclusion Zone");  }
     };
 
     auto index = day - 1;
