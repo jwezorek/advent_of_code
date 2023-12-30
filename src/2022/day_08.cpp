@@ -9,12 +9,9 @@
 #include <unordered_set>
 #include <numeric>
 
-// this solution used ranges-v3 concat and partial_sum which
-// are not standard C++ yet...
 
 /*------------------------------------------------------------------------------------------------*/
 
-/*
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
 
@@ -105,7 +102,18 @@ namespace {
     }
 
     auto running_max(auto rng) {
-        return rv::partial_sum(rng, [](int lhs, int rhs) { return std::max(lhs, rhs); });
+
+        // this code was originally written to ranges-v3 and "partial_sum"
+        // was used here. Since C++23 standard ranges does not include
+        // partial_sum we emulate it with a transform_view + mutable lambda.
+        
+        int max = -1;
+        auto running_max_fn = [max](int next) mutable {
+            max = std::max(max, next);
+            return max;
+        };
+
+        return rv::transform(rng, running_max_fn);
     }
 
     auto visible(auto rng) {
@@ -183,12 +191,12 @@ namespace {
         );
     }
 }
-*/
 
 void aoc::y2022::day_08(const std::string& title) {
-    auto input = file_to_string_vector(input_path(2022, 8));
+    auto input_strings = file_to_string_vector(input_path(2022, 8));
+    auto input = strings_to_2D_array_of_digits(input_strings);
 
     std::println("--- Day 8: {} ---", title);
-    std::println("  part 1: {}", 0);
-    std::println("  part 2: {}", 0);
+    std::println("  part 1: {}", num_visible(input));
+    std::println("  part 2: {}", highest_scenic_score(input));
 }
