@@ -10,7 +10,6 @@ namespace aoc {
         void day_03(const std::string& title);
         void day_04(const std::string& title);
         void day_05(const std::string& title);
-        /*
         void day_06(const std::string& title);
         void day_07(const std::string& title);
         void day_08(const std::string& title);
@@ -31,7 +30,7 @@ namespace aoc {
         void day_23(const std::string& title);
         void day_24(const std::string& title);
         void day_25(const std::string& title);
-        */
+
         void do_advent_of_code(int day);
     }
 }

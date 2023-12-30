@@ -9,8 +9,14 @@ void aoc::y2022::do_advent_of_code(int day) {
         []() { day_02( "Rock Paper Scissors" );  },
         []() { day_03( "Rucksack Reorganization" );  },
         []() { day_04( "Camp Cleanup" );  },
-        []() { day_05( "Supply Stacks" );  }
+        []() { day_05( "Supply Stacks" );  },
+        []() { day_06( "Tuning Trouble" ); },
+        []() { day_07( "No Space Left On Device" );  },
+        []() { day_08( "Treetop Tree House" );  },
+        []() { day_09( "Rope Bridge" );  },
+        []() { day_10( "Cathode-Ray Tube" );  }
     };
+
     auto index = day - 1;
     if (index < 0) {
         std::print("invalid day: {0}\n", day);
