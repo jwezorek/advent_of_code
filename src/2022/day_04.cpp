@@ -1,13 +1,14 @@
-#include "util.h"
-#include "days.h"
-#include <range/v3/all.hpp>
-#include <vector>
-#include <string>
-#include <iostream>
-#include <tuple>
+#include "../util.h"
+#include "y2022.h"
+#include <filesystem>
+#include <functional>
+#include <print>
+#include <ranges>
+#include <unordered_map>
+#include <unordered_set>
 
-namespace r = ranges;
-namespace rv = ranges::views;
+namespace r = std::ranges;
+namespace rv = std::ranges::views;
 
 /*------------------------------------------------------------------------------------------------*/
 
@@ -53,10 +54,10 @@ namespace {
     }
 }
 
-void aoc::day_4(const std::string& title) {
-    auto input = file_to_string_vector(input_path(4, 1));
+void aoc::y2022::day_04(const std::string& title) {
+    auto input = file_to_string_vector(input_path(2022, 4));
 
-    int part_1 = r::accumulate(
+    int part_1 = r::fold_left(
         input |
             rv::transform(
                 [](const std::string& inp_line)->int {
@@ -64,10 +65,11 @@ void aoc::day_4(const std::string& title) {
                     return (is_contained_by(intv1, intv2) || is_contained_by(intv2, intv1)) ? 1 : 0;
                 }
             ),
-        0
+        0,
+        std::plus<>()
     );
 
-    int part_2 = r::accumulate(
+    int part_2 = r::fold_left(
         input |
             rv::transform(
                 [](const std::string& inp_line)->int {
@@ -75,10 +77,11 @@ void aoc::day_4(const std::string& title) {
                     return overlaps(intv1,intv2) ? 1 : 0;
                 }
             ),
-        0
+        0,
+        std::plus<>()
     ); 
 
-    std::cout << header(4, title);
-    std::cout << "   part 1: " << part_1 << "\n";
-    std::cout << "   part 2: " << part_2 << "\n";
+    std::println("--- Day 4: {} ---", title);
+    std::println("  part 1: {}", part_1);
+    std::println("  part 2: {}", part_2);
 }
