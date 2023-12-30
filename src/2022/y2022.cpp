@@ -19,7 +19,17 @@ void aoc::y2022::do_advent_of_code(int day) {
         []() { day_12( "Hill Climbing Algorithm");  },
         []() { day_13( "Distress Signal");  },
         []() { day_14( "Regolith Reservoir");  },
-        []() { day_15( "Beacon Exclusion Zone");  }
+        []() { day_15( "Beacon Exclusion Zone");  },
+        []() { day_16( "Proboscidea Volcanium"); },
+        []() { day_17( "Pyroclastic Flow");  },
+        []() { day_18( "Boiling Boulders");  },
+        []() { day_19( "Not Enough Minerals");  },
+        []() { day_20( "Grove Positioning System");  },
+        []() { day_21( "Monkey Math"); },
+        []() { day_22( "Monkey Map");  },
+        []() { day_23( "Unstable Diffusion");  },
+        []() { day_24( "Blizzard Basin");  },
+        []() { day_25( "Full of Hot Air");  }
     };
 
     auto index = day - 1;
