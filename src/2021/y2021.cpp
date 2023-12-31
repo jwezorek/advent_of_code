@@ -10,7 +10,16 @@ void aoc::y2021::do_advent_of_code(int day) {
         []() { day_03( "Binary Diagnostic" );  },
         []() { day_04( "Giant Squid" ); },
         []() { day_05( "Hydrothermal Venture" );  },
-        []() { day_06( "Lanternfish" );  }
+        []() { day_06( "Lanternfish" );  },
+        []() { day_07( "The Treachery of Whales" ); },
+        []() { day_08( "Seven Segment Search");  },
+        []() { day_09( "Smoke Basin");  },
+        []() { day_10( "Syntax Scoring"); },
+        []() { day_11( "Dumbo Octopus");  },
+        []() { day_12( "Passage Pathing");  },
+        []() { day_13( "Transparent Origami");  },
+        []() { day_14( "Extended Polymerization");  },
+        []() { day_15( "Chiton");  }
     };
 
     auto index = day - 1;
