@@ -72,7 +72,7 @@ add_executable(advent_of_code
     src/2021/day_02.cpp
     src/2021/day_03.cpp
     src/2021/y2021.cpp
-)
+ "src/2021/day_04.cpp" "src/2021/day_05.cpp" "src/2021/day_06.cpp")
 
 target_link_libraries(advent_of_code PRIVATE Eigen3::Eigen)
 

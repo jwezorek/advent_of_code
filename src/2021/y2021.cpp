@@ -8,6 +8,9 @@ void aoc::y2021::do_advent_of_code(int day) {
         []() { day_01( "Sonar Sweep" ); },
         []() { day_02( "Dive!" );  },
         []() { day_03( "Binary Diagnostic" );  },
+        []() { day_04( "Giant Squid" ); },
+        []() { day_05( "Hydrothermal Venture" );  },
+        []() { day_06( "Lanternfish" );  }
     };
 
     auto index = day - 1;
