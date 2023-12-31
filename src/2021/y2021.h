@@ -19,6 +19,17 @@ namespace aoc {
         void day_13(const std::string& title);
         void day_14(const std::string& title);
         void day_15(const std::string& title);
+        void day_16(const std::string& title);
+        void day_17(const std::string& title);
+        void day_18(const std::string& title);
+        void day_19(const std::string& title);
+        void day_20(const std::string& title);
+        void day_21(const std::string& title);
+        void day_22(const std::string& title);
+        void day_23(const std::string& title);
+        void day_24(const std::string& title);
+        void day_25(const std::string& title);
+
 
         void do_advent_of_code(int day);
     }

@@ -27,6 +27,7 @@ namespace {
             case '<':
                 return '>';
             }
+            throw std::runtime_error("something is wrong");
         }
 
     public:

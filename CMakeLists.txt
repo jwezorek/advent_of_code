@@ -84,7 +84,18 @@ add_executable(advent_of_code
     src/2021/day_13.cpp
     src/2021/day_14.cpp
     src/2021/day_15.cpp
+    src/2021/day_16.cpp
+    src/2021/day_17.cpp
+    src/2021/day_18.cpp
+    src/2021/day_19.cpp
+    src/2021/day_20.cpp
+    src/2021/day_21.cpp
+    src/2021/day_22.cpp
+    src/2021/day_23.cpp
+    src/2021/day_24.cpp
+    src/2021/day_25.cpp
     src/2021/y2021.cpp
+
 )
 
 target_link_libraries(advent_of_code PRIVATE Eigen3::Eigen)

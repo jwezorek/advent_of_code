@@ -19,7 +19,17 @@ void aoc::y2021::do_advent_of_code(int day) {
         []() { day_12( "Passage Pathing");  },
         []() { day_13( "Transparent Origami");  },
         []() { day_14( "Extended Polymerization");  },
-        []() { day_15( "Chiton");  }
+        []() { day_15( "Chiton");  },
+        []() { day_16( "Packet Decoder"); },
+        []() { day_17( "Trick Shot"); },
+        []() { day_18( "Snailfish"); },
+        []() { day_19( "Beacon Scanner"); },
+        []() { day_20( "Trench Map"); },
+        []() { day_21( "Dirac Dice"); },
+        []() { day_22( "Reactor Reboot"); },
+        []() { day_23( "Amphipod"); },
+        []() { day_24( "Arithmetic Logic Unit"); },
+        []() { day_25( "Sea Cucumber"); }
     };
 
     auto index = day - 1;
