@@ -148,12 +148,21 @@ namespace {
         return rv::all(rows[row]);
     }
 
+    std::vector<room> side_rooms(bool supersized) {
+        auto supersized_side_rooms = rv::iota(0, 4) | rv::transform(
+            [](int row) {return side_room_row(row); }
+        ) | rv::join;
+        return (supersized) ? supersized_side_rooms | r::to<std::vector<room>>() :
+            supersized_side_rooms | rv::filter(
+                [](room loc) {return !is_supersized_room(loc); }
+        ) | r::to<std::vector<room>>();
+    }
+
     using burrow_graph = std::unordered_map<room, std::vector<room>>;
     void add_edge(burrow_graph& g, room u, room v) {
         g[u].push_back(v);
         g[v].push_back(u);
     }
-
     
     burrow_graph make_borrow_graph(bool supersized) {
         burrow_graph graph;
@@ -370,42 +379,86 @@ namespace {
         return {};
     }
 
+    const std::vector<room>& hall_destinations() {
+        static const std::vector<room> hall_dests = {
+            leftwing_2, leftwing_1, a_b_hallway, b_c_hallway,
+            c_d_hallway, rightwing_1, rightwing_2
+        };
+        return hall_dests;
+    }
+
+    struct path_hash {
+        size_t operator()(const std::tuple<room, room>& uv) const {
+            auto [u, v] = uv;
+            size_t seed = 0;
+            boost::hash_combine(seed, u);
+            boost::hash_combine(seed, v);
+            return seed;
+        }
+    };
+
+    using path_table = std::unordered_map<std::tuple<room, room>, std::vector<room>, path_hash>;
+
+    path_table build_path_table() {
+        auto graph = make_borrow_graph(true);
+        path_table tbl;
+        for (auto [u, v] : rv::cartesian_product(hall_destinations(), side_rooms(true))) {
+            std::queue<std::vector<room>> queue;
+            std::unordered_set<room> visited;
+            
+            queue.push({ u });
+            while (!queue.empty()) {
+                auto path = queue.front();
+                queue.pop();
+
+                if (visited.contains(path.back())) {
+                    continue;
+                }
+                visited.insert(path.back());
+
+                if (path.back() == v) {
+                    tbl[std::tuple<room, room>{u, v}] = path;
+                    r::reverse(path);
+                    tbl[std::tuple<room, room>{v, u}] = path;
+                    break;
+                }
+
+                for (auto neighbor : graph.at(path.back())) {
+                    auto new_path = path;
+                    new_path.push_back(neighbor);
+                    queue.push(new_path);
+                }
+            }
+        }
+        return tbl;
+    }
+
+    const std::vector<room>& path_from_u_to_v(room u, room v) {
+        static path_table tbl;
+        if (tbl.empty()) {
+            tbl = build_path_table();
+        }
+        return tbl.at(std::tuple<room, room>{u, v});
+    }
+
     std::optional<int> length_of_path_to(
             const burrow_graph& graph, const burrow_state& state, room u, room v) {
-        std::queue<std::tuple<room, int>> queue;
-        std::unordered_set<room> visited;
+
+        const auto& path = path_from_u_to_v(u, v);
+
         std::unordered_set<room> occupied = state.occupied_rooms() | rv::filter(
-                [u](auto loc) {
-                    return loc != u;
-                }
-            ) | r::to<std::unordered_set<room>>();
-        if (occupied.contains(v)) {
-            return {};
-        }
-        queue.push({ u,0 });
-        while (!queue.empty()) {
-            auto [loc, dist] = queue.front();
-            queue.pop();
+            [u](auto loc) {
+                return loc != u;
+            }
+        ) | r::to<std::unordered_set<room>>();
 
+        for (auto loc : path | rv::drop(1)) {
             if (occupied.contains(loc)) {
-                continue;
-            }
-
-            if (visited.contains(loc)) {
-                continue;
-            }
-            visited.insert(loc);
-
-            if (loc == v) {
-                return dist;
-            }
-
-            for (auto neighbor : graph.at(loc)) {
-                queue.push({ neighbor, dist + 1 });
+                return {};
             }
         }
 
-        return {};
+        return static_cast<int>(path.size()) - 1;
     }
 
     weighted_state weighted_neighbor(
@@ -439,11 +492,7 @@ namespace {
                 weighted_neighbor(state, amphi, amphi_index, *home_room, *path_length)
             };
         }
-        static const std::array<room, 7> hall_destinations = { {
-            leftwing_2, leftwing_1, a_b_hallway, b_c_hallway,
-            c_d_hallway, rightwing_1, rightwing_2
-        } };
-        return hall_destinations | rv::transform(
+        return hall_destinations() | rv::transform(
                 [&](auto dest)->std::tuple<room, std::optional<int>> {
                     return {
                         dest,
