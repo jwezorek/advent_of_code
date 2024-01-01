@@ -46,14 +46,34 @@ namespace {
             {rightwing_2,{11,1}},
             {side_room_a_1,{3,2}},
             {side_room_a_2,{3,3}},
+            {side_room_a_3,{3,4}},
+            {side_room_a_4,{3,5}},
             {side_room_b_1,{5,2}},
             {side_room_b_2,{5,3}},
+            {side_room_b_3,{5,4}},
+            {side_room_b_4,{5,5}},
             {side_room_c_1,{7,2}},
             {side_room_c_2,{7,3}},
+            {side_room_c_3,{7,4}},
+            {side_room_c_4,{7,5}},
             {side_room_d_1,{9,2}},
-            {side_room_d_2,{9,3}}
+            {side_room_d_2,{9,3}},
+            {side_room_d_3,{9,4}},
+            {side_room_d_4,{9,5}}
         };
         return tbl.at(r);
+    }
+
+    auto amphipod_types() {
+        static const std::array<char, 4> amphi_type = { {'A','B','C','D'} };
+        return rv::all(amphi_type);
+    }
+
+    auto amphipods(bool supersized) {
+        return rv::cartesian_product(
+            amphipod_types(), 
+            rv::iota(0, supersized ? 4 : 2)
+        );
     }
 
     room vestibule_for_amphi(char amphi) {
@@ -67,16 +87,14 @@ namespace {
     }
 
     room side_room_for_amphi(char amphi, int i) {
-        static const std::array<std::unordered_map<char, room>, 2> tbl = {{{
-            {'A', side_room_a_1},
-            {'B', side_room_b_1},
-            {'C', side_room_c_1},
-            {'D', side_room_d_1}
+        static const std::array<std::unordered_map<char, room>, 4> tbl = {{{
+            {'A', side_room_a_1}, {'B', side_room_b_1}, {'C', side_room_c_1}, {'D', side_room_d_1}
         }, {
-            {'A', side_room_a_2},
-            {'B', side_room_b_2},
-            {'C', side_room_c_2},
-            {'D', side_room_d_2}
+            {'A', side_room_a_2}, {'B', side_room_b_2}, {'C', side_room_c_2}, {'D', side_room_d_2}
+        }, {
+            {'A', side_room_a_3}, {'B', side_room_b_3}, {'C', side_room_c_3}, {'D', side_room_d_3}
+        }, {
+            {'A', side_room_a_4}, {'B', side_room_b_4}, {'C', side_room_c_4}, {'D', side_room_d_4}
         }}};
         return tbl.at(i).at(amphi);
     }
@@ -90,18 +108,19 @@ namespace {
         );
     }
 
-    std::vector<room> home_for_amphi(char amphi) {
+    std::vector<room> home_for_amphi(char amphi, bool supersized) {
         static const std::unordered_map<char, std::vector<room>> tbl = {
-            {'A', {side_room_a_1, side_room_a_2}},
-            {'B', {side_room_b_1, side_room_b_2}},
-            {'C', {side_room_c_1, side_room_c_2}},
-            {'D', {side_room_d_1, side_room_d_2}}
+            {'A', {side_room_a_1, side_room_a_2, side_room_a_3, side_room_a_4}},
+            {'B', {side_room_b_1, side_room_b_2, side_room_b_3, side_room_b_4}},
+            {'C', {side_room_c_1, side_room_c_2, side_room_c_3, side_room_c_4}},
+            {'D', {side_room_d_1, side_room_d_2, side_room_d_3, side_room_d_4}}
         };
-        return tbl.at(amphi);
+        return (supersized) ? tbl.at(amphi) :
+            tbl.at(amphi) | rv::take(2) | r::to<std::vector<room>>();
     }
 
     bool is_side_room(room loc) {
-        return loc >= side_room_a_1 && loc <= side_room_d_2;
+        return loc >= side_room_a_1 && loc <= side_room_d_4;
     }
 
     bool is_hallway(room loc) {
@@ -109,36 +128,51 @@ namespace {
         return r::find(hall, loc) != hall.end();
     }
 
-    auto side_room_top_row() {
-        static const std::array<room, 4> row = {{
-            side_room_a_1, side_room_b_1, side_room_c_1, side_room_d_1
-        }};
-        return rv::all(row);
+    bool is_supersized_room(room loc) {
+        static const std::unordered_set<room> supersized = {
+            side_room_a_3, side_room_a_4,
+            side_room_b_3, side_room_b_4,
+            side_room_c_3, side_room_c_4,
+            side_room_d_3, side_room_d_4
+        };
+        return supersized.contains(loc);
     }
 
-    auto side_room_bottom_row() {
-        static const std::array<room, 4> row = { {
-            side_room_a_2, side_room_b_2, side_room_c_2, side_room_d_2
-        } };
-        return rv::all(row);
+    auto side_room_row(int row) {
+        static const std::array<std::array<room, 4>, 4> rows = {{
+            {side_room_a_1, side_room_b_1, side_room_c_1, side_room_d_1},
+            {side_room_a_2, side_room_b_2, side_room_c_2, side_room_d_2},
+            {side_room_a_3, side_room_b_3, side_room_c_3, side_room_d_3},
+            {side_room_a_4, side_room_b_4, side_room_c_4, side_room_d_4}
+        }};
+        return rv::all(rows[row]);
     }
 
     using burrow_graph = std::unordered_map<room, std::vector<room>>;
-    burrow_graph make_borrow_graph() {
+    void add_edge(burrow_graph& g, room u, room v) {
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+
+    
+    burrow_graph make_borrow_graph(bool supersized) {
         burrow_graph graph;
         for (auto [left, right] : hall_rooms() | rv::pairwise) {
-            graph[left].push_back(right);
-            graph[right].push_back(left);
+            add_edge(graph, left, right);
         }
         for (char amphi = 'A'; amphi <= 'D'; ++amphi) {
             auto vestibule = vestibule_for_amphi(amphi);
             auto side_room_1 = side_room_for_amphi(amphi, 0);
             auto side_room_2 = side_room_for_amphi(amphi, 1);
 
-            graph[vestibule].push_back(side_room_1);
-            graph[side_room_1].push_back(vestibule);
-            graph[side_room_1].push_back(side_room_2);
-            graph[side_room_2].push_back(side_room_1);
+            add_edge(graph, vestibule, side_room_1);
+            add_edge(graph, side_room_1, side_room_2);
+            if (supersized) {
+                auto side_room_3 = side_room_for_amphi(amphi, 2);
+                auto side_room_4 = side_room_for_amphi(amphi, 3);
+                add_edge(graph, side_room_2, side_room_3);
+                add_edge(graph, side_room_3, side_room_4);
+            }
         }
         return graph;
     }
@@ -146,20 +180,25 @@ namespace {
     class burrow_state {
         friend struct state_hash;
         std::vector<room> amphi_to_loc_;
-        unsigned char has_been_moved_;
+        uint16_t has_been_moved_;
+
+        int amphi_index(char amphi, int i) const {
+            return num_amphis() * (amphi - 'A') + i;
+        }
 
         room& amphi_loc(char amphi, int i) {
-            auto amphi_index = amphi - 'A';
-            return amphi_to_loc_[2 * amphi_index + i];
+            return amphi_to_loc_[amphi_index(amphi,i)];
         }
 
         void normalize_amphi_order() {
-            for (int i = 0; i < 4; ++i) {
-                auto& first = amphi_to_loc_[2 * i];
-                auto& second = amphi_to_loc_[2 * i + 1];
-                if (second < first) {
-                    std::swap(first, second);
-                }
+            for (char amphi : amphipod_types()) {
+                int start = amphi_index(amphi, 0);
+                int end = start + num_amphis();
+                auto amphi_range = r::subrange(
+                    amphi_to_loc_.begin() + start,
+                    amphi_to_loc_.begin() + end
+                );
+                r::sort(amphi_range);
             }
         }
 
@@ -174,13 +213,18 @@ namespace {
         }
 
     public:
-        burrow_state() : 
-            amphi_to_loc_(8, none), has_been_moved_(0)
-        {}
 
         burrow_state(const burrow_state& bs) : 
             amphi_to_loc_(bs.amphi_to_loc_), has_been_moved_(bs.has_been_moved_)
         {}
+
+        int num_amphis() const {
+            return static_cast<int>(amphi_to_loc_.size()) / 4;
+        }
+
+        bool is_supersized() const {
+            return amphi_to_loc_.size() == 16;
+        }
 
         auto occupied_rooms() const {
             return amphi_to_loc_ | rv::filter(
@@ -189,28 +233,28 @@ namespace {
         }
 
         const room& amphi_loc(char amphi, int i) const {
-            auto amphi_index = amphi - 'A';
-            return amphi_to_loc_[2 * amphi_index + i];
+            return amphi_to_loc_.at(amphi_index(amphi,i));
         }
 
-        burrow_state(const std::vector<std::string>& rows) : 
-                burrow_state() {
-            auto top_row = aoc::extract_alphabetic(rows[2]) | 
-                rv::join | r::to<std::string>();
-            auto bottom_row = aoc::extract_alphabetic(rows[3]) | 
-                rv::join | r::to<std::string>();
+        burrow_state(const std::vector<std::string>& rows) : has_been_moved_(0) {
+            int num_home_rows = rows.size() - 3;
+            auto home_rows = rows | rv::transform(
+                [](auto&& row)->std::string {
+                    return aoc::extract_alphabetic(row) |  rv::join | r::to<std::string>();
+                }
+            ) | rv::drop(2) | rv::take(num_home_rows) | r::to<std::vector<std::string>>();
 
             std::unordered_map<char, int> amphi_index = {
                 {'A',0},{'B',0},{'C',0},{'D',0}
             };
-            for (auto [top_amphi, room] : rv::zip(top_row, side_room_top_row())) {
-                int index = amphi_index[top_amphi]++;
-                amphi_loc(top_amphi, index) = room;
+            amphi_to_loc_ = std::vector<room>(num_home_rows * 4, none);
+            for (const auto& [index, row] : rv::enumerate(home_rows)) {
+                for (auto [amphi, room] : rv::zip(row, side_room_row(index))) {
+                    int index = amphi_index[amphi]++;
+                    amphi_loc(amphi, index) = room;
+                }
             }
-            for (auto [bottom_amphi, room] : rv::zip(bottom_row, side_room_bottom_row())) {
-                int index = amphi_index[bottom_amphi]++;
-                amphi_loc( bottom_amphi, index) = room;
-            }
+            
             normalize_amphi_order();
         }
 
@@ -251,12 +295,18 @@ namespace {
         }
 
         bool is_winning_state() const {
-            static const std::array<room, 8> win_state = { {
-                    side_room_a_1,side_room_a_2,
-                    side_room_b_1,side_room_b_2,
-                    side_room_c_1,side_room_c_2,
-                    side_room_d_1,side_room_d_2
-            } };
+            static const std::vector<room> supersized_win_state = { {
+                side_room_a_1,side_room_a_2,side_room_a_3,side_room_a_4,
+                side_room_b_1,side_room_b_2,side_room_b_3,side_room_b_4,
+                side_room_c_1,side_room_c_2,side_room_c_3,side_room_c_4,
+                side_room_d_1,side_room_d_2,side_room_d_3,side_room_d_4
+            }};
+
+            auto win_state = is_supersized() ? supersized_win_state:
+                supersized_win_state | rv::filter(
+                    [](room loc) { return !is_supersized_room(loc); }
+                ) | r::to<std::vector<room>>();
+
             for (auto [lhs, rhs] : rv::zip(win_state, amphi_to_loc_)) {
                 if (lhs != rhs) {
                     return false;
@@ -277,22 +327,13 @@ namespace {
         }
     };
 
-    auto amphipod_types() {
-        static const std::array<char, 4> amphi_type = { {'A','B','C','D'} };
-        return rv::all(amphi_type);
-    }
-
-    auto amphipods() {
-        return rv::cartesian_product(amphipod_types(), rv::iota(0, 2));
-    }
-
     struct weighted_state {
         burrow_state state;
         int weight;
     };
 
     std::optional<char> contents_of_room(const burrow_state& state, room loc) {
-        auto amphis = amphipods();
+        auto amphis = amphipods(state.is_supersized());
         auto iter = r::find_if(amphis,
             [&](auto&& tup) {
                 const auto& [amphi, i] = tup;
@@ -306,7 +347,7 @@ namespace {
     }
 
     std::optional<room> open_home_room(const burrow_state& state, char amphi) {
-        auto home = home_for_amphi(amphi);
+        auto home = home_for_amphi(amphi, state.is_supersized());
         auto home_state = home | rv::transform(
                 [&](room loc)->char {
                     auto contents = contents_of_room(state, loc);
@@ -424,7 +465,7 @@ namespace {
     std::vector<weighted_state> neighboring_states(
             const burrow_graph& graph, const burrow_state& state) {
         std::vector<std::vector<weighted_state>> moves =
-            amphipods() | rv::transform(
+            amphipods(state.is_supersized()) | rv::transform(
                 [&](auto&& tup)->std::vector<weighted_state> {
                     auto [amphi_type, amphi_index] = tup;
                     return neighboring_states(graph, state, amphi_type, amphi_index);
@@ -446,7 +487,11 @@ namespace {
             "  #.#.#.#.#  ",
             "  #########  "
         };
-        for (auto [amphi, i] : amphipods()) {
+        if (state.is_supersized()) {
+            burrow.insert(burrow.begin() + 3, "  #.#.#.#.#");
+            burrow.insert(burrow.begin() + 3, "  #.#.#.#.#");
+        }
+        for (auto [amphi, i] : amphipods(state.is_supersized())) {
             auto room = state.amphi_loc(amphi, i);
             auto pos = room_to_loc(room);
             burrow[pos.row][pos.col] = amphi;
@@ -495,12 +540,16 @@ namespace {
 }
 
 void aoc::y2021::day_23(const std::string& title) {
-    auto burrow = make_borrow_graph();
-    auto start = burrow_state(
-        aoc::file_to_string_vector(aoc::input_path(2021, 23))
-    );
+    auto input = aoc::file_to_string_vector(aoc::input_path(2021, 23));
+    auto burrow = make_borrow_graph(false);
+    auto start = burrow_state(input);
+
+    auto supersized_burrow = make_borrow_graph(true);
+    input.insert(input.begin() + 3, "  #D#B#A#C#");
+    input.insert(input.begin() + 3, "  #D#C#B#A#");
+    auto supersized_start = burrow_state(input);
 
     std::println("--- Day 23: {} ---", title);
     std::println("  part 1: {}", dijkstra_shortest_path(burrow, start));
-    std::println("  part 2: {}", 0);
+    std::println("  part 2: {}", dijkstra_shortest_path(supersized_burrow, supersized_start));
 }
