@@ -573,11 +573,7 @@ namespace {
 
     commands_to_expr_state build_expr(const std::vector<command>& commands) {
         commands_to_expr_state state;
-        int count = 0;
         for (const auto& cmd : commands) {
-            if (count++ == 70) {
-                return state;
-            }
             switch (cmd.op) {
                 case inp:
                     build_inp_expr(state, cmd);
@@ -632,10 +628,6 @@ void aoc::y2021::day_24(const std::string& title) {
     //print_inp(brute_force(commands));
 
     std::println("{}", res.vars['z']->to_string());
-
-    for (auto str : g_exprs) {
-        std::println("{}", str);
-    }
 
     std::println("z => {}", res.vars['z']->eval({ 3,3,3,3,3,3,5,9,9,9,9,9,9,9 }));
 
