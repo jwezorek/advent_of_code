@@ -70,6 +70,10 @@ namespace {
     }
 
     using input_t = std::array<int, 14>;
+    struct eval_context {
+        input_t inp;
+        std::unordered_map<char, int> vars;
+    };
 
     class expr {
     public:
@@ -78,7 +82,7 @@ namespace {
         virtual std::shared_ptr<expr> simplify() const {
             return clone();
         }
-        virtual int eval(const input_t& inp) const = 0;
+        virtual int eval(const eval_context& inp) const = 0;
     };
 
     using expr_ptr = std::shared_ptr<expr>;
@@ -98,7 +102,7 @@ namespace {
             return val_;
         }
 
-        int eval(const input_t& inp) const override {
+        int eval(const eval_context& inp) const override {
             return val_;
         }
     };
@@ -111,16 +115,32 @@ namespace {
             return std::format("inp[{}]", index_);
         };
 
-        virtual void find_input(input_t& inp, int target) const {
-            inp[index_] = target;
-        }
 
         expr_ptr clone() const override {
             return std::make_shared<inp_expr>(index_);
         }
 
-        int eval(const input_t& inp) const override {
-            return inp[index_];
+        int eval(const eval_context& ctxt) const override {
+            return ctxt.inp[index_];
+        }
+    };
+
+    class var_expr : public expr {
+        char var_;
+    public:
+        var_expr(int var) : var_(var) {}
+
+        std::string to_string() const override {
+            return std::format("{}", var_);
+        };
+
+
+        expr_ptr clone() const override {
+            return std::make_shared<var_expr>(var_);
+        }
+
+        int eval(const eval_context& ctxt) const override {
+            return ctxt.vars.at(var_);
         }
     };
 
@@ -169,8 +189,8 @@ namespace {
             return std::make_shared<add_expr>(lhs, rhs);
         }
 
-        int eval(const input_t& inp) const override {
-            return lhs_->eval(inp) + rhs_->eval(inp);
+        int eval(const eval_context& ctxt) const override {
+            return lhs_->eval(ctxt) + rhs_->eval(ctxt);
         }
     };
 
@@ -217,8 +237,8 @@ namespace {
             return std::make_shared<mul_expr>(lhs, rhs);
         }
 
-        int eval(const input_t& inp) const override {
-            return lhs_->eval(inp) * rhs_->eval(inp);
+        int eval(const eval_context& ctxt) const override {
+            return lhs_->eval(ctxt) * rhs_->eval(ctxt);
         }
     };
 
@@ -262,8 +282,8 @@ namespace {
             return std::make_shared<div_expr>(lhs, rhs);
         }
 
-        int eval(const input_t& inp) const override {
-            return lhs_->eval(inp) / rhs_->eval(inp);
+        int eval(const eval_context& ctxt) const override {
+            return lhs_->eval(ctxt) / rhs_->eval(ctxt);
         }
     };
 
@@ -305,17 +325,8 @@ namespace {
             return std::make_shared<mod_expr>(lhs, rhs);
         }
 
-        virtual void find_input(input_t& inp, int target) const {
-            auto numer = get_number(lhs_);
-            auto denom = get_number(rhs_);
-
-            auto str = lhs_->to_string();
-            int aaa;
-            aaa = 5;
-        }
-
-        int eval(const input_t& inp) const override {
-            return lhs_->eval(inp) % rhs_->eval(inp);
+        int eval(const eval_context& ctxt) const override {
+            return lhs_->eval(ctxt) % rhs_->eval(ctxt);
         }
     };
 
@@ -350,8 +361,8 @@ namespace {
             return std::make_shared<eql_expr>(lhs, rhs);
         }
 
-        int eval(const input_t& inp) const override {
-            return lhs_->eval(inp) == rhs_->eval(inp) ? 1 : 0;
+        int eval(const eval_context& ctxt) const override {
+            return lhs_->eval(ctxt) == rhs_->eval(ctxt) ? 1 : 0;
         }
     };
 
@@ -446,29 +457,37 @@ namespace {
         }
     }
 
-    struct commands_to_expr_state {
+    struct build_expr_context {
         int inp_index;
         std::unordered_map<char, expr_ptr> vars;
 
-        commands_to_expr_state() : inp_index(0) {
+        build_expr_context() : inp_index(0) {
             vars['w'] = std::make_shared<num_expr>(0);
             vars['x'] = std::make_shared<num_expr>(0);
             vars['y'] = std::make_shared<num_expr>(0);
             vars['z'] = std::make_shared<num_expr>(0);
         }
+
+        build_expr_context(int i, expr_ptr w, expr_ptr x, expr_ptr y, expr_ptr z) : 
+                inp_index(i) {
+            vars['w'] = w;
+            vars['x'] = x;
+            vars['y'] = y;
+            vars['z'] = z;
+        }
     };
 
-    void build_inp_expr(commands_to_expr_state& state, command cmd) {
+    void build_inp_expr(build_expr_context& state, command cmd) {
         state.vars[cmd.var] = std::make_shared<inp_expr>(state.inp_index++)->simplify();
     }
 
     expr_ptr make_arg_expr(
-            const commands_to_expr_state& state, std::variant<char, int> arg) {
+            const build_expr_context& state, std::variant<char, int> arg) {
 
         struct visitor {
-            const commands_to_expr_state& state;
+            const build_expr_context& state;
             
-            visitor(const commands_to_expr_state& state) : state(state)
+            visitor(const build_expr_context& state) : state(state)
             {}
 
             expr_ptr operator()(char var) const {
@@ -483,21 +502,21 @@ namespace {
         return std::visit(visitor(state), arg);
     }
 
-    void build_add_expr(commands_to_expr_state& state, command cmd) {
+    void build_add_expr(build_expr_context& state, command cmd) {
         state.vars[cmd.var] = std::make_shared<add_expr>(
                 state.vars[cmd.var],
                 make_arg_expr(state, *cmd.arg)
             )->simplify();
     }
 
-    void build_mul_expr(commands_to_expr_state& state, command cmd) {
+    void build_mul_expr(build_expr_context& state, command cmd) {
         state.vars[cmd.var] = std::make_shared<mul_expr>(
                 state.vars[cmd.var],
                 make_arg_expr(state, *cmd.arg)
             )->simplify();
     }
 
-    void build_mod_expr(commands_to_expr_state& state, command cmd) {
+    void build_mod_expr(build_expr_context& state, command cmd) {
         state.vars[cmd.var] = std::make_shared<mod_expr>(
                 state.vars[cmd.var],
                 make_arg_expr(state, *cmd.arg)
@@ -505,55 +524,48 @@ namespace {
     }
 
 
-    void build_div_expr(commands_to_expr_state& state, command cmd) {
+    void build_div_expr(build_expr_context& state, command cmd) {
         state.vars[cmd.var] = std::make_shared<div_expr>(
             state.vars[cmd.var],
             make_arg_expr(state, *cmd.arg)
         )->simplify();
     }
 
-    void build_eql_expr(commands_to_expr_state& state, command cmd) {
+    void build_eql_expr(build_expr_context& state, command cmd) {
         state.vars[cmd.var] = std::make_shared<eql_expr>(
             state.vars[cmd.var],
             make_arg_expr(state, *cmd.arg)
         )->simplify();
     }
 
-    commands_to_expr_state build_expr(const std::vector<command>& commands) {
-        commands_to_expr_state state;
-        int count = 0;
+    void build_expr(const std::vector<command>& commands, build_expr_context& ctxt) {
         for (const auto& cmd : commands) {
-            count++;
             switch (cmd.op) {
                 case inp:
-                    build_inp_expr(state, cmd);
+                    build_inp_expr(ctxt, cmd);
                     break;
 
                 case add:
-                    build_add_expr(state, cmd);
+                    build_add_expr(ctxt, cmd);
                     break;
 
                 case mul:
-                    build_mul_expr(state, cmd);
+                    build_mul_expr(ctxt, cmd);
                     break;
 
                 case mod:
-                    build_mod_expr(state, cmd);
+                    build_mod_expr(ctxt, cmd);
                     break;
                 
                 case div:
-                    build_div_expr(state, cmd);
+                    build_div_expr(ctxt, cmd);
                     break;
 
                 case eql:
-                    build_eql_expr(state, cmd);
+                    build_eql_expr(ctxt, cmd);
                     break;
             }
-            if (count == 18) {
-                return state;
-            }
         }
-        return state;
     }
 
     int eval_z(const std::array<int, 14> inp, const std::vector<command>& cmds) {
@@ -569,22 +581,46 @@ namespace {
         }
         std::println("");
     }
+
+    class subroutine {
+        expr_ptr z;
+    public:
+        subroutine(const std::vector<command>& cmds, int inp_index) {
+            build_expr_context ctxt(inp_index,
+                std::make_shared<var_expr>('w'),
+                std::make_shared<var_expr>('x'),
+                std::make_shared<var_expr>('y'),
+                std::make_shared<var_expr>('z')
+            );
+            build_expr(cmds, ctxt);
+            z = ctxt.vars.at('z');
+        }
+
+        void display() {
+            std::println("z =>{}",  z->to_string());
+        }
+
+        //int eval(int z, )
+    };
 }
 
 void aoc::y2021::day_24(const std::string& title) {
     auto input = aoc::file_to_string_vector(aoc::input_path(2021, 24));
     auto commands = input | rv::transform(str_to_command) | r::to<std::vector<command>>();
 
-    auto res = build_expr(commands);
-    //input_t inp = { 9,9,9,9,9,9,9,9,9,9,9,9,9,9 };
-    //res.vars['z']->find_input(inp, 0);
-    //print_inp(brute_force(commands));
+    int subroutine_sz = static_cast<int>(commands.size()) / 14;
+    auto subroutine_cmds = commands | rv::chunk(subroutine_sz) | r::to<std::vector<std::vector<command>>>();
+    auto subroutines = rv::enumerate(subroutine_cmds) | rv::transform(
+            [](auto&& i_cmds) {
+                const auto& [i, cmds] = i_cmds;
+                return subroutine(cmds, i);
+            }
+        ) | r::to<std::vector<subroutine>>();
 
-    std::println("{}", res.vars['z']->to_string());
-
-    std::println("z => {}", res.vars['z']->eval({ 3,3,3,3,3,3,5,9,9,9,9,9,9,9 }));
-
-    std::println("z => {}", eval_z({ 3,3,3,3,3,3,5,9,9,9,9,9,9,9 }, commands));
+    for (auto&& sub : subroutines) {
+        sub.display();
+    }
+   
 
     std::println("--- Day 24: {} ---", title);
     std::println("  part 1: {}", 0);
