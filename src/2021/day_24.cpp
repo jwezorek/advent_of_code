@@ -458,18 +458,16 @@ namespace {
     }
 
     struct build_expr_context {
-        int inp_index;
         std::unordered_map<char, expr_ptr> vars;
 
-        build_expr_context() : inp_index(0) {
+        build_expr_context() {
             vars['w'] = std::make_shared<num_expr>(0);
             vars['x'] = std::make_shared<num_expr>(0);
             vars['y'] = std::make_shared<num_expr>(0);
             vars['z'] = std::make_shared<num_expr>(0);
         }
 
-        build_expr_context(int i, expr_ptr w, expr_ptr x, expr_ptr y, expr_ptr z) : 
-                inp_index(i) {
+        build_expr_context(int i, expr_ptr w, expr_ptr x, expr_ptr y, expr_ptr z) {
             vars['w'] = w;
             vars['x'] = x;
             vars['y'] = y;
@@ -478,7 +476,7 @@ namespace {
     };
 
     void build_inp_expr(build_expr_context& state, command cmd) {
-        state.vars[cmd.var] = std::make_shared<inp_expr>(state.inp_index++)->simplify();
+        state.vars[cmd.var] = std::make_shared<var_expr>('i');
     }
 
     expr_ptr make_arg_expr(
@@ -597,10 +595,14 @@ namespace {
         }
 
         void display() {
-            std::println("z =>{}",  z->to_string());
+            std::println("z => {}",  z->to_string());
         }
 
-        //int eval(int z, )
+        int eval(int z, int inp) {
+            eval_context ctxt;
+            ctxt.vars['z'] = z;
+            ctxt.vars['i'] = inp;
+        }
     };
 }
 
