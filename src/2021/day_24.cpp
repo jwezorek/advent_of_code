@@ -78,7 +78,6 @@ namespace {
         virtual std::shared_ptr<expr> simplify() const {
             return clone();
         }
-        virtual std::tuple<int, int> range() const = 0;
         virtual int eval(const input_t& inp) const = 0;
     };
 
@@ -97,10 +96,6 @@ namespace {
         }
         int value() const {
             return val_;
-        }
-
-        std::tuple<int, int> range() const override {
-            return { val_,val_ };
         }
 
         int eval(const input_t& inp) const override {
@@ -122,9 +117,6 @@ namespace {
 
         expr_ptr clone() const override {
             return std::make_shared<inp_expr>(index_);
-        }
-        std::tuple<int, int> range() const override {
-            return { 1,9 };
         }
 
         int eval(const input_t& inp) const override {
@@ -177,12 +169,6 @@ namespace {
             return std::make_shared<add_expr>(lhs, rhs);
         }
 
-        std::tuple<int, int> range() const override {
-            auto [a, b] = lhs_->range();
-            auto [c, d] = rhs_->range();
-            return { a+c, b+d };
-        }
-
         int eval(const input_t& inp) const override {
             return lhs_->eval(inp) + rhs_->eval(inp);
         }
@@ -231,14 +217,6 @@ namespace {
             return std::make_shared<mul_expr>(lhs, rhs);
         }
 
-        std::tuple<int, int> range() const override {
-            auto [a, b] = lhs_->range();
-            auto [c, d] = rhs_->range();
-            std::array<int, 4> ary = { a * c, a * d, b * c, b * d };
-            r::sort(ary);
-            return { ary.front(), ary.back() };
-        }
-
         int eval(const input_t& inp) const override {
             return lhs_->eval(inp) * rhs_->eval(inp);
         }
@@ -282,14 +260,6 @@ namespace {
             }
  
             return std::make_shared<div_expr>(lhs, rhs);
-        }
-
-        std::tuple<int, int> range() const override {
-            auto [a, b] = lhs_->range();
-            auto [c, d] = rhs_->range();
-            std::array<int, 4> ary = { a / c, a / d, b / c, b / d };
-            r::sort(ary);
-            return { ary.front(), ary.back() };
         }
 
         int eval(const input_t& inp) const override {
@@ -344,17 +314,6 @@ namespace {
             aaa = 5;
         }
 
-        std::tuple<int, int> range() const override {
-            auto [low, high] = lhs_->range();
-            auto [a, b] = rhs_->range();
-
-            if (a > high) {
-                return { low,high };
-            }
-
-            return { 0, b-1 };
-        }
-
         int eval(const input_t& inp) const override {
             return lhs_->eval(inp) % rhs_->eval(inp);
         }
@@ -388,18 +347,7 @@ namespace {
                 return std::make_shared<num_expr>((*a == *b) ? 1 : 0);
             }
 
-            auto [low1, high1] = lhs->range();
-            auto [low2, high2] = rhs->range();
-            if (high1 < low2 || low1 > high2) {
-                return std::make_shared<num_expr>(0);
-            }
-
             return std::make_shared<eql_expr>(lhs, rhs);
-        }
-
-        std::tuple<int, int> range() const override {
-            auto [a, b] = rhs_->range();
-            return {0, 1};
         }
 
         int eval(const input_t& inp) const override {
@@ -573,7 +521,9 @@ namespace {
 
     commands_to_expr_state build_expr(const std::vector<command>& commands) {
         commands_to_expr_state state;
+        int count = 0;
         for (const auto& cmd : commands) {
+            count++;
             switch (cmd.op) {
                 case inp:
                     build_inp_expr(state, cmd);
@@ -598,6 +548,9 @@ namespace {
                 case eql:
                     build_eql_expr(state, cmd);
                     break;
+            }
+            if (count == 18) {
+                return state;
             }
         }
         return state;
