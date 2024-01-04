@@ -196,6 +196,23 @@ int64_t aoc::string_to_int64(const std::string& str) {
     return value;
 }
 
+std::vector<std::vector<std::string>> aoc::group_strings_separated_by_blank_lines(
+        const std::vector<std::string>& input)  {
+    return input | rv::chunk_by(
+            [](const std::string& str1, const std::string& str2)->bool {
+                return str1.size() != 0 && str2.size() != 0;
+            }
+        ) | rv::transform(
+            [](auto rng)->std::vector<std::string> {
+                return rng | r::to<std::vector<std::string>>();
+            }
+        ) | rv::filter(
+            [](auto&& strs) {
+                return !strs.empty();
+            }
+        ) | r::to<std::vector<std::vector<std::string>>>();
+}
+
 std::vector<int64_t> aoc::extract_numbers_int64(const std::string& str, bool allow_negatives) {
     std::function<bool(char)> is_digit = (allow_negatives) ?
         [](char ch)->bool {return std::isdigit(ch); } :

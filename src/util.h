@@ -22,6 +22,11 @@ namespace aoc {
     std::string remove_nonnumeric(const std::string& str);
     std::string trim(const std::string& str);
     int64_t string_to_int64(const std::string& str);
+    std::vector<std::vector<std::string>> group_strings_separated_by_blank_lines(const std::vector<std::string>& lines);
+
+
+
+
 
     template <std::size_t... Is>
     auto create_tuple_impl(std::index_sequence<Is...>, const std::vector<std::string>& arguments) {
