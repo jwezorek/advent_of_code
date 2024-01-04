@@ -8,6 +8,7 @@
 #include <variant>
 #include <format>
 #include <unordered_set>
+#include <sstream>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -83,6 +84,9 @@ namespace {
             return clone();
         }
         virtual int eval(const eval_context& inp) const = 0;
+        virtual bool has_expr(std::shared_ptr<expr> expr) const {
+            return this->to_string() == expr->to_string();
+        }
     };
 
     using expr_ptr = std::shared_ptr<expr>;
@@ -189,6 +193,15 @@ namespace {
             return std::make_shared<add_expr>(lhs, rhs);
         }
 
+        virtual bool has_expr(std::shared_ptr<expr> expr) const override {
+            if (this->to_string() == expr->to_string()) {
+                return true;
+            }
+            else {
+                return lhs_->has_expr(expr) || rhs_->has_expr(expr);
+            }
+        }
+
         int eval(const eval_context& ctxt) const override {
             return lhs_->eval(ctxt) + rhs_->eval(ctxt);
         }
@@ -240,6 +253,14 @@ namespace {
         int eval(const eval_context& ctxt) const override {
             return lhs_->eval(ctxt) * rhs_->eval(ctxt);
         }
+
+        virtual bool has_expr(std::shared_ptr<expr> expr) const override {
+            if (this->to_string() == expr->to_string()) {
+                return true;
+            }else {
+                return lhs_->has_expr(expr) || rhs_->has_expr(expr);
+            }
+        }
     };
 
     class div_expr : public expr {
@@ -285,6 +306,15 @@ namespace {
         int eval(const eval_context& ctxt) const override {
             return lhs_->eval(ctxt) / rhs_->eval(ctxt);
         }
+
+        virtual bool has_expr(std::shared_ptr<expr> expr) const override {
+            if (this->to_string() == expr->to_string()) {
+                return true;
+            }
+            else {
+                return lhs_->has_expr(expr) || rhs_->has_expr(expr);
+            }
+        }
     };
 
     class mod_expr : public expr {
@@ -328,6 +358,15 @@ namespace {
         int eval(const eval_context& ctxt) const override {
             return lhs_->eval(ctxt) % rhs_->eval(ctxt);
         }
+
+        virtual bool has_expr(std::shared_ptr<expr> expr) const override {
+            if (this->to_string() == expr->to_string()) {
+                return true;
+            }
+            else {
+                return lhs_->has_expr(expr) || rhs_->has_expr(expr);
+            }
+        }
     };
 
     class eql_expr : public expr {
@@ -364,98 +403,16 @@ namespace {
         int eval(const eval_context& ctxt) const override {
             return lhs_->eval(ctxt) == rhs_->eval(ctxt) ? 1 : 0;
         }
-    };
 
-    struct eval_command_state {
-        int inp_index;
-        std::unordered_map<char, int> vars;
-        std::array<int, 14> inp;
-
-        eval_command_state() : inp_index(0) {
-            vars['w'] = 0;
-            vars['x'] = 0;
-            vars['y'] = 0;
-            vars['z'] = 0;
-        }
-    };
-
-    void eval_inp_expr(eval_command_state& state, const command& cmd) {
-        state.vars[cmd.var] = state.inp[state.inp_index++];
-    }
-
-    int eval_arg(const eval_command_state& state, std::variant<char, int> arg) {
-        struct visitor {
-            const eval_command_state& state;
-
-            visitor(const eval_command_state& state) : state(state)
-            {}
-
-            int operator()(char var) const {
-                return state.vars.at(var);
+        virtual bool has_expr(std::shared_ptr<expr> expr) const override {
+            if (this->to_string() == expr->to_string()) {
+                return true;
             }
-
-            int operator()(int num) const {
-                return num;
-            }
-        };
-
-        return std::visit(visitor(state), arg);
-    }
-
-    void eval_add_expr(eval_command_state& state, const command& cmd) {
-        auto arg = eval_arg(state, *cmd.arg);
-        state.vars[cmd.var] = state.vars[cmd.var] + arg;
-    }
-
-    void eval_mul_expr(eval_command_state& state, const command& cmd) {
-        auto arg = eval_arg(state, *cmd.arg);
-        state.vars[cmd.var] = state.vars[cmd.var] * arg;
-    }
-
-    void eval_mod_expr(eval_command_state& state, const command& cmd) {
-        auto arg = eval_arg(state, *cmd.arg);
-        state.vars[cmd.var] = state.vars[cmd.var] % arg;
-    }
-
-    void eval_div_expr(eval_command_state& state, const command& cmd) {
-        auto arg = eval_arg(state, *cmd.arg);
-        state.vars[cmd.var] = state.vars[cmd.var] / arg;
-    }
-
-    void eval_eql_expr(eval_command_state& state, const command& cmd) {
-        auto arg = eval_arg(state, *cmd.arg);
-        state.vars[cmd.var] = (state.vars[cmd.var] == arg) ? 1 : 0;
-    }
-
-    void eval_commands(const std::vector<command>& commands, eval_command_state& state) {
-        for (const auto& cmd : commands) {
-            switch (cmd.op) {
-            case inp:
-                eval_inp_expr(state, cmd);
-                break;
-
-            case add:
-                eval_add_expr(state, cmd);
-                break;
-
-            case mul:
-                eval_mul_expr(state, cmd);
-                break;
-
-            case mod:
-                eval_mod_expr(state, cmd);
-                break;
-
-            case div:
-                eval_div_expr(state, cmd);
-                break;
-
-            case eql:
-                eval_eql_expr(state, cmd);
-                break;
+            else {
+                return lhs_->has_expr(expr) || rhs_->has_expr(expr);
             }
         }
-    }
+    };
 
     struct build_expr_context {
         std::unordered_map<char, expr_ptr> vars;
@@ -566,24 +523,10 @@ namespace {
         }
     }
 
-    int eval_z(const std::array<int, 14> inp, const std::vector<command>& cmds) {
-        eval_command_state state;
-        state.inp = inp;
-        eval_commands(cmds, state);
-        return state.vars['z'];
-    }
-
-    void print_inp(const input_t& inp) {
-        for (auto digit : inp) {
-            std::print("{}", digit);
-        }
-        std::println("");
-    }
-
-    class subroutine {
-        expr_ptr z;
+    class alu_function {
+        expr_ptr func;
     public:
-        subroutine(const std::vector<command>& cmds, int inp_index) {
+        alu_function(const std::vector<command>& cmds, int inp_index) {
             build_expr_context ctxt(inp_index,
                 std::make_shared<var_expr>('w'),
                 std::make_shared<var_expr>('x'),
@@ -591,40 +534,153 @@ namespace {
                 std::make_shared<var_expr>('z')
             );
             build_expr(cmds, ctxt);
-            z = ctxt.vars.at('z');
+            func = ctxt.vars.at('z');
         }
 
-        void display() {
-            std::println("z => {}",  z->to_string());
+        std::string to_string() const {
+            return std::format("z => {}", func->to_string());
         }
 
-        int eval(int z, int inp) {
+        bool is_pop() const {
+            auto test = std::make_shared<div_expr>(
+                std::make_shared<var_expr>('z'),
+                std::make_shared<num_expr>(26)
+            );
+            return func->has_expr(test);
+        }
+
+        int eval(int z, int inp) const {
             eval_context ctxt;
             ctxt.vars['z'] = z;
             ctxt.vars['i'] = inp;
+            return func->eval(ctxt);
         }
     };
+
+    class input_generator {
+        int sz_;
+        int incr_;
+        int curr_num_;
+
+        std::string next_str() {
+            auto output = std::to_string(curr_num_);
+            curr_num_ += incr_;
+            return output;
+        }
+
+    public:
+        input_generator(int sz, int incr, int start) :
+            sz_(sz), incr_(incr), curr_num_(start)
+        {}
+
+        std::vector<int> next_digits() {
+            auto str = next_str();
+            while (str.contains('0')) {
+                str = next_str();
+            }
+            return str | rv::transform(
+                [](char numeral)->int {
+                    return numeral - '0';
+                }
+            ) | r::to<std::vector<int>>();
+        }
+    };
+
+    class subroutine {
+        std::vector<alu_function> funcs_;
+    public:
+        subroutine(const std::vector<alu_function>& funcs) : funcs_(funcs)
+        {}
+
+        size_t size() const {
+            return funcs_.size();
+        }
+
+        int eval(const std::vector<int>& inp) const {
+            int z = 0;
+            for (const auto& [digit, sub] : rv::zip(inp, funcs_)) {
+                z = sub.eval(z, digit);
+            }
+            return z;
+        }
+
+        std::string solve(input_generator& gen) const {
+            std::vector<int> inp;
+            int result;
+            do {
+                inp = gen.next_digits();
+                result = eval(inp);
+            } while (result != 0);
+            return inp | rv::transform([](int v)->char {return '0' + v; }) | r::to<std::string>();
+        }
+
+        std::string high_input() const {
+            int start = std::stoi(std::string(size(), '9'));
+            auto gen = input_generator(size(), -1, start);
+            return solve(gen);
+        }
+
+        std::string low_input() const {
+            int start = std::stoi(std::string(size(), '1'));
+            auto gen = input_generator(size(), 1, start);
+            return solve(gen);
+        }
+    };
+
+    std::vector<subroutine> split_funcs_into_subroutines(const std::vector<alu_function>& funcs) {
+        std::vector<subroutine> output;
+        int stack_hgt = 0;
+        std::vector<alu_function> curr_functions;
+
+        for (const auto& func : funcs) {
+            curr_functions.push_back(func);
+            stack_hgt += (func.is_pop()) ? -1 : 1;
+            if (stack_hgt == 0) {
+                output.emplace_back(curr_functions);
+                curr_functions.clear();
+            }
+        }
+        return output;
+    }
+
+    std::string highest_model_number(const std::vector<subroutine>& subroutines) {
+        std::vector<std::string> pieces = subroutines |
+                rv::transform(
+                    [](auto&& sub) {
+                        return sub.high_input();
+                    }
+            ) | r::to<std::vector<std::string>>();
+        return pieces | rv::join | r::to<std::string>();
+    }
+
+    std::string lowest_model_number(const std::vector<subroutine>& subroutines) {
+        std::vector<std::string> pieces = subroutines |
+            rv::transform(
+                [](auto&& sub) {
+                    return sub.low_input();
+                }
+        ) | r::to<std::vector<std::string>>();
+        return pieces | rv::join | r::to<std::string>();
+    }
+
 }
 
 void aoc::y2021::day_24(const std::string& title) {
     auto input = aoc::file_to_string_vector(aoc::input_path(2021, 24));
     auto commands = input | rv::transform(str_to_command) | r::to<std::vector<command>>();
 
-    int subroutine_sz = static_cast<int>(commands.size()) / 14;
-    auto subroutine_cmds = commands | rv::chunk(subroutine_sz) | r::to<std::vector<std::vector<command>>>();
-    auto subroutines = rv::enumerate(subroutine_cmds) | rv::transform(
+    int function_sz = static_cast<int>(commands.size()) / 14;
+    auto func_cmds = commands | rv::chunk(function_sz) | r::to<std::vector<std::vector<command>>>();
+    auto functions = rv::enumerate(func_cmds) | rv::transform(
             [](auto&& i_cmds) {
                 const auto& [i, cmds] = i_cmds;
-                return subroutine(cmds, i);
+                return alu_function(cmds, i);
             }
-        ) | r::to<std::vector<subroutine>>();
-
-    for (auto&& sub : subroutines) {
-        sub.display();
-    }
-   
+        ) | r::to<std::vector<alu_function>>();
+    auto subroutines = split_funcs_into_subroutines(functions);
 
     std::println("--- Day 24: {} ---", title);
-    std::println("  part 1: {}", 0);
-    std::println("  part 2: {}", 0);
+    std::println("  part 1: {}", highest_model_number(subroutines));
+    std::println("  part 2: {}", lowest_model_number(subroutines));
+    
 }
