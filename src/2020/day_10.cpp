@@ -37,10 +37,8 @@ namespace {
             return memoize.at(i);
         }
 
-        int n = static_cast<int>(nums.size());
-        int start = nums.at(i);
-        auto next = rv::iota(i + 1, n) | rv::take_while(
-                [&](int v) { return nums[v] - start <= 3; }
+        auto next = rv::iota(i + 1, static_cast<int>(nums.size())) | rv::take_while(
+                [&](int v) { return nums[v] - nums.at(i) <= 3; }
             );
 
         if (next.empty()) {
