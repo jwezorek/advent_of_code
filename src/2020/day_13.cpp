@@ -69,6 +69,7 @@ void aoc::y2020::day_13(const std::string& title) {
     std::println("--- Day 13: {} ---", title);
     std::println("  part 1: {}", do_part_1(input));
 
+    //TODO: do this with the chinese remainder theorem, or whatever.
     // i just solved this one with mathematica...
     std::println("  part 2:\n\n{}",
         generate_mathematica(input.back())
