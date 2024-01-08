@@ -208,7 +208,13 @@ std::vector<std::vector<std::string>> aoc::group_strings_separated_by_blank_line
             }
         ) | rv::filter(
             [](auto&& strs) {
-                return !strs.empty();
+                if (strs.empty()) {
+                    return false;
+                }
+                if (strs.size() == 1 && strs.front().empty()) {
+                    return false;
+                }
+                return true;
             }
         ) | r::to<std::vector<std::vector<std::string>>>();
 }
