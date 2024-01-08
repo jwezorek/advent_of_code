@@ -112,7 +112,7 @@ namespace {
         return {};
     }
 
-    std::tuple<std::string, int> find_one_field(const std::vector<rule>& rules,
+    std::tuple<std::string, int> find_one_field(auto rules,
             const std::vector<ticket>& tickets,
             const std::unordered_set<int>& fields) {
         for (const auto& rule : rules) {
@@ -129,16 +129,18 @@ namespace {
 
         auto tickets = valid_tickets(rules, all_tickets);
         std::unordered_map<std::string, int> field_to_index;
-        auto current_rule_set = rules;
+        auto current_rule_set = rules | rv::transform(
+                [](const rule& r)->std::unordered_map<std::string, rule>::value_type {
+                    return { r.field, r };
+                }
+            ) | r::to<std::unordered_map<std::string, rule>>();
         int num_fields = static_cast<int>(all_tickets.front().size());
         auto field_set = rv::iota(0, num_fields) | r::to<std::unordered_set<int>>();
 
         while (!current_rule_set.empty()) {
-            auto [field, index] = find_one_field(current_rule_set, tickets, field_set);
+            auto [field, index] = find_one_field(current_rule_set | rv::values, tickets, field_set);
             field_to_index[field] = index;
-            current_rule_set = current_rule_set |
-                rv::filter([field](auto&& rule) {return rule.field != field; }) |
-                r::to<std::vector<rule>>();
+            current_rule_set.erase(field);
             field_set.erase(index);
         }
 
