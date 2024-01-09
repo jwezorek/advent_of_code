@@ -18,7 +18,6 @@ namespace {
     class expr {
     public: 
         virtual int64_t eval() const = 0;
-        virtual std::string to_string() const = 0;
     };
 
     using expr_ptr = std::shared_ptr<expr>;
@@ -29,9 +28,6 @@ namespace {
         num_expr(int64_t val) : val_(val) {}
         int64_t eval() const override {
             return val_;
-        }
-        std::string to_string() const override {
-            return std::to_string(val_);
         }
     };
 
@@ -58,25 +54,6 @@ namespace {
             }
             return result;
         }
-
-        std::string to_string() const {
-            std::stringstream ss;
-            ss << "( ";
-            if (!terms_.empty()) {
-                ss << terms_.front().val->to_string();
-                for (const auto& term : terms_ | rv::drop(1)) {
-                    if (term.is_add) {
-                        ss << " + ";
-                    } else {
-                        ss << " * ";
-                    }
-                    ss << term.val->to_string();
-                }
-            }
-            ss << " )";
-            return ss.str();
-
-        }
     };
 
     class add_expr : public expr {
@@ -91,13 +68,6 @@ namespace {
                 std::plus<int64_t>()
             );
         }
-
-        std::string to_string() const {
-             auto str = exprs_ | rv::transform(
-                    [](auto&& e) {return e->to_string(); }
-                ) | rv::join_with(std::string(" + ")) | r::to<std::string>();
-             return "( " + str + " )";
-        }
     };
 
     class multiply_expr : public expr {
@@ -111,13 +81,6 @@ namespace {
                 1ull,
                 std::multiplies<int64_t>()
             );
-        }
-
-        std::string to_string() const {
-            auto str = exprs_ | rv::transform(
-                [](auto&& e) {return e->to_string(); }
-            ) | rv::join_with(std::string(" * ")) | r::to<std::string>();
-            return "( " + str + " )";
         }
     };
 
@@ -145,7 +108,7 @@ namespace {
     using tokens = std::vector<std::string>;
     using iterator = tokens::const_iterator;
 
-    expr_ptr parse_no_precedence_expr(iterator& i, const iterator& end);
+    using expr_parser = std::function<expr_ptr(iterator&, const iterator&)>;
     
     expr_ptr parse_number(iterator& i, const iterator& end) {
         if (i == end) {
@@ -157,7 +120,7 @@ namespace {
         return nullptr;
     }
 
-    expr_ptr parse_subexpr(iterator& i, const iterator& end) {
+    expr_ptr parse_subexpr(iterator& i, const iterator& end, expr_parser parser_fn) {
         if (i == end) {
             return nullptr;
         }
@@ -166,7 +129,7 @@ namespace {
             return nullptr;
         }
         ++i;
-        auto expr = parse_no_precedence_expr(i, end);
+        auto expr = parser_fn(i, end);
         if (expr == nullptr) {
             throw std::runtime_error("bad input");
         }
@@ -177,7 +140,7 @@ namespace {
         return expr;
     }
 
-    expr_ptr parse_number_or_subexpr(iterator& i, const iterator& end) {
+    expr_ptr parse_number_or_subexpr(iterator& i, const iterator& end, expr_parser parser_fn) {
         if (i == end) {
             return nullptr;
         }
@@ -185,25 +148,32 @@ namespace {
         if (num) {
             return num;
         }
-        auto subexpr = parse_subexpr(i, end);
+        auto subexpr = parse_subexpr(i, end, parser_fn);
         if (subexpr) {
             return subexpr;
         }
         return nullptr;
     }
 
-    std::optional<char> parse_operation(iterator& i, const iterator& end) {
+    std::optional<char> parse_operation(iterator& i, const iterator& end, std::optional<char> op = {}) {
         if (i == end) {
             return {};
         }
         if (*i == "*" || *i == "+") {
+            if (op) {
+                if (i->front() == op) {
+                    return (i++)->front();
+                } else {
+                    return {};
+                }
+            }
             return (i++)->front();
         }
         return {};
     }
 
-    expr_ptr parse_no_precedence_expr(iterator& i, const iterator& end) {
-        auto first = parse_number_or_subexpr(i, end);
+    expr_ptr parse_no_precedence_expr(iterator& i, const iterator& end, expr_parser parse_fn) {
+        auto first = parse_number_or_subexpr(i, end, parse_fn);
         if (!first) {
             return nullptr;
         }
@@ -216,7 +186,7 @@ namespace {
                 next_term = {};
                 continue;
             }
-            auto arg = parse_number_or_subexpr(i, end);
+            auto arg = parse_number_or_subexpr(i, end, parse_fn);
             if (!arg) {
                 next_term = {};
                 continue;
@@ -229,9 +199,58 @@ namespace {
     expr_ptr parse_no_precedence_expr(const std::string& arithmetic) {
         auto tokens = tokenize(arithmetic);
         auto iter = tokens.begin();
-        return parse_no_precedence_expr(iter, tokens.end());
+        expr_parser parser_fn = [&](iterator& i, const iterator& end) {
+            return parse_no_precedence_expr(i, end, parser_fn);
+        };
+        return parse_no_precedence_expr(iter, tokens.end(), parser_fn);
     }
 
+    expr_ptr parse_add_expr(iterator& i, const iterator& end, expr_parser parse_fn) {
+        auto next_term = parse_number_or_subexpr(i, end, parse_fn);
+        if (!next_term) {
+            return nullptr;
+        }
+        std::vector<expr_ptr> terms;
+        while (next_term) {
+            terms.push_back(next_term);
+            auto op = parse_operation(i, end, '+');
+            if (!op) {
+                next_term = {};
+                continue;
+            }
+            next_term = parse_number_or_subexpr(i, end, parse_fn);
+        }
+        return std::make_shared<add_expr>(terms);
+    }
+
+    expr_ptr parse_mult_expr(iterator& i, const iterator& end, expr_parser parse_fn) {
+        auto next_factor = parse_add_expr(i, end, parse_fn);
+        if (!next_factor) {
+            return nullptr;
+        }
+
+        std::vector<expr_ptr> factors;
+        while (next_factor) {
+            factors.push_back(next_factor);
+            auto op = parse_operation(i, end, '*');
+            if (!op) {
+                next_factor = {};
+                continue;
+            }
+            next_factor = parse_add_expr(i, end, parse_fn);
+        }
+
+        return std::make_shared<multiply_expr>(factors);
+    }
+
+    expr_ptr parse_reversed_precedence_expr(const std::string& arithmetic) {
+        auto tokens = tokenize(arithmetic);
+        auto iter = tokens.begin();
+        expr_parser parser_fn = [&](iterator& i, const iterator& end) {
+            return parse_mult_expr(i, end, parser_fn);
+        };
+        return parse_mult_expr(iter, tokens.end(), parser_fn);
+    }
 }
 
 void aoc::y2020::day_18(const std::string& title) {
@@ -249,5 +268,16 @@ void aoc::y2020::day_18(const std::string& title) {
             std::plus<int64_t>()
         )
     );
-    std::println("  part 2: {}", 0);
+    
+    std::println("  part 2: {}",
+        r::fold_left(
+            input | rv::transform(
+                [](auto&& str)->int64_t {
+                    return parse_reversed_precedence_expr(str)->eval();
+                }
+            ),
+            0ll,
+            std::plus<int64_t>()
+        )
+    );
 }
