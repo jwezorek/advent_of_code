@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <memory>
 #include <optional>
+#include <stack>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -90,22 +91,31 @@ namespace {
             return r::fold_left(checks, 0, std::plus<>());
         }
 
+        struct state {
+            int child;
+            int pos;
+        };
+
         std::vector<int> full_validate(const rule_tbl& rules, const std::string& inp, int pos) const override {
-            /*
             if (pos >= inp.size()) {
                 return {};
             }
             std::unordered_set<int> results;
-
-            for (auto child : children_) {
-                auto new_positions = rules.at(child)->full_validate(rules, inp, pos);
-                if (!new_pos) {
-                    return {};
+            std::stack<state> stack;
+            stack.push({ 0,pos });
+            while (!stack.empty()) {
+                state s = stack.top();
+                stack.pop();
+                if (s.child < children_.size()) {
+                    auto new_positions = rules.at(children_[s.child])->full_validate(rules, inp, s.pos);
+                    for (int new_pos : new_positions) {
+                        stack.push({ s.child + 1, new_pos });
+                    }
+                } else {
+                    results.insert(s.pos);
                 }
-                pos = *new_pos;
             }
-            */
-            return {};
+            return results | r::to<std::vector<int>>();
         }
     };
 
@@ -140,8 +150,19 @@ namespace {
         }
 
         std::vector<int> full_validate(const rule_tbl& rules, const std::string& inp, int pos) const override {
+            if (pos >= inp.size()) {
+                return {};
+            }
             std::unordered_set<int> results;
-            return {};
+            for (auto child : children_) {
+                auto new_positions = child->full_validate(rules, inp, pos);
+                if (!new_positions.empty()) {
+                    for (int new_pos : new_positions) {
+                        results.insert(new_pos);
+                    }
+                }
+            }
+            return results | r::to<std::vector<int>>();
         }
     };
 
@@ -204,6 +225,18 @@ namespace {
         return true;
     }
 
+    bool is_full_match(const rule_tbl& rules, rule_ptr rule, const std::string& inp) {
+        auto result = rule->full_validate(rules, inp, 0);
+        if (result.empty()) {
+            return false;
+        }
+        if (r::find(result, inp.size()) == result.end()) {
+            return false;
+        }
+
+        return true;
+    }
+
     int do_part_2(const rule_tbl& rules, const std::vector<std::string>& messages) {
         auto new_rules = rules;
         new_rules[8] = std::get<1>(parse_rule("8: 42 | 42 8"));
@@ -212,37 +245,12 @@ namespace {
         return r::fold_left(
             messages | rv::transform(
                 [&new_rules](auto&& str)->int {
-                    return is_match(new_rules, new_rules.at(0), str) ? 1 : 0;
+                    return is_full_match(new_rules, new_rules.at(0), str) ? 1 : 0;
                 }
             ),
             0,
             std::plus<>()
         );
-    }
-
-    void test(const rule_tbl& rules) {
-        auto new_rules = rules;
-        new_rules[8] = std::get<1>(parse_rule("8: 42 | 42 8"));
-        new_rules[11] = std::get<1>(parse_rule("11: 42 31 | 42 11 31"));
-
-        std::vector<std::string> test_msgs = {
-            //"bbabbbbaabaabba",
-            "babbbbaabbbbbabbbbbbaabaaabaaa",
-            "aaabbbbbbaaaabaababaabababbabaaabbababababaaa",
-            "bbbbbbbaaaabbbbaaabbabaaa",
-            "bbbababbbbaaaaaaaabbababaaababaabab",
-            "ababaaaaaabaaab",
-            "ababaaaaabbbaba",
-            "baabbaaaabbaaaababbaababb",
-            "abbbbabbbbaaaababbbbbbaaaababb",
-            "aaaaabbaabaaaaababaa",
-            "aaaabbaabbaaaaaaabbbabbbaaabbaabaaa",
-            "aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba"
-        };
-
-        for (auto msg : test_msgs) {
-            std::println("{} => {}", msg, is_match(new_rules, new_rules[0], msg));
-        }
     }
 }
 
@@ -265,7 +273,5 @@ void aoc::y2020::day_19(const std::string& title) {
         )
     );
     std::println("  part 2: {}", do_part_2(rules, messages));
-    
-    //test(rules);
     
 }
