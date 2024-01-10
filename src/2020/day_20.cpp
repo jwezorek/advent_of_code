@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <sstream>
+#include <boost/functional/hash.hpp>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -23,6 +24,10 @@ namespace {
     struct vec2 {
         int x;
         int y;
+
+        bool operator==( vec2 rhs) const {
+            return x == rhs.x && y == rhs.y;
+        }
     };
 
     vec2 operator+(const vec2& lhs, const vec2& rhs) {
@@ -46,9 +51,15 @@ namespace {
         };
     }
 
-    bool operator==(const vec2& lhs, const vec2 rhs) {
-        return lhs.x == rhs.x && lhs.y == rhs.y;
-    }
+    struct hash_vec2 {
+        size_t operator()(const vec2& pt) const {
+            size_t seed = 0;
+            boost::hash_combine(seed, pt.x);
+            boost::hash_combine(seed, pt.y);
+            return seed;
+        }
+    };
+    using vec2_set = std::unordered_set<vec2, hash_vec2>;
 
     using image = std::vector<std::string>;
 
@@ -116,8 +127,6 @@ namespace {
                 }
             ) | r::to<std::string>();
         }
-
-        
 
     public:
         tile() : id_(-1) {}
@@ -221,13 +230,6 @@ namespace {
             return aoc::concat(edges(), flipped_edges());
         }
 
-        void display() const {
-            for (const auto& row : img_) {
-                std::println("{}", row);
-            }
-            std::println("");
-        }
-
         int dimension() const {
             return dim_;
         }
@@ -313,26 +315,6 @@ namespace {
 
     using tile_grid = std::vector<std::vector<tile>>;
 
-    void display_row(const tile_grid& g, int row) {
-        auto grid_sz = static_cast<int>(g.size());
-        auto img_sz = g[row][0].dimension();
-        for (int i = 0; i < img_sz; i++) {
-            std::stringstream ss;
-            for (int j = 0; j < grid_sz; j++) {
-                ss << g[row][j].image()[i] << " ";
-            }
-            std::println("{}", ss.str());
-        }
-    }
-
-    void display_grid(const tile_grid& g) {
-        auto grid_sz = static_cast<int>(g.size());
-        for (int i = 0; i < grid_sz; ++i) {
-            display_row(g, i);
-            std::println("");
-        }
-    }
-
     void fill_row(tile_grid& grid, int row, const tile& left_tile, const edge_map& edges, const tile_tbl& tiles) {
         int n = static_cast<int>(grid.size());
         grid[row][0] = left_tile;
@@ -399,21 +381,72 @@ namespace {
         return tile_grid_to_image(grid);
     }
 
-    void display_image(const image& img) {
-        for (const auto& row : img) {
-            std::println("{}", row);
+    std::vector<vec2> sea_monster(const vec2& pt) {
+        static const std::vector<std::string>& sea_monster = {
+            "                  # ",
+            "#    ##    ##    ###",
+            " #  #  #  #  #  #   "
+        };
+        std::vector<vec2> output;
+        for (int row = 0; row < sea_monster.size(); ++row) {
+            for (int col = 0; col < sea_monster[0].size(); ++col) {
+                if (sea_monster[row][col] == '#') {
+                    output.push_back(pt + vec2{ col,row });
+                }
+            }
         }
-        std::println("\n");
+        return output;
+    }
+
+    vec2_set find_sea_monster(const image& img) {
+        vec2_set output;
+        int wd = img[0].size();
+        int hgt = img.size();
+        for (int row = 0; row < img.size(); ++row) {
+            for (int col = 0; col < wd; ++col) {
+                bool found = true;
+                for (auto pt : sea_monster({ col,row })) {
+                    if (pt.x < 0 || pt.y < 0 || pt.x >= wd || pt.y >= hgt) {
+                        found = false;
+                        break;
+                    }
+                    if (img[pt.y][pt.x] != '#') {
+                        found = false;
+                        break;
+                    }
+                }
+                if (found) {
+                    r::copy(sea_monster({ col,row }), std::inserter(output, output.end()));
+                }
+            }
+        }
+        return output;
+    }
+
+    int count_on_pixels(const image& grid) {
+        int sum = 0;
+        for (auto row : grid) {
+            sum += r::count(row, '#');
+        }
+        return sum;
     }
 
     int water_roughness(const image& grid) {
+        tile image_tile(0, grid);
+        for (auto edge : image_tile.all_edges()) {
+            auto transformed = image_tile.rotate(edge.dir, edge.flipped, north);
+            auto monster_pts = find_sea_monster(transformed.image());
+            if (!monster_pts.empty()) {
+                return count_on_pixels(grid) - monster_pts.size();
+            }
+        }
         return 0;
     }
 }
 
 void aoc::y2020::day_20(const std::string& title) {
     auto tiles = parse_tiles(
-        aoc::file_to_string_vector(aoc::input_path(2020, 20, "test"))
+        aoc::file_to_string_vector(aoc::input_path(2020, 20))
     );
     
     std::println("--- Day 20: {} ---", title);
@@ -421,7 +454,6 @@ void aoc::y2020::day_20(const std::string& title) {
         find_corners(tiles) | rv::transform([](auto ct) {return ct.id;}), 1, std::multiplies<int64_t>())
     );
     auto image = build_image(tiles);
-    display_image(image);
     std::println("  part 2: {}", water_roughness(image));
     
 }
