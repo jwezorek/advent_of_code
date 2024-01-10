@@ -1,10 +1,12 @@
 #include "../util.h"
+#include "../concat.h"
 #include "y2020.h"
 #include <filesystem>
 #include <functional>
 #include <print>
 #include <ranges>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -12,12 +14,235 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
+
+    template <typename T> int sgn(T val) {
+        return (T(0) < val) - (val < T(0));
+    }
+
+    struct vec2 {
+        int x;
+        int y;
+    };
+
+    vec2 operator+(const vec2& lhs, const vec2& rhs) {
+        return {
+            lhs.x + rhs.x,
+            lhs.y + rhs.y
+        };
+    }
+
+    vec2 operator-(const vec2& lhs, const vec2& rhs) {
+        return {
+            lhs.x - rhs.x,
+            lhs.y - rhs.y
+        };
+    }
+
+    vec2 operator*(int lhs, const vec2& rhs) {
+        return {
+            lhs * rhs.x,
+            lhs * rhs.y
+        };
+    }
+
+    bool operator==(const vec2& lhs, const vec2 rhs) {
+        return lhs.x == rhs.x && lhs.y == rhs.y;
+    }
+
+    using grid = std::vector<std::string>;
+
+    enum direction { north, west, south, east };
+    auto directions() {
+        return rv::iota(0, 4) | rv::transform(
+            [](auto i)->direction {
+                return static_cast<direction>(i);
+            }
+        );
+    }
+
+    std::string to_string(direction dir) {
+        static const std::array<std::string, 4> strs = {
+            "north", "west",  "south", "east"
+        };
+        return strs[dir];
+    }
+
+    struct edge {
+        int tile_id;
+        std::string label;
+        direction dir;
+        bool flipped;
+    };
+
+    vec2 ortho_direction_vector(const vec2& u, const vec2& v) {
+        auto delta_pt = v - u;
+        return { sgn(delta_pt.x), sgn(delta_pt.y) };
+    }
+
+    class tile {
+        int id_;
+        grid img_;
+        int dim_;
+
+        enum corner {
+            ne, nw, sw, se
+        };
+
+        std::tuple<corner, corner, corner> dir_to_corner_triple(direction dir, bool flipped) const {
+            static const std::array<std::tuple<corner, corner,corner>, 4> dir_to_corners = {{
+                    {sw,nw,ne},{se,sw,nw},{ne,se,sw},{nw,ne,se}
+                }};
+            static const std::array<std::tuple<corner, corner, corner>, 4> dir_to_flipped_corners = { {
+                    {se,ne,nw},{sw,se,ne},{nw,sw,se},{ne,nw,sw}
+                } };
+            return (!flipped) ?
+                dir_to_corners[dir] :
+                dir_to_flipped_corners[dir];
+        }
+
+        vec2 corner_point(corner c) const {
+            static const std::array<vec2, 4> corners = { 
+                vec2{1,1}, vec2{0,1}, vec2{0,0}, vec2{1,0}
+            };
+            return (dim_-1) * corners[c];
+        }
+
+        std::string str_from_corners(const vec2& c1, const vec2& c2) const {
+            auto delta = ortho_direction_vector(c1, c2);
+            return rv::iota(0, dim_) | rv::transform(
+                [&](int k)->char {
+                    return at(c1 + k * delta);
+                }
+            ) | r::to<std::string>();
+        }
+
+    public:
+        tile(int id, const grid& img) : id_(id), img_(img) {
+            if (img.size() != img.front().size()) {
+                throw std::runtime_error("tiles must be squares");
+            }
+            dim_ = static_cast<int>(img.size());
+        }
+
+        tile(const std::vector<std::string>& strs) :
+            tile(aoc::extract_numbers(strs.front()).front(),
+                strs | rv::drop(1) | r::to<grid>()) {
+        }
+
+        int id() const {
+            return id_;
+        }
+
+        char at(int x, int y) const {
+            return img_[dim_ - (y + 1)][x];
+        }
+
+        char at(const vec2& pt) const {
+            return at(pt.x, pt.y);
+        }
+
+        char& at(int x, int y) {
+            return img_[dim_ - (y + 1)][x];
+        }
+
+        char& at(const vec2& pt) {
+            return at(pt.x, pt.y);
+        }
+
+        std::string edge(direction dir, bool flipped = false) const {
+            auto [unused, c1, c2] = dir_to_corner_triple(dir, flipped);
+            return str_from_corners(corner_point(c1), corner_point(c2));
+        }
+
+        auto edges() const {
+            return directions() | rv::transform(
+                [this](auto dir)->::edge {
+                    return {
+                        id_,
+                        this->edge(dir, false),
+                        dir,
+                        false
+                    };
+                }
+            );
+        }
+
+        auto flipped_edges() const {
+            return directions() | rv::transform(
+                [this](auto dir)->::edge {
+                    return {
+                        id_,
+                        this->edge(dir, true),
+                        dir,
+                        true
+                    };
+                }
+            );
+        }
+
+        auto all_edges() const {
+            return aoc::concat(edges(), flipped_edges());
+        }
+    };
+
+    using tile_tbl = std::unordered_map<int, tile>;
+    tile_tbl parse_tiles(const std::vector<std::string>& inp) {
+        auto groups = aoc::group_strings_separated_by_blank_lines(inp);
+        return groups | rv::transform(
+            [](auto&& group)->tile_tbl::value_type {
+                tile t(group);
+                return { t.id(), std::move(t) };
+            }
+        ) | r::to<tile_tbl>();
+    }
+
+    std::string reverse(const std::string& str) {
+        auto reversed = str;
+        r::reverse(reversed);
+        return reversed;
+    }
+
+    bool adjacent_directions(direction d1, direction d2) {
+        auto diff = std::abs(static_cast<int>(d1) - static_cast<int>(d2));
+        return diff == 1 || diff == 3;
+    }
+
+    std::vector<int> possible_corners(const tile_tbl& tiles) {
+        std::unordered_multimap<std::string, edge> edge_map;
+        for (auto&& tile : tiles | rv::values) {
+            for (auto&& e : tile.all_edges()) {
+                edge_map.insert({ e.label, e });
+            }
+        }
+        std::vector<int> output;
+        for (auto&& tile : tiles | rv::values) {
+            std::unordered_map<direction, int> adjacent_tile_counts;
+            for (auto dir : directions()) {
+                adjacent_tile_counts[dir] = edge_map.count(reverse(tile.edge(dir)));
+            }
+            auto adj = adjacent_tile_counts | rv::filter(
+                    [](auto&& v) {
+                        auto [key, val] = v;
+                        return val > 1;
+                    }
+                ) | rv::keys | r::to<std::vector<direction>>();
+            if (adj.size() == 2 && adjacent_directions(adj.front(), adj.back())) {
+                output.push_back(tile.id());
+            }
+        }
+        return output;
+    }
 }
 
 void aoc::y2020::day_20(const std::string& title) {
-    auto input = aoc::file_to_string_vector(aoc::input_path(2020, 20));
+    auto tiles = parse_tiles(
+        aoc::file_to_string_vector(aoc::input_path(2020, 20))
+    );
+
+    auto corners = possible_corners(tiles);
+
 
     std::println("--- Day 20: {} ---", title);
-    std::println("  part 1: {}", 0);
+    std::println("  part 1: {}", r::fold_left(corners, 1, std::multiplies<int64_t>()));
     std::println("  part 2: {}", 0);
 }
