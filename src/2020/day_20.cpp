@@ -116,6 +116,8 @@ namespace {
             ) | r::to<std::string>();
         }
 
+        
+
     public:
         tile(int id, const grid& img) : id_(id), img_(img) {
             if (img.size() != img.front().size()) {
@@ -127,6 +129,35 @@ namespace {
         tile(const std::vector<std::string>& strs) :
             tile(aoc::extract_numbers(strs.front()).front(),
                 strs | rv::drop(1) | r::to<grid>()) {
+        }
+
+        auto pixel_locations(direction dir, bool flipped) const {
+            auto [c1, c2, c3] = dir_to_corner_triple(dir, flipped);
+            auto corner = corner_point(c2);
+            auto left_to_right = ortho_direction_vector(corner, corner_point(c3));
+            auto top_to_bottom = ortho_direction_vector(corner, corner_point(c1));
+            return rv::cartesian_product(
+                rv::iota(0, dim_),
+                rv::iota(0, dim_)
+            ) | rv::transform(
+                [=](auto&& tup)->vec2 {
+                    auto [i, j] = tup;
+                    auto pt = corner + i * left_to_right + j * top_to_bottom;
+                    return pt;
+                }
+            );
+        }
+
+        tile rotate(direction from_dir, bool from_flipped, direction to_dir) const {
+            auto rotated = *this;
+            auto from_to = rv::zip(
+                pixel_locations(from_dir, from_flipped),
+                pixel_locations(to_dir, false)
+            );
+            for (auto [from_pt, to_pt] : from_to) {
+                rotated.at(to_pt) = this->at(from_pt);
+            }
+            return rotated;
         }
 
         int id() const {
@@ -183,6 +214,13 @@ namespace {
         auto all_edges() const {
             return aoc::concat(edges(), flipped_edges());
         }
+
+        void display() const {
+            for (const auto& row : img_) {
+                std::println("{}", row);
+            }
+            std::println("");
+        }
     };
 
     using tile_tbl = std::unordered_map<int, tile>;
@@ -207,14 +245,19 @@ namespace {
         return diff == 1 || diff == 3;
     }
 
-    std::vector<int> possible_corners(const tile_tbl& tiles) {
+    struct corner_tile {
+        int id;
+        std::vector<direction> adj;
+    };
+
+    std::vector<corner_tile> find_corners(const tile_tbl& tiles) {
         std::unordered_multimap<std::string, edge> edge_map;
         for (auto&& tile : tiles | rv::values) {
             for (auto&& e : tile.all_edges()) {
                 edge_map.insert({ e.label, e });
             }
         }
-        std::vector<int> output;
+        std::vector<corner_tile> output;
         for (auto&& tile : tiles | rv::values) {
             std::unordered_map<direction, int> adjacent_tile_counts;
             for (auto dir : directions()) {
@@ -227,10 +270,20 @@ namespace {
                     }
                 ) | rv::keys | r::to<std::vector<direction>>();
             if (adj.size() == 2 && adjacent_directions(adj.front(), adj.back())) {
-                output.push_back(tile.id());
+                corner_tile ct(tile.id(), adj);
+                r::sort(ct.adj);
+                output.push_back(ct);
             }
         }
         return output;
+    }
+
+    grid build_image(const tile_tbl& tiles) {
+        return {};
+    }
+
+    int water_roughness(const grid& grid) {
+        return 0;
     }
 }
 
@@ -239,10 +292,10 @@ void aoc::y2020::day_20(const std::string& title) {
         aoc::file_to_string_vector(aoc::input_path(2020, 20))
     );
 
-    auto corners = possible_corners(tiles);
-
-
     std::println("--- Day 20: {} ---", title);
-    std::println("  part 1: {}", r::fold_left(corners, 1, std::multiplies<int64_t>()));
-    std::println("  part 2: {}", 0);
+    std::println("  part 1: {}", r::fold_left(
+        find_corners(tiles) | rv::transform([](auto ct) {return ct.id;}), 1, std::multiplies<int64_t>())
+    );
+    auto image = build_image(tiles);
+    std::println("  part 2: {}", water_roughness(image));
 }
