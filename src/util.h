@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <map>
 #include <unordered_map>
+#include <ranges>
 
 namespace aoc {
 
@@ -23,10 +24,6 @@ namespace aoc {
     std::string trim(const std::string& str);
     int64_t string_to_int64(const std::string& str);
     std::vector<std::vector<std::string>> group_strings_separated_by_blank_lines(const std::vector<std::string>& lines);
-
-
-
-
 
     template <std::size_t... Is>
     auto create_tuple_impl(std::index_sequence<Is...>, const std::vector<std::string>& arguments) {
@@ -87,5 +84,24 @@ namespace aoc {
         }
     };
 
-
+    auto choose_two(const auto& container) {
+        namespace r = std::ranges;
+        namespace rv = std::ranges::views;
+        auto n = static_cast<int>(container.size());
+        return rv::iota(0,n-1) |
+            rv::transform(
+                [n](auto i) {
+                    return rv::iota(i + 1, n) | rv::transform(
+                        [i](auto j) {
+                            return std::tuple<int, int>(i, j);
+                        }
+                    );
+                }
+            ) | rv::join | rv::transform(
+                [&container](auto&& tup) {
+                    auto [i, j] = tup;
+                    return std::tuple(container.at(i), container.at(j));
+                }
+            );
+    }
 }
