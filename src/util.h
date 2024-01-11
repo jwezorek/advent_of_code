@@ -84,7 +84,7 @@ namespace aoc {
         }
     };
 
-    auto choose_two(const auto& container) {
+    auto two_combinations(const auto& container) {
         namespace r = std::ranges;
         namespace rv = std::ranges::views;
         auto n = static_cast<int>(container.size());
