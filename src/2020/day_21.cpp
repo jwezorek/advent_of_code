@@ -63,8 +63,7 @@ namespace {
         std::string allergen;
     };
 
-    std::optional<pair> find_ingred_allergen_pair(
-            const std::vector<food>& all_foods) {
+    std::optional<pair> find_ingred_allergen_pair( const std::vector<food>& all_foods) {
         auto allergens = allergen_set(all_foods);
         auto ingredients = ingredient_set(all_foods);
         for (auto allergen : allergens) {
@@ -122,7 +121,9 @@ namespace {
             new_mapping = find_ingred_allergen_pair(foods);
             if (new_mapping) {
                 allergen_to_ingred[new_mapping->allergen] = new_mapping->ingredient;
-                foods = remove_ingred_and_allergen(foods, new_mapping->ingredient, new_mapping->allergen);
+                foods = remove_ingred_and_allergen(
+                    foods, new_mapping->ingredient, new_mapping->allergen
+                );
             }
         } while (new_mapping);
 
@@ -137,8 +138,7 @@ namespace {
         return r::fold_left(
             foods | rv::transform(
                 [&](auto&& food) {
-                    return r::count_if(
-                        food.ingredients,
+                    return r::count_if( food.ingredients,
                         [&](auto&& i) {
                             return ingredients.contains(i);
                         }
