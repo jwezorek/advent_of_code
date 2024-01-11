@@ -72,13 +72,6 @@ namespace {
         );
     }
 
-    std::string to_string(direction dir) {
-        static const std::array<std::string, 4> strs = {
-            "north", "west",  "south", "east"
-        };
-        return strs[dir];
-    }
-
     struct edge {
         int tile_id;
         std::string label;
@@ -200,34 +193,21 @@ namespace {
             return str_from_corners(corner_point(c1), corner_point(c2));
         }
 
-        auto edges() const {
+        auto edges(bool flipped) const {
             return directions() | rv::transform(
-                [this](auto dir)->::edge {
+                [this,flipped](auto dir)->::edge {
                     return {
                         id_,
-                        this->edge(dir, false),
+                        this->edge(dir, flipped),
                         dir,
-                        false
-                    };
-                }
-            );
-        }
-
-        auto flipped_edges() const {
-            return directions() | rv::transform(
-                [this](auto dir)->::edge {
-                    return {
-                        id_,
-                        this->edge(dir, true),
-                        dir,
-                        true
+                        flipped
                     };
                 }
             );
         }
 
         auto all_edges() const {
-            return aoc::concat(edges(), flipped_edges());
+            return aoc::concat(edges(false), edges(true));
         }
 
         int dimension() const {
@@ -381,7 +361,7 @@ namespace {
         return tile_grid_to_image(grid);
     }
 
-    std::vector<vec2> sea_monster(const vec2& pt) {
+    std::vector<vec2> sea_monster_pixels(int x, int y) {
         static const std::vector<std::string>& sea_monster = {
             "                  # ",
             "#    ##    ##    ###",
@@ -391,39 +371,37 @@ namespace {
         for (int row = 0; row < sea_monster.size(); ++row) {
             for (int col = 0; col < sea_monster[0].size(); ++col) {
                 if (sea_monster[row][col] == '#') {
-                    output.push_back(pt + vec2{ col,row });
+                    output.push_back(vec2{x,y} + vec2{col,row});
                 }
             }
         }
         return output;
     }
 
-    vec2_set find_sea_monster(const image& img) {
+    vec2_set find_sea_monsters(const image& img) {
         vec2_set output;
         int wd = img[0].size();
         int hgt = img.size();
         for (int row = 0; row < img.size(); ++row) {
             for (int col = 0; col < wd; ++col) {
                 bool found = true;
-                for (auto pt : sea_monster({ col,row })) {
-                    if (pt.x < 0 || pt.y < 0 || pt.x >= wd || pt.y >= hgt) {
-                        found = false;
-                        break;
-                    }
-                    if (img[pt.y][pt.x] != '#') {
+                auto sea_monster = sea_monster_pixels(col, row);
+                for (auto pt : sea_monster) {
+                    if (pt.x < 0 || pt.y < 0 || pt.x >= wd || pt.y >= hgt ||
+                            img[pt.y][pt.x] != '#') {
                         found = false;
                         break;
                     }
                 }
                 if (found) {
-                    r::copy(sea_monster({ col,row }), std::inserter(output, output.end()));
+                    r::copy(sea_monster, std::inserter(output, output.end()));
                 }
             }
         }
         return output;
     }
 
-    int count_on_pixels(const image& grid) {
+    int count_pixels(const image& grid) {
         int sum = 0;
         for (auto row : grid) {
             sum += r::count(row, '#');
@@ -435,9 +413,9 @@ namespace {
         tile image_tile(0, grid);
         for (auto edge : image_tile.all_edges()) {
             auto transformed = image_tile.rotate(edge.dir, edge.flipped, north);
-            auto monster_pts = find_sea_monster(transformed.image());
+            auto monster_pts = find_sea_monsters(transformed.image());
             if (!monster_pts.empty()) {
-                return count_on_pixels(grid) - monster_pts.size();
+                return count_pixels(grid) - monster_pts.size();
             }
         }
         return 0;
