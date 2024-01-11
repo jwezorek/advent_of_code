@@ -121,6 +121,19 @@ namespace {
             ) | r::to<std::string>();
         }
 
+        auto pixel_locations(direction dir, bool flipped) const {
+            auto [c1, c2, c3] = dir_to_corner_triple(dir, flipped);
+            auto corner = corner_point(c2);
+            auto left_to_right = ortho_direction_vector(corner, corner_point(c3));
+            auto top_to_bottom = ortho_direction_vector(corner, corner_point(c1));
+            return rv::cartesian_product(  rv::iota(0, dim_), rv::iota(0, dim_) ) | rv::transform(
+                [=](auto&& tup)->vec2 {
+                    auto [i, j] = tup;
+                    return corner + i * left_to_right + j * top_to_bottom;
+                }
+            );
+        }
+
     public:
         tile() : id_(-1) {}
         tile(int id, const image& img) : id_(id), img_(img) {
@@ -137,23 +150,6 @@ namespace {
 
         const image& image() const {
             return img_;
-        }
-
-        auto pixel_locations(direction dir, bool flipped) const {
-            auto [c1, c2, c3] = dir_to_corner_triple(dir, flipped);
-            auto corner = corner_point(c2);
-            auto left_to_right = ortho_direction_vector(corner, corner_point(c3));
-            auto top_to_bottom = ortho_direction_vector(corner, corner_point(c1));
-            return rv::cartesian_product(
-                rv::iota(0, dim_),
-                rv::iota(0, dim_)
-            ) | rv::transform(
-                [=](auto&& tup)->vec2 {
-                    auto [i, j] = tup;
-                    auto pt = corner + i * left_to_right + j * top_to_bottom;
-                    return pt;
-                }
-            );
         }
 
         tile rotate(direction from_dir, bool from_flipped, direction to_dir) const {
@@ -362,7 +358,7 @@ namespace {
     }
 
     std::vector<vec2> sea_monster_pixels(int x, int y) {
-        static const std::vector<std::string>& sea_monster = {
+        static std::array<std::string,3> sea_monster = {
             "                  # ",
             "#    ##    ##    ###",
             " #  #  #  #  #  #   "
@@ -402,11 +398,11 @@ namespace {
     }
 
     int count_pixels(const image& grid) {
-        int sum = 0;
-        for (auto row : grid) {
-            sum += r::count(row, '#');
-        }
-        return sum;
+        return r::fold_left(
+            grid | rv::transform([](auto&& row) {return r::count(row, '#'); }),
+            0,
+            std::plus<>()
+        );
     }
 
     int water_roughness(const image& grid) {
