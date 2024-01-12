@@ -13,9 +13,9 @@ namespace rv = std::ranges::views;
 
 namespace {
 
-    int64_t transform_subj_number(int64_t subj_num, int loop_size) {
+    int64_t transform_subj_number(int64_t subj_num, int64_t loop_size) {
         int64_t n = 1;
-        for (int i = 0; i < loop_size; ++i) {
+        for (int64_t i = 0; i < loop_size; ++i) {
             n = n * subj_num;
             n = n % 20201227;
         }
