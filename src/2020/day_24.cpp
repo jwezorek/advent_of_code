@@ -30,20 +30,6 @@ namespace {
         };
     }
 
-    vec2 operator-(const vec2& lhs, const vec2& rhs) {
-        return {
-            lhs.x - rhs.x,
-            lhs.y - rhs.y
-        };
-    }
-
-    vec2 operator*(int lhs, const vec2& rhs) {
-        return {
-            lhs * rhs.x,
-            lhs * rhs.y
-        };
-    }
-
     struct hash_vec2 {
         size_t operator()(const vec2& pt) const {
             size_t seed = 0;
