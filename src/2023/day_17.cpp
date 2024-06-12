@@ -3,6 +3,7 @@
 #include <print>
 #include <ranges>
 #include <numeric>
+#include <functional>
 #include <algorithm>
 #include <limits>
 #include <stack>
