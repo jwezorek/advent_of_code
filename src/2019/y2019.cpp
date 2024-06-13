@@ -8,7 +8,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_01( "The Tyranny of the Rocket Equation" ); },
         []() { day_02( "1202 Program Alarm" ); },
         []() { day_03( "Crossed Wires" );  },
-        []() { day_04( "Secure Container" );  }
+        []() { day_04( "Secure Container" );  },
+        []() { day_05( "Sunny with a Chance of Asteroids" );  }
     };
 
     auto index = day - 1;
