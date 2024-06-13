@@ -6,7 +6,8 @@
 void aoc::y2019::do_advent_of_code(int day) {
     const static auto advent_of_code_2019 = std::vector<std::function<void()>>{
         []() { day_01( "The Tyranny of the Rocket Equation" ); },
-        []() { day_02( "1202 Program Alarm" ); }
+        []() { day_02( "1202 Program Alarm" ); },
+        []() { day_03( "Crossed Wires" );  }
     };
 
     auto index = day - 1;
