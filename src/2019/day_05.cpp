@@ -253,7 +253,7 @@ void aoc::y2019::day_05(const std::string& title) {
     icc.set_input(1);
     icc.run();
 
-    std::println("--- Day 1: {} ---", title);
+    std::println("--- Day 5: {} ---", title);
     std::println("  part 1: {}",
         icc.output()
     );
