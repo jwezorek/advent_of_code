@@ -41,11 +41,17 @@ namespace {
         std::vector<parameter> parameters;
     };
 
+    using op_fn = std::function<
+        void(aoc::intcode_computer&,
+            const std::vector<parameter>& params,
+            const aoc::input_fn& inp, const aoc::output_fn& out
+            )>;
+    
+
     struct op_def {
         op_code code;
         int num_args;
-        std::function<void(aoc::intcode_computer&, const std::vector<parameter>& params,
-            aoc::input_buffer& inp)> fn;
+        op_fn fn;
     };
 
     int eval_param(const aoc::intcode_computer& icc, const parameter& p) {
@@ -53,46 +59,48 @@ namespace {
     }
 
     void do_add_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
-            aoc::input_buffer& inp) {
+            const aoc::input_fn& inp, const aoc::output_fn& out) {
         icc.value(args[2].val) = eval_param(icc, args[0]) + eval_param(icc, args[1]);
     }
 
     void do_mult_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
-            aoc::input_buffer& inp) {
+            const aoc::input_fn& inp, const aoc::output_fn& out) {
         icc.value(args[2].val) = eval_param(icc, args[0]) * eval_param(icc, args[1]);
     }
 
     void do_inp_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
-            aoc::input_buffer& inp) {
-        icc.value(args.front().val) = inp.next();
+            const aoc::input_fn& inp, const aoc::output_fn& out) {
+        icc.value(args.front().val) = inp();
     }
 
     void do_outp_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
-            aoc::input_buffer& inp) {
-        icc.show_output(eval_param(icc, args[0]));
+            const aoc::input_fn& inp, const aoc::output_fn& out) {
+        auto output_val = eval_param(icc, args[0]);
+        icc.set_output(output_val);
+        out(output_val);
     }
 
     void do_jmp_if_true_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
-            aoc::input_buffer& inp) {
+            const aoc::input_fn& inp, const aoc::output_fn& out) {
         if (eval_param(icc, args[0])) {
             icc.jump_to(eval_param(icc, args[1]));
         }
     }
 
     void do_jmp_if_false_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
-            aoc::input_buffer& inp) {
+            const aoc::input_fn& inp, const aoc::output_fn& out) {
         if (!eval_param(icc, args[0])) {
             icc.jump_to(eval_param(icc, args[1]));
         }
     }
 
     void do_less_than_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
-            aoc::input_buffer& inp) {
+            const aoc::input_fn& inp, const aoc::output_fn& out) {
         icc.value(args[2].val) = eval_param(icc, args[0]) < eval_param(icc, args[1]) ? 1 : 0;
     }
 
     void do_equals_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
-            aoc::input_buffer& inp) {
+            const aoc::input_fn& inp, const aoc::output_fn& out) {
         icc.value(args[2].val) = eval_param(icc, args[0]) == eval_param(icc, args[1]) ? 1 : 0;
     }
 
@@ -148,7 +156,8 @@ namespace {
     }
 }
 
-bool aoc::intcode_computer::run_one_instruction(aoc::input_buffer& inp) {
+bool aoc::intcode_computer::run_one_instruction(
+        const input_fn& inp, const output_fn& out) {
 
     auto instr = parse_next_instruction(*this);
     if (!instr) {
@@ -157,7 +166,7 @@ bool aoc::intcode_computer::run_one_instruction(aoc::input_buffer& inp) {
 
     const auto& op = k_op_code_table.at(instr->op);
     int old_prog_counter = program_counter_;
-    op.fn(*this, instr->parameters, inp);
+    op.fn(*this, instr->parameters, inp, out);
     if (old_prog_counter == program_counter_) {
         incr_prog_counter(op.num_args + 1);
     }
@@ -167,27 +176,17 @@ bool aoc::intcode_computer::run_one_instruction(aoc::input_buffer& inp) {
 
 aoc::intcode_computer::intcode_computer(const std::vector<int>& memory) :
     memory_(memory),
-    program_counter_(0),
-    show_output_(false) {
+    program_counter_(0) {
 }
 
 void aoc::intcode_computer::reset(const std::vector<int>& memory) {
     memory_ = memory;
     program_counter_ = 0;
     output_ = {};
-    show_output_ = false;
 }
 
-
-void aoc::intcode_computer::set_show_output(bool v) {
-    show_output_ = v;
-}
-
-void aoc::intcode_computer::show_output(int val) {
-    if (show_output_) {
-        std::println("{}", val);
-    }
-    output_ = val;
+void aoc::intcode_computer::set_output(int v) {
+    output_ = v;
 }
 
 int aoc::intcode_computer::output() const {
@@ -219,43 +218,58 @@ void aoc::intcode_computer::jump_to(int address) {
 }
 
 void aoc::intcode_computer::run(input_buffer& inp) {
-    bool not_done = true;
-    while (not_done) {
-        not_done = run_one_instruction(inp);
-    }
+    run(
+        [&inp]()->int {
+            return inp.next();
+        },
+        [this](int val) { }
+    );
 }
 
 void aoc::intcode_computer::run() {
     input_buffer inp;
+    run(inp);
+}
+
+void aoc::intcode_computer::run(const input_fn& inp, const output_fn& out)
+{
     bool not_done = true;
     while (not_done) {
-        not_done = run_one_instruction(inp);
+        not_done = run_one_instruction(inp, out);
     }
+}
+
+aoc::icc_event aoc::intcode_computer::run_until_event(int inp)
+{
+    std::optional<icc_event> event = {};
+    while (!event) {
+        bool not_done = run_one_instruction(
+            [&]() {
+                event = received_input;
+                return inp; 
+            },
+            [&](int out) {
+                event = generated_output;
+            }
+        );
+        if (not_done == false) {
+            event = terminated;
+        }
+    }
+    return *event;
 }
 
 /*------------------------------------------------------------------------------------------------*/
 
 aoc::input_buffer::input_buffer(const std::vector<int>& inp) :
     buffer_{ inp },
-    curr_{ 0 },
-    gen_{}
-{
-}
-
-aoc::input_buffer::input_buffer(const input_generator& gen) :
-    buffer_{},
-    curr_{ 0 },
-    gen_{gen}
+    curr_{ 0 }
 {
 }
 
 int aoc::input_buffer::next()
 {
-    if (gen_) {
-        return gen_(curr_++);
-    } else {
-        return buffer_[curr_++];
-    }
+    return buffer_[curr_++];
 }
 
 void aoc::input_buffer::reset()
