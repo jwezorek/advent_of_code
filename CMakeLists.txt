@@ -149,6 +149,7 @@ add_executable(advent_of_code
     src/2019/day_24.cpp
     src/2019/day_25.cpp
     src/2019/y2019.cpp
+    src/2019/intcode.cpp
 )
 
 target_link_libraries(advent_of_code PRIVATE Eigen3::Eigen)

@@ -10,7 +10,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_03( "Crossed Wires" );  },
         []() { day_04( "Secure Container" );  },
         []() { day_05( "Sunny with a Chance of Asteroids" );  },
-        []() { day_06( "Universal Orbit Map" );  }
+        []() { day_06( "Universal Orbit Map" );  },
+        []() { day_07( "Amplification Circuit" );  }
     };
 
     auto index = day - 1;
