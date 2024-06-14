@@ -11,7 +11,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_04( "Secure Container" );  },
         []() { day_05( "Sunny with a Chance of Asteroids" );  },
         []() { day_06( "Universal Orbit Map" );  },
-        []() { day_07( "Amplification Circuit" );  }
+        []() { day_07( "Amplification Circuit" );  },
+        []() { day_08( "Space Image Format" );  }
     };
 
     auto index = day - 1;
