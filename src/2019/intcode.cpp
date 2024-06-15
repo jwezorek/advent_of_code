@@ -54,23 +54,39 @@ namespace {
         op_fn fn;
     };
 
+    const int64_t& eval_param_as_ref(const aoc::intcode_computer& icc, const parameter& p) {
+        if (p.mode == immediate) {
+            throw std::runtime_error("attempted to write to immediate mode param");
+        }
+        return icc.value(p.val);
+    }
+
+    int64_t& eval_param_as_ref(aoc::intcode_computer& icc, const parameter& p) {
+        return const_cast<int64_t&>(
+            eval_param_as_ref( const_cast<const aoc::intcode_computer&>(icc), p )
+        );
+    }
+
     int64_t eval_param(const aoc::intcode_computer& icc, const parameter& p) {
-        return (p.mode == immediate) ? p.val : icc.value(p.val);
+        if (p.mode == immediate) {
+            return p.val;
+        }
+        return eval_param_as_ref(icc, p);
     }
 
     void do_add_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
             const aoc::input_fn& inp, const aoc::output_fn& out) {
-        icc.value(args[2].val) = eval_param(icc, args[0]) + eval_param(icc, args[1]);
+        eval_param_as_ref(icc,args[2]) = eval_param(icc, args[0]) + eval_param(icc, args[1]);
     }
 
     void do_mult_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
             const aoc::input_fn& inp, const aoc::output_fn& out) {
-        icc.value(args[2].val) = eval_param(icc, args[0]) * eval_param(icc, args[1]);
+        eval_param_as_ref(icc, args[2]) = eval_param(icc, args[0]) * eval_param(icc, args[1]);
     }
 
     void do_inp_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
             const aoc::input_fn& inp, const aoc::output_fn& out) {
-        icc.value(args.front().val) = inp();
+        eval_param_as_ref(icc, args[0]) = inp();
     }
 
     void do_outp_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
@@ -96,12 +112,12 @@ namespace {
 
     void do_less_than_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
             const aoc::input_fn& inp, const aoc::output_fn& out) {
-        icc.value(args[2].val) = eval_param(icc, args[0]) < eval_param(icc, args[1]) ? 1 : 0;
+        eval_param_as_ref(icc, args[2]) = eval_param(icc, args[0]) < eval_param(icc, args[1]) ? 1 : 0;
     }
 
     void do_equals_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
             const aoc::input_fn& inp, const aoc::output_fn& out) {
-        icc.value(args[2].val) = eval_param(icc, args[0]) == eval_param(icc, args[1]) ? 1 : 0;
+        eval_param_as_ref(icc, args[2]) = eval_param(icc, args[0]) == eval_param(icc, args[1]) ? 1 : 0;
     }
 
     const std::unordered_map<op_code, op_def> k_op_code_table = {
@@ -210,7 +226,7 @@ int64_t aoc::intcode_computer::current_address() const {
     return program_counter_;
 }
 
-int64_t aoc::intcode_computer::value(int64_t i) const {
+const int64_t& aoc::intcode_computer::value(int64_t i) const {
     if (i < 0) {
         throw std::runtime_error( "bad memory access" );
     }
@@ -221,13 +237,9 @@ int64_t aoc::intcode_computer::value(int64_t i) const {
 }
 
 int64_t& aoc::intcode_computer::value(int64_t i) {
-    if (i < 0) {
-        throw std::runtime_error( "bad memory access" );
-    }
-    if (!memory_.contains(i)) {
-        memory_[i] = 0;
-    }
-    return memory_[i];
+    return const_cast<int64_t&>(
+        const_cast<const intcode_computer*>(this)->value(i)
+    );
 }
 
 void aoc::intcode_computer::incr_prog_counter(int64_t incr) {

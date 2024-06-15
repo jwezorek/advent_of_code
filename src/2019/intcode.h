@@ -43,7 +43,7 @@ namespace aoc {
         int64_t output() const;
         int64_t current_value() const;
         int64_t current_address() const;
-        int64_t value(int64_t i) const;
+        const int64_t& value(int64_t i) const;
         int64_t& value(int64_t i);
         void jump_to(int64_t address);
         void run(input_buffer& inp);
