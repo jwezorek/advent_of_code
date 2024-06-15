@@ -32,7 +32,7 @@ namespace {
     };
 
     struct parameter {
-        int val;
+        int64_t val;
         param_mode mode;
     };
 
@@ -54,7 +54,7 @@ namespace {
         op_fn fn;
     };
 
-    int eval_param(const aoc::intcode_computer& icc, const parameter& p) {
+    int64_t eval_param(const aoc::intcode_computer& icc, const parameter& p) {
         return (p.mode == immediate) ? p.val : icc.value(p.val);
     }
 
