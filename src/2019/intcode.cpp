@@ -23,12 +23,14 @@ namespace {
         jmp_if_true = 5,
         jmp_if_false = 6,
         less_than = 7,
-        equals = 8
+        equals = 8,
+        set_rel_base = 9
     };
 
     enum param_mode {
         position,
-        immediate
+        immediate,
+        relative
     };
 
     struct parameter {
@@ -58,7 +60,8 @@ namespace {
         if (p.mode == immediate) {
             throw std::runtime_error("attempted to write to immediate mode param");
         }
-        return icc.value(p.val);
+        int64_t base = (p.mode == position) ? 0 : icc.rel_base();
+        return icc.value( base + p.val );
     }
 
     int64_t& eval_param_as_ref(aoc::intcode_computer& icc, const parameter& p) {
@@ -120,6 +123,11 @@ namespace {
         eval_param_as_ref(icc, args[2]) = eval_param(icc, args[0]) == eval_param(icc, args[1]) ? 1 : 0;
     }
 
+    void do_set_rel_base_op(aoc::intcode_computer& icc, const std::vector<parameter>& args,
+            const aoc::input_fn& inp, const aoc::output_fn& out) {
+        icc.adjust_rel_base(eval_param(icc, args[0]));
+    }
+
     const std::unordered_map<op_code, op_def> k_op_code_table = {
         {add_op, {add_op, 3, do_add_op}},
         {mult_op, {mult_op, 3, do_mult_op}},
@@ -129,7 +137,17 @@ namespace {
         {jmp_if_false, {jmp_if_false, 2, do_jmp_if_false_op}},
         {less_than, {less_than, 3, do_less_than_op}},
         {equals, {equals, 3, do_equals_op}},
+        {set_rel_base, {set_rel_base, 1, do_set_rel_base_op}}
     };
+
+    param_mode char_to_param_mode(char ch) {
+        const static std::unordered_map<char, param_mode> tbl = {
+            {'0', position},
+            {'1', immediate},
+            {'2', relative}
+        };
+        return tbl.at(ch);
+    }
 
     std::optional<instruction> parse_next_instruction(const aoc::intcode_computer& icc)  {
         auto val = icc.current_value();
@@ -151,9 +169,9 @@ namespace {
         }
         std::vector<parameter> params;
         for (int i = 0; i < k_op_code_table.at(op).num_args; ++i) {
-            char mode = (i < mode_str.size()) ? mode_str.at(i) : '0';
+            char mode_char = (i < mode_str.size()) ? mode_str.at(i) : '0';
             int val = icc.value(icc.current_address() + i + 1);
-            params.emplace_back(val, (mode == '0') ? position : immediate);
+            params.emplace_back(val, char_to_param_mode(mode_char));
         }
 
         return instruction{ op, params };
@@ -201,17 +219,27 @@ bool aoc::intcode_computer::run_one_instruction(
 
 aoc::intcode_computer::intcode_computer(const std::vector<int64_t>& memory) :
     memory_( to_memory_table(memory) ),
-    program_counter_(0) {
+    program_counter_(0),
+    rel_base_(0) {
 }
 
 void aoc::intcode_computer::reset(const std::vector<int64_t>& memory) {
     memory_ = to_memory_table(memory);
     program_counter_ = 0;
     output_ = {};
+    rel_base_ = 0;
 }
 
 void aoc::intcode_computer::set_output(int64_t v) {
     output_ = v;
+}
+
+void aoc::intcode_computer::adjust_rel_base(int64_t offset) {
+    rel_base_ += offset;
+}
+
+int64_t aoc::intcode_computer::rel_base() const {
+    return rel_base_;
 }
 
 int64_t aoc::intcode_computer::output() const {
@@ -230,15 +258,15 @@ const int64_t& aoc::intcode_computer::value(int64_t i) const {
     if (i < 0) {
         throw std::runtime_error( "bad memory access" );
     }
-    if (! memory_.contains(i)) {
-        return 0;
+    if (!memory_.contains(i)) {
+        memory_[i] = 0; // memory_ is mutable so this is possible...
     }
     return memory_.at(i);
 }
 
 int64_t& aoc::intcode_computer::value(int64_t i) {
     return const_cast<int64_t&>(
-        const_cast<const intcode_computer*>(this)->value(i)
+        const_cast<const aoc::intcode_computer*>(this)->value(i)
     );
 }
 
@@ -281,7 +309,7 @@ aoc::icc_event aoc::intcode_computer::run_until_event(int64_t inp)
                 event = received_input;
                 return inp; 
             },
-            [&](int out) {
+            [&](int64_t out) {
                 event = generated_output;
             }
         );

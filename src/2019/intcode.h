@@ -27,9 +27,10 @@ namespace aoc {
     };
 
     class intcode_computer {
-        std::unordered_map<int64_t, int64_t> memory_;
+        mutable std::unordered_map<int64_t, int64_t> memory_;
         int64_t program_counter_;
         std::optional<int64_t> output_;
+        int64_t rel_base_;
 
         bool run_one_instruction(const input_fn& inp, const output_fn& out);
         void incr_prog_counter(int64_t incr);
@@ -40,6 +41,8 @@ namespace aoc {
 
         void reset(const std::vector<int64_t>& memory);
         void set_output(int64_t v);
+        void adjust_rel_base(int64_t offset);
+        int64_t rel_base() const;
         int64_t output() const;
         int64_t current_value() const;
         int64_t current_address() const;
