@@ -15,7 +15,7 @@ namespace rv = std::ranges::views;
 
 namespace {
 
-    int run_program(const std::vector<int>& memory, int noun, int verb) {
+    int run_program(const std::vector<int64_t>& memory, int noun, int verb) {
         aoc::intcode_computer intcode(memory);
 
         intcode.value(1) = noun;
@@ -25,7 +25,7 @@ namespace {
         return intcode.value(0);
     }
 
-    std::tuple<int, int> find_noun_and_verb(const std::vector<int>& memory, int target) {
+    std::tuple<int64_t, int64_t> find_noun_and_verb(const std::vector<int64_t>& memory, int target) {
         for (auto [noun, verb] : rv::cartesian_product(rv::iota(0, 100), rv::iota(0, 100))) {
             if (run_program(memory, noun, verb) == target) {
                 return { noun, verb };
@@ -34,7 +34,7 @@ namespace {
         throw std::runtime_error("target not found");
     }
 
-    int score_noun_and_verb(const std::vector<int>& memory, int target) {
+    int score_noun_and_verb(const std::vector<int64_t>& memory, int target) {
         auto [noun, verb] = find_noun_and_verb(memory, target);
         return 100 * noun + verb;
     }
@@ -45,7 +45,7 @@ void aoc::y2019::day_02(const std::string& title) {
     auto inp = split(
             aoc::file_to_string(aoc::input_path(2019, 2)), ','
         ) | rv::transform(
-            [](auto&& str)->int {
+            [](auto&& str)->int64_t {
                 return std::stoi(str);
             }
         ) | r::to<std::vector>();

@@ -174,55 +174,55 @@ bool aoc::intcode_computer::run_one_instruction(
     return true;
 }
 
-aoc::intcode_computer::intcode_computer(const std::vector<int>& memory) :
+aoc::intcode_computer::intcode_computer(const std::vector<int64_t>& memory) :
     memory_(memory),
     program_counter_(0) {
 }
 
-void aoc::intcode_computer::reset(const std::vector<int>& memory) {
+void aoc::intcode_computer::reset(const std::vector<int64_t>& memory) {
     memory_ = memory;
     program_counter_ = 0;
     output_ = {};
 }
 
-void aoc::intcode_computer::set_output(int v) {
+void aoc::intcode_computer::set_output(int64_t v) {
     output_ = v;
 }
 
-int aoc::intcode_computer::output() const {
+int64_t aoc::intcode_computer::output() const {
     return *output_;
 }
 
-int aoc::intcode_computer::current_value() const {
+int64_t aoc::intcode_computer::current_value() const {
     return memory_[program_counter_];
 }
 
-int aoc::intcode_computer::current_address() const {
+int64_t aoc::intcode_computer::current_address() const {
     return program_counter_;
 }
 
-int aoc::intcode_computer::value(int i) const {
+int64_t aoc::intcode_computer::value(int64_t i) const {
     return memory_[i];
 }
 
-int& aoc::intcode_computer::value(int i) {
+int64_t& aoc::intcode_computer::value(int64_t i) {
     return memory_[i];
 }
 
-void aoc::intcode_computer::incr_prog_counter(int incr) {
+void aoc::intcode_computer::incr_prog_counter(int64_t incr) {
     program_counter_ += incr;
 }
 
-void aoc::intcode_computer::jump_to(int address) {
+void aoc::intcode_computer::jump_to(int64_t address) {
     program_counter_ = address;
 }
 
 void aoc::intcode_computer::run(input_buffer& inp) {
     run(
-        [&inp]()->int {
+        [&inp]()->int64_t {
             return inp.next();
         },
-        [this](int val) { }
+        [this](int64_t val) { }
     );
 }
 
@@ -239,7 +239,7 @@ void aoc::intcode_computer::run(const input_fn& inp, const output_fn& out)
     }
 }
 
-aoc::icc_event aoc::intcode_computer::run_until_event(int inp)
+aoc::icc_event aoc::intcode_computer::run_until_event(int64_t inp)
 {
     std::optional<icc_event> event = {};
     while (!event) {
@@ -261,13 +261,13 @@ aoc::icc_event aoc::intcode_computer::run_until_event(int inp)
 
 /*------------------------------------------------------------------------------------------------*/
 
-aoc::input_buffer::input_buffer(const std::vector<int>& inp) :
+aoc::input_buffer::input_buffer(const std::vector<int64_t>& inp) :
     buffer_{ inp },
     curr_{ 0 }
 {
 }
 
-int aoc::input_buffer::next()
+int64_t aoc::input_buffer::next()
 {
     return buffer_[curr_++];
 }

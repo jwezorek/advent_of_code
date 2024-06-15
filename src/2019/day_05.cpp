@@ -18,7 +18,7 @@ void aoc::y2019::day_05(const std::string& title) {
     auto instructions = split(
             aoc::file_to_string(aoc::input_path(2019, 5)), ','
         ) | rv::transform(
-            [](auto&& str)->int {
+            [](auto&& str)->int64_t {
                 return std::stoi(str);
             }
         ) | r::to<std::vector>();

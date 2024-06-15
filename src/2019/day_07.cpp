@@ -17,7 +17,7 @@ namespace {
 
     using phase_setting_seq = std::array<int, 5>;
 
-    int generate_output_signal(const std::vector<int>& program, const phase_setting_seq& seq) {
+    int generate_output_signal(const std::vector<int64_t>& program, const phase_setting_seq& seq) {
         int phase_inp = 0;
         for (int phase_setting : seq) {
             aoc::input_buffer prog_inp({ phase_setting, phase_inp });
@@ -28,7 +28,7 @@ namespace {
         return phase_inp;
     }
 
-    int max_output_signal(const std::vector<int>& program) {
+    int max_output_signal(const std::vector<int64_t>& program) {
         phase_setting_seq permutation = { 0,1,2,3,4 };
         int max_signal = 0;
         
@@ -41,7 +41,7 @@ namespace {
     }
 
     int generate_output_signal_with_feedback(
-            const std::vector<int>& program, const phase_setting_seq& seq) {
+            const std::vector<int64_t>& program, const phase_setting_seq& seq) {
 
         std::array<aoc::intcode_computer, 5> amp = {{
             {program},{program},{program},{program},{program},
@@ -74,7 +74,7 @@ namespace {
         return amp[4].output();
     }
 
-    int max_output_signal_with_feedback(const std::vector<int>& program) {
+    int max_output_signal_with_feedback(const std::vector<int64_t>& program) {
         phase_setting_seq permutation = { 5,6,7,8,9 };
         int max_signal = 0;
 
@@ -92,7 +92,7 @@ void aoc::y2019::day_07(const std::string& title) {
     auto instructions = split(
             aoc::file_to_string(aoc::input_path(2019, 7)), ','
         ) | rv::transform(
-            [](auto&& str)->int {
+            [](auto&& str)->int64_t {
                 return std::stoi(str);
             }
         ) | r::to<std::vector>();
