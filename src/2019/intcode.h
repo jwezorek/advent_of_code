@@ -10,6 +10,7 @@ namespace aoc {
     class input_buffer {
         std::vector<int64_t> buffer_;
         int64_t curr_;
+
     public:
 
         input_buffer(const std::vector<int64_t>& inp = {});
@@ -27,28 +28,24 @@ namespace aoc {
     };
 
     class intcode_computer {
+        friend class impl;
+
         mutable std::unordered_map<int64_t, int64_t> memory_;
         int64_t program_counter_;
         std::optional<int64_t> output_;
         int64_t rel_base_;
 
         bool run_one_instruction(const input_fn& inp, const output_fn& out);
-        void incr_prog_counter(int64_t incr);
 
     public:
 
         intcode_computer(const std::vector<int64_t>& memory);
-
         void reset(const std::vector<int64_t>& memory);
-        void set_output(int64_t v);
-        void adjust_rel_base(int64_t offset);
-        int64_t rel_base() const;
-        int64_t output() const;
-        int64_t current_value() const;
-        int64_t current_address() const;
+
         const int64_t& value(int64_t i) const;
         int64_t& value(int64_t i);
-        void jump_to(int64_t address);
+        int64_t output() const;
+
         void run(input_buffer& inp);
         void run();
         void run(const input_fn& inp, const output_fn& out);

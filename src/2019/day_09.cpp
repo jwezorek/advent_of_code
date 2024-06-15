@@ -13,41 +13,6 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
-
-    void test() {
-        auto instructions = aoc::split(
-                "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99", ','
-            ) | rv::transform(
-                [](auto&& str)->int64_t {
-                    return std::stoi(str);
-                }
-            ) | r::to<std::vector>();
-        aoc::intcode_computer icc(instructions);
-        icc.run(
-            []()->int64_t {return 0; },
-            [](int64_t v) {
-                std::print("{},", v);
-            }
-        );
-        std::println("");
-
-        auto instructions2 = aoc::split(
-            "1102,34915192,34915192,7,4,7,99,0", ','
-        ) | rv::transform(
-            [](auto&& str)->int64_t {
-                return std::stoi(str);
-            }
-        ) | r::to<std::vector>();
-        aoc::intcode_computer icc2(instructions2);
-        icc2.run(
-            []()->int64_t {return 0; },
-            [](int64_t v) {
-                std::print("{},", v);
-            }
-        );
-        std::println("");
-    }
-
     int64_t run_boost_program(const std::vector<int64_t>& program, int64_t mode) {
         aoc::intcode_computer icc(program);
         aoc::input_buffer inp({ mode });
