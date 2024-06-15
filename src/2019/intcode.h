@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 #include <optional>
 #include <functional>
 
@@ -26,7 +27,7 @@ namespace aoc {
     };
 
     class intcode_computer {
-        std::vector<int64_t> memory_;
+        std::unordered_map<int64_t, int64_t> memory_;
         int64_t program_counter_;
         std::optional<int64_t> output_;
 

@@ -154,6 +154,15 @@ namespace {
             }
         ) | r::to<std::vector>();
     }
+
+    std::unordered_map<int64_t, int64_t> to_memory_table(const std::vector<int64_t>& code) {
+        return rv::enumerate(code) | rv::transform(
+                [](const auto& addr_val)->std::unordered_map<int64_t, int64_t>::value_type {
+                    auto [address, val] = addr_val;
+                    return { address, val };
+                }
+            ) | r::to<std::unordered_map<int64_t, int64_t>>();
+    }
 }
 
 bool aoc::intcode_computer::run_one_instruction(
@@ -175,12 +184,12 @@ bool aoc::intcode_computer::run_one_instruction(
 }
 
 aoc::intcode_computer::intcode_computer(const std::vector<int64_t>& memory) :
-    memory_(memory),
+    memory_( to_memory_table(memory) ),
     program_counter_(0) {
 }
 
 void aoc::intcode_computer::reset(const std::vector<int64_t>& memory) {
-    memory_ = memory;
+    memory_ = to_memory_table(memory);
     program_counter_ = 0;
     output_ = {};
 }
@@ -194,7 +203,7 @@ int64_t aoc::intcode_computer::output() const {
 }
 
 int64_t aoc::intcode_computer::current_value() const {
-    return memory_[program_counter_];
+    return value( program_counter_ );
 }
 
 int64_t aoc::intcode_computer::current_address() const {
@@ -202,10 +211,22 @@ int64_t aoc::intcode_computer::current_address() const {
 }
 
 int64_t aoc::intcode_computer::value(int64_t i) const {
-    return memory_[i];
+    if (i < 0) {
+        throw std::runtime_error( "bad memory access" );
+    }
+    if (! memory_.contains(i)) {
+        return 0;
+    }
+    return memory_.at(i);
 }
 
 int64_t& aoc::intcode_computer::value(int64_t i) {
+    if (i < 0) {
+        throw std::runtime_error( "bad memory access" );
+    }
+    if (!memory_.contains(i)) {
+        memory_[i] = 0;
+    }
     return memory_[i];
 }
 
