@@ -13,9 +13,10 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_06( "Universal Orbit Map" );  },
         []() { day_07( "Amplification Circuit" );  },
         []() { day_08( "Space Image Format" );  },
-        []() { day_09( "Sensor Boost" );  }
+        []() { day_09( "Sensor Boost" );  },
+        []() { day_10( "Monitoring Station" );  }
     };
-
+    
     auto index = day - 1;
     if (index < 0) {
         std::print("invalid day: {0}\n", day);
