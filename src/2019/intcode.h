@@ -49,7 +49,7 @@ namespace aoc {
         void run(input_buffer& inp);
         void run();
         void run(const input_fn& inp, const output_fn& out);
-        icc_event run_until_event(int64_t inp = 0);
+        icc_event run_until_event(std::optional<int64_t> inp = {});
     };
 
 }
