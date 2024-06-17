@@ -184,23 +184,11 @@ namespace {
         std::vector<aoc::impl::parameter> params;
         for (int i = 0; i < k_op_code_table.at(op).num_args; ++i) {
             char mode_char = (i < mode_str.size()) ? mode_str.at(i) : '0';
-            int val = icc.value(aoc::impl::current_addr(icc) + i + 1);
+            auto val = icc.value(aoc::impl::current_addr(icc) + i + 1);
             params.emplace_back(val, char_to_param_mode(mode_char));
         }
 
         return aoc::impl::instruction{ op, params };
-    }
-
-    std::vector<int> eval_params(
-            const aoc::intcode_computer& icc,
-            const std::vector<aoc::impl::parameter>& params) {
-        return params | rv::transform(
-            [&](const aoc::impl::parameter& p)->int {
-                return (p.mode == aoc::impl::immediate) ?
-                    p.val :
-                    icc.value(p.val);
-            }
-        ) | r::to<std::vector>();
     }
 
     std::unordered_map<int64_t, int64_t> to_memory_table(const std::vector<int64_t>& code) {
