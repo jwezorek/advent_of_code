@@ -104,4 +104,19 @@ namespace aoc {
                 }
             );
     }
+
+    auto two_combos_indices(int n) {
+        namespace r = std::ranges;
+        namespace rv = std::ranges::views;
+        return rv::iota(0, n - 1) |
+            rv::transform(
+                [n](auto i) {
+                    return rv::iota(i + 1, n) | rv::transform(
+                        [i](auto j) {
+                            return std::tuple<int, int>(i, j);
+                        }
+                    );
+                }
+            ) | rv::join;
+    }
 }
