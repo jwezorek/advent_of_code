@@ -97,13 +97,16 @@ namespace {
 
 #ifdef WIN32
 
-    constexpr int k_clock_speed = 1000;
-    constexpr int k_game_tick = 101;
+    // Implemented the game as a turn-based Win32 application that supports
+    // undo (backspace) so that it is pretty easy to just play out the 
+    // board by undoing as necessary.
+
     constexpr int k_tile_size = 10;
     constexpr int k_horz_marg = 30;
     constexpr int k_vert_marg = 45;
     constexpr int k_score_y = 10;
     constexpr int k_score_hgt = 35;
+    constexpr int k_max_undo = 200;
 
     LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -143,29 +146,47 @@ namespace {
     };
 
     class game_state {
-        aoc::intcode_computer icc;
-        HBITMAP frame_buffer;
-        int wd;
-        int hgt;
 
-        struct frame_state {
+        struct frame_contents {
+            bool complete;
             tile_loc_map tiles;
             std::optional<int> score;
         };
 
-        std::optional<frame_state> next_frame_state() {
+        struct frame {
+            bool complete;
+            aoc::intcode_computer pre_input;
+            std::optional<aoc::intcode_computer> post_input;
+            HBITMAP frame_buffer;
+
+            frame(const aoc::intcode_computer& i, HBITMAP bmp) : 
+                complete(false), 
+                pre_input(i), 
+                frame_buffer(bmp) {
+            }
+
+            void release() {
+                DeleteObject(frame_buffer);
+            }
+        };
+
+        std::deque<frame> frames_;
+        aoc::intcode_computer initial_;
+        int wd;
+        int hgt;
+
+        frame_contents generate_next_frame_contents(aoc::intcode_computer& icc) {
             tile_loc_map tiles;
             bool finished_painting = false;
             std::optional<int> score;
             while (!finished_painting) {
                 auto result = icc.run_until_event();
                 if (result == aoc::terminated) {
-                    return {};
+                    return { true, tiles, score };
                 }
                 if (result == aoc::awaiting_input) {
                     finished_painting = true;
-                }
-                else {
+                } else {
                     int x = static_cast<int>(icc.output());
                     icc.run_until_event();
                     int y = static_cast<int>(icc.output());
@@ -180,9 +201,8 @@ namespace {
                     }
                 }
             }
-            return { {tiles,score} };
+            return { false, tiles, score };
         }
-
 
         void paint_tile(HDC hdc, point loc, ::tile tile) {
             int x = k_horz_marg + k_tile_size * loc.x;
@@ -226,7 +246,7 @@ namespace {
             );
         }
 
-        void paint_frame(const frame_state& frame, HBITMAP frame_buffer, int wd, int hgt) {
+        void paint_frame(const frame_contents& frame, HBITMAP frame_buffer, int wd, int hgt) {
             HDC hdc_scr = GetDC(NULL);
             HDC hdc_frame_buffer = CreateCompatibleDC(hdc_scr);
             auto old_bmp = SelectObject(hdc_frame_buffer, frame_buffer);
@@ -243,46 +263,117 @@ namespace {
             ReleaseDC(NULL, hdc_scr);
         }
 
-    public:
-        game_state(aoc::intcode_computer* c, HWND wnd) : 
-                icc(*c){
-            RECT r;
-            GetClientRect(wnd, &r);
-            wd = r.right - r.left;
-            hgt = r.bottom - r.top;
-
+        HBITMAP create_blank_frame_buffer() {
             HDC screen_dc = GetDC(NULL);
             HDC bmp_dc = CreateCompatibleDC(screen_dc);
-            frame_buffer = CreateCompatibleBitmap(screen_dc, wd, hgt);
+            
+            HBITMAP frame_buffer = CreateCompatibleBitmap(screen_dc, wd, hgt);
             auto old = SelectObject(bmp_dc, frame_buffer);
 
-            r = { 0,0,wd,hgt };
+            RECT r = { 0,0,wd,hgt };
             FillRect(bmp_dc, &r, reinterpret_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
 
             SelectObject(bmp_dc, old);
             DeleteDC(bmp_dc);
             ReleaseDC(NULL, screen_dc);
 
+            return frame_buffer;
+        }
+
+        HBITMAP clone(HBITMAP src_bmp) {
+
+            HDC screen_dc = GetDC(NULL);
+            HDC dst_dc = CreateCompatibleDC(screen_dc);
+            HDC src_dc = CreateCompatibleDC(screen_dc);
+
+            HBITMAP dst_bmp = CreateCompatibleBitmap(screen_dc, wd, hgt);
+            auto old1 = SelectObject(dst_dc, dst_bmp);
+            auto old2 = SelectObject(src_dc, src_bmp);
+
+            BitBlt(dst_dc, 0, 0, wd, hgt, src_dc, 0, 0, SRCCOPY);
+
+            SelectObject(src_dc, old2);
+            SelectObject(dst_dc, old1);
+            DeleteDC(src_dc);
+            DeleteDC(dst_dc);
+            ReleaseDC(NULL, screen_dc);
+
+            return dst_bmp;
+        }
+
+        void pop_frame() {
+            auto bmp = current_frame_buffer();
+            frames_.pop_back();
+            frames_.back().post_input = {};
+            DeleteObject(bmp);
+        }
+
+    public:
+        game_state(aoc::intcode_computer* c, HWND wnd) : 
+                initial_(*c){
+
+            RECT r;
+            GetClientRect(wnd, &r);
+            wd = r.right - r.left;
+            hgt = r.bottom - r.top;
+
             do_next_turn();
         }
 
         void do_next_turn() {
-            auto frame = next_frame_state();
-            if (!frame) {
+
+            if (!frames_.empty() && frames_.back().complete) {
                 return;
             }
-            paint_frame(*frame, frame_buffer, wd, hgt);
+
+            frame new_frame(
+                frames_.empty() ? initial_ : current_computer(),
+                frames_.empty() ?
+                    create_blank_frame_buffer() :
+                    clone(current_frame_buffer())
+            );
+
+            auto new_contents = generate_next_frame_contents(new_frame.pre_input);
+            new_frame.complete = new_contents.complete;
+
+            paint_frame(new_contents, new_frame.frame_buffer, wd, hgt);
+            frames_.push_back(new_frame);
+
+            if (frames_.size() > k_max_undo) {
+                frames_.pop_front();
+            }
+        }
+
+        aoc::intcode_computer& current_computer() {
+            if (frames_.back().post_input) {
+                return *frames_.back().post_input;
+            }
+            return frames_.back().pre_input;
+        }
+
+        HBITMAP current_frame_buffer() {
+            return frames_.back().frame_buffer;
+        }
+
+        void undo() {
+            if (frames_.empty() || frames_.size() == 1) {
+                return;
+            }
+            pop_frame();
         }
 
         void receive_input(user_input inp) {
-            auto result =icc.run_until_event(static_cast<int64_t>(inp));
+            frames_.back().post_input = frames_.back().pre_input;
+            auto result = frames_.back().post_input->run_until_event(
+                static_cast<int64_t>(inp)
+            );
             do_next_turn();
         }
 
         void render(HDC hdc) {
             HDC hdc_scr = GetDC(NULL);
             HDC hdc_bmp = CreateCompatibleDC(hdc_scr);
-            auto old_bmp = SelectObject(hdc_bmp, frame_buffer);
+            auto old_bmp = SelectObject(hdc_bmp, current_frame_buffer());
 
             BitBlt(hdc, 0, 0, wd, hgt, hdc_bmp, 0, 0, SRCCOPY);
 
@@ -316,8 +407,6 @@ namespace {
 
     LRESULT handle_wm_keydown(HWND wnd, WPARAM wparam, LPARAM lparam) {
         auto* state = get_game_state(wnd);
-
-        static std::vector<std::tuple<user_input,aoc::intcode_computer>> history;
         user_input inp = dont_move;
         switch (wparam) {
             case VK_LEFT:
@@ -329,6 +418,10 @@ namespace {
             case VK_SPACE:
                 inp = dont_move;
                 break;
+            case VK_BACK:
+                state->undo();
+                InvalidateRect(wnd, NULL, FALSE);
+                return 0;
             default:
                 return 0;
         }
@@ -358,9 +451,6 @@ namespace {
             case WM_CLOSE:
                 PostQuitMessage(0);
                 break;
-
-            //case WM_TIMER:
-            //    return handle_game_tick(hWnd, wParam, lParam);
 
             case WM_PAINT:
                 return handle_wm_paint(hWnd, wParam, lParam);
