@@ -16,7 +16,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_09( "Sensor Boost" );  },
         []() { day_10( "Monitoring Station" );  },
         []() { day_11( "Space Police" );  },
-        []() { day_12( "The N - Body Problem" ); }
+        []() { day_12( "The N - Body Problem" ); },
+        []() { day_13( "Care Package" ); }
     };
     
     auto index = day - 1;

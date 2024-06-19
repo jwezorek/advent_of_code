@@ -23,6 +23,7 @@ namespace aoc {
 
     enum icc_event {
         terminated,
+        awaiting_input,
         received_input,
         generated_output
     };

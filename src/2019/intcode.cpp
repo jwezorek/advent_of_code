@@ -180,24 +180,26 @@ namespace {
         if (val == static_cast<int>(impl::terminate_op)) {
             return {};
         }
+
         auto str = std::to_string(val);
-        int n = str.length();
+        int n = static_cast<int>(str.length());
         std::string mode_str;
         impl::op_code op = impl::terminate_op;
         if (val < 10) {
             op = static_cast<impl::op_code>(val);
-        }
-        else {
+        } else {
             auto op_str = str.substr(n - 2, 2);
             mode_str = str.substr(0, n - 2);
             r::reverse(mode_str);
             op = static_cast<impl::op_code>(std::stoi(op_str));
         }
+
         std::vector<impl::parameter> params;
         for (int i = 0; i < k_op_code_table.at(op).num_args; ++i) {
-            char mode_char = (i < mode_str.size()) ? mode_str.at(i) : '0';
-            auto val = icc.value(aoc::impl::current_addr(icc) + i + 1);
-            params.emplace_back(val, char_to_param_mode(mode_char));
+            params.emplace_back(
+                icc.value(aoc::impl::current_addr(icc) + i + 1),
+                char_to_param_mode((i < mode_str.size()) ? mode_str.at(i) : '0')
+            );
         }
 
         return impl::instruction{ op, params };
@@ -222,7 +224,7 @@ bool aoc::intcode_computer::run_one_instruction(
     }
 
     const auto& op = k_op_code_table.at(instr->op);
-    int old_prog_counter = program_counter_;
+    auto old_prog_counter = program_counter_;
     op.fn(*this, instr->parameters, inp, out);
     if (old_prog_counter == program_counter_) {
         program_counter_ += op.num_args + 1;
@@ -288,6 +290,12 @@ void aoc::intcode_computer::run(const input_fn& inp, const output_fn& out) {
 aoc::icc_event aoc::intcode_computer::run_until_event(std::optional<int64_t> inp) {
     std::optional<icc_event> event = {};
     while (!event) {
+
+        auto next_instruction = parse_next_instruction(*this);
+        if (next_instruction && next_instruction->op == impl::inp_op && !inp) {
+            return awaiting_input;
+        }
+
         bool not_done = run_one_instruction(
             [&]() {
                 if (!inp) {
