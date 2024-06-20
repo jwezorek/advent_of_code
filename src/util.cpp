@@ -165,6 +165,17 @@ std::vector<std::string> aoc::extract_alphabetic(const std::string& str) {
     return split(just_letters, ' ');
 }
 
+std::vector<std::string> aoc::extract_alphanumeric(const std::string& str) {
+    auto just_alnum = aoc::collapse_whitespace(
+        str | rv::transform(
+            [](char ch)->char {
+                return (std::isalnum(ch)) ? ch : ' ';
+            }
+        ) | r::to<std::string>()
+    );
+    return split(just_alnum, ' ');
+}
+
 std::vector<int> aoc::extract_numbers(const std::string& str, bool allow_negatives) {
     std::function<bool(char)> is_digit = (allow_negatives) ?
         [](char ch)->bool {return std::isdigit(ch) || ch == '-'; } :

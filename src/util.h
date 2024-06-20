@@ -19,6 +19,7 @@ namespace aoc {
     std::vector<int> extract_numbers(const std::string& str, bool allow_negatives = false);
     std::vector<int64_t> extract_numbers_int64(const std::string& str, bool allow_negatives = false);
     std::vector<std::string> extract_alphabetic(const std::string& str);
+    std::vector<std::string> extract_alphanumeric(const std::string& str);
     std::string remove_nonalphabetic(const std::string& str);
     std::string remove_nonnumeric(const std::string& str);
     std::string trim(const std::string& str);
