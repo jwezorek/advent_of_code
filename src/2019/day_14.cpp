@@ -150,20 +150,20 @@ namespace {
         return ore > required_ore;
     }
 
-    int64_t maximum_fuel_for_given_ore(const reaction_tbl& reactions, int64_t ore,
+    int64_t maximum_fuel_from_given_ore(const reaction_tbl& reactions, int64_t ore,
             int64_t lower_fuel, int64_t upper_fuel) {
         if (lower_fuel == upper_fuel || upper_fuel - lower_fuel == 1) {
             return lower_fuel;
         }
         auto mid_fuel = (lower_fuel + upper_fuel) / 2;
         if (can_make_fuel_from_ore(reactions, mid_fuel, ore)) {
-            return maximum_fuel_for_given_ore(reactions, ore, mid_fuel, upper_fuel);
+            return maximum_fuel_from_given_ore(reactions, ore, mid_fuel, upper_fuel);
         } else {
-            return maximum_fuel_for_given_ore(reactions, ore, lower_fuel, mid_fuel);
+            return maximum_fuel_from_given_ore(reactions, ore, lower_fuel, mid_fuel);
         }
     }
 
-    int64_t maximum_fuel_for_given_ore(const reaction_tbl& reactions, int64_t ore) {
+    int64_t maximum_fuel_from_given_ore(const reaction_tbl& reactions, int64_t ore) {
         int64_t upper_fuel = ore;
         int64_t lower_fuel = 1;
 
@@ -175,7 +175,7 @@ namespace {
             return -1;
         }
 
-        return maximum_fuel_for_given_ore(reactions, ore, lower_fuel, upper_fuel);
+        return maximum_fuel_from_given_ore(reactions, ore, lower_fuel, upper_fuel);
     }
 }
 
@@ -192,6 +192,6 @@ void aoc::y2019::day_14(const std::string& title) {
     std::println("--- Day 14: {} ---", title);
     std::println("  part 1: {}", minimum_ore_for_fuel(reactions, 1));
     std::println("  part 2: {}",
-        maximum_fuel_for_given_ore(reactions, 1000000000000)
+        maximum_fuel_from_given_ore(reactions, 1000000000000)
     );
 }
