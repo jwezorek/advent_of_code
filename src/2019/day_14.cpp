@@ -139,16 +139,49 @@ namespace {
         inventory.generate(rec.output);
     }
 
-    int64_t minimum_ore_for_fuel(const reaction_tbl& recipes) {
+    int64_t minimum_ore_for_fuel(const reaction_tbl& reactions, int64_t amount_of_fuel) {
         inventory inv;
-        fabricate_chemical({ 1, "FUEL" }, inv, recipes);
+        fabricate_chemical({ amount_of_fuel, "FUEL" }, inv, reactions);
         return inv.ore_created();
+    }
+    
+    bool can_make_fuel_from_ore(const reaction_tbl& reactions, int64_t fuel, int64_t ore) {
+        auto required_ore = minimum_ore_for_fuel(reactions, fuel);
+        return ore > required_ore;
+    }
+
+    int64_t maximum_fuel_for_given_ore(const reaction_tbl& reactions, int64_t ore,
+            int64_t lower_fuel, int64_t upper_fuel) {
+        if (lower_fuel == upper_fuel || upper_fuel - lower_fuel == 1) {
+            return lower_fuel;
+        }
+        auto mid_fuel = (lower_fuel + upper_fuel) / 2;
+        if (can_make_fuel_from_ore(reactions, mid_fuel, ore)) {
+            return maximum_fuel_for_given_ore(reactions, ore, mid_fuel, upper_fuel);
+        } else {
+            return maximum_fuel_for_given_ore(reactions, ore, lower_fuel, mid_fuel);
+        }
+    }
+
+    int64_t maximum_fuel_for_given_ore(const reaction_tbl& reactions, int64_t ore) {
+        int64_t upper_fuel = ore;
+        int64_t lower_fuel = 1;
+
+        if (can_make_fuel_from_ore(reactions, upper_fuel, ore)) {
+            return -1;
+        }
+
+        if (!can_make_fuel_from_ore(reactions, lower_fuel, ore)) {
+            return -1;
+        }
+
+        return maximum_fuel_for_given_ore(reactions, ore, lower_fuel, upper_fuel);
     }
 }
 
 void aoc::y2019::day_14(const std::string& title) {
 
-    auto recipes = make_recipe_table(
+    auto reactions = make_recipe_table(
             aoc::file_to_string_vector(
                 aoc::input_path(2019, 14)
             ) | rv::transform(
@@ -157,8 +190,8 @@ void aoc::y2019::day_14(const std::string& title) {
         );
 
     std::println("--- Day 14: {} ---", title);
-    std::println("  part 1: {}", minimum_ore_for_fuel(recipes));
+    std::println("  part 1: {}", minimum_ore_for_fuel(reactions, 1));
     std::println("  part 2: {}",
-        0
+        maximum_fuel_for_given_ore(reactions, 1000000000000)
     );
 }
