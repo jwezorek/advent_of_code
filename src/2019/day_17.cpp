@@ -20,25 +20,7 @@ namespace {
     struct point {
         int x;
         int y;
-
-        bool operator==(const point& p) const {
-            return x == p.x && y == p.y;
-        }
     };
-
-    point operator+(const point& lhs, const point& rhs) {
-        return  { lhs.x + rhs.x, lhs.y + rhs.y };
-    }
-    struct point_hash {
-        size_t operator()(const point& pt) const {
-            size_t seed = 0;
-            boost::hash_combine(seed, pt.x);
-            boost::hash_combine(seed, pt.y);
-            return seed;
-        }
-    };
-
-    using point_set = std::unordered_set<point, point_hash>;
 
     using computer = aoc::intcode_computer;
 
@@ -56,25 +38,22 @@ namespace {
         return grid;
     }
 
-    char get_tile(int x, int y, const std::vector<std::string>& grid, int wd, int hgt) {
-        if (y < 0 || y >= hgt || x < 0 || x >= wd) {
-            return '.';
-        }
-        return grid[y][x];
-    }
-
     std::vector<point> find_intersections(const std::vector<std::string>& grid) {
         int hgt = static_cast<int>(grid.size());
         int wd = static_cast<int>(grid[0].size());
 
+        auto is_floor = [&](int x, int y)->bool {
+            if (y < 0 || y >= hgt || x < 0 || x >= wd) {
+                return false;
+            }
+            return grid[y][x] != '.';
+        };
+
         std::vector<point> intersections;
         for (int y = 0; y < hgt; ++y) {
             for (int x = 0; x < wd; ++x) {
-                if (get_tile(x,y, grid, wd, hgt) != '.' &&
-                        get_tile(x, y - 1, grid, wd, hgt) != '.' &&
-                        get_tile(x, y + 1, grid, wd, hgt) != '.' &&
-                        get_tile(x - 1, y, grid, wd, hgt) != '.' &&
-                        get_tile(x + 1, y, grid, wd, hgt) != '.') {
+                if (is_floor(x,y) && is_floor(x,y-1) && is_floor(x,y+1) &&
+                        is_floor(x - 1, y) && is_floor(x + 1, y) ) {
                     intersections.emplace_back(x, y);
                 }
             }
@@ -95,37 +74,23 @@ namespace {
         );
     }
 
-    std::string grid_to_svg(const std::vector<std::string>& grid) {
-        int hgt = static_cast<int>(grid.size());
-        int wd = static_cast<int>(grid[0].size());
-        int marg = 40;
-        int dim = 20;
-
-        std::stringstream ss;
-        ss << std::format(
-            "<svg xmlns = \"http://www.w3.org/2000/svg\" version = \"1.1\" "
-            "width = \"{}\" height = \"{}\" >\n", wd * dim + 2*marg, hgt * dim + 2*marg);
-
-        for (int y = 0; y < hgt; ++y) {
-            for (int x = 0; x < wd; ++x) {
-                if (grid[y][x] == '.') {
-                    continue;
-                }
-                ss << std::format(
-                    "<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"gray\" stroke=\"black\" />\n",
-                    x * dim + marg, y * dim + marg, dim, dim
-                );
-            }
-        }
-
-        ss << "</svg>";
-
-        return ss.str();
-    }
-
-    int do_part_2(const std::vector<int64_t>& program) {
+    int64_t do_part_2(const std::vector<int64_t>& program) {
         computer comp(program);
-        return 0;
+
+        comp.value(0) = 2;
+
+        std::string cmds = 
+            "A,A,B,C,B,C,B,C,A,C\nR,6,L,8,R,8\nR,4,R,6,R,6,R,4,R,4\nL,8,R,6,L,10,L,10\nn\n";
+        auto num_cmds = cmds | rv::transform(
+                [](char ch)->int64_t {
+                    return static_cast<int64_t>(ch);
+                }
+            ) | r::to<std::vector>();
+
+        aoc::input_buffer buffer(num_cmds);
+        comp.run(buffer);
+
+        return comp.output();
     }
 }
 
