@@ -20,7 +20,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_13( "Care Package" ); },
         []() { day_14( "Space Stoichiometry" ); },
         []() { day_15( "Oxygen System" ); },
-        []() { day_16( "Flawed Frequency Transmission" ); }
+        []() { day_16( "Flawed Frequency Transmission" ); },
+        []() { day_17( "Set and Forget"); }
     };
     
     auto index = day - 1;

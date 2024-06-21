@@ -66,12 +66,14 @@ namespace {
         return seq;
     }
 
-    std::string first_n_digits(const std::vector<int>& inp, int n) {
-        return inp | rv::take(n) | rv::transform(
-            [](int n)->char {
-                return '0' + n;
-            }
-        ) | r::to<std::string>();
+    int first_n_digits(const std::vector<int>& inp, int n) {
+        return std::stoi(
+            inp | rv::take(n) | rv::transform(
+                [](int n)->char {
+                    return '0' + n;
+                }
+            ) | r::to<std::string>()
+        );
     }
 
     using seq_generator = std::function<int(int)>;
@@ -89,7 +91,6 @@ namespace {
         }
         return seq;
     }
-
 }
 
 void aoc::y2019::day_16(const std::string& title) {
@@ -110,7 +111,7 @@ void aoc::y2019::day_16(const std::string& title) {
     seq_generator gen = [&inp](int i) { return inp[i % inp.size()]; };
     std::println("  part 2: {}",
         first_n_digits(
-            fast_fft(gen, std::stoi(first_n_digits(inp,7)), inp.size() * 10000, 100),
+            fast_fft(gen, first_n_digits(inp,7), inp.size() * 10000, 100),
             8
         )
     );
