@@ -21,7 +21,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_14( "Space Stoichiometry" ); },
         []() { day_15( "Oxygen System" ); },
         []() { day_16( "Flawed Frequency Transmission" ); },
-        []() { day_17( "Set and Forget"); }
+        []() { day_17( "Set and Forget" ); },
+        []() { day_18( "Many-Worlds Interpretation" ); }
     };
     
     auto index = day - 1;
