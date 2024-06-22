@@ -97,7 +97,7 @@ namespace {
 
             if (items.contains(current.loc)  && current.dist != 0) {
                 auto item = items.at(current.loc);
-                if (item != '@') {
+                if (item != '@' && item != '$' && item != '%' && item != '&') {
                     tunnels.emplace_back(item, current.dist);
                     continue;
                 }
@@ -225,7 +225,26 @@ namespace {
         return ary | rv::join | r::to<std::vector>();
     }
 
-    int dijkstra_shortest_path(const vault_graph& g) {
+    int find_best_solution(const vault_graph& g, const auto& distance_map) {
+        int num_keys = r::count_if(g | rv::keys, is_key);
+        auto all_keys = distance_map | rv::filter(
+            [num_keys](auto&& state_to_dist) {
+                const auto& [state, distance] = state_to_dist;
+                return state.keys.size() == num_keys;
+            }
+        ) | r::to<std::vector>();
+
+        auto closest = r::min_element(
+            all_keys,
+            [](auto&& lhs, auto&& rhs) {
+                return lhs.second < rhs.second;
+            }
+        );
+
+        return closest->second;
+    }
+
+    int dijkstra_shortest_path_part1(const vault_graph& g) {
         
         std::unordered_map<traversal_state, int, traversal_state_hash> dist;
         aoc::priority_queue<traversal_state, traversal_state_hash> queue;
@@ -251,35 +270,147 @@ namespace {
             }
         }
 
-        int num_keys = r::count_if(g | rv::keys, is_key);
-        auto all_keys = dist | rv::filter(
-                [num_keys](auto&& state_to_dist) {
-                    const auto& [state, distance] = state_to_dist;
-                    return state.keys.size() == num_keys;
-                }
-            ) | r::to<std::vector>();
+        return find_best_solution(g, dist);
+    }
 
-        auto closest = r::min_element(
-                all_keys,
-                [](auto&& lhs, auto&& rhs) {
-                    return lhs.second < rhs.second;
+    point find_start(const std::vector<std::string>& grid) {
+        vault_contents contents;
+        int hgt = static_cast<int>(grid.size());
+        int wd = static_cast<int>(grid[0].size());
+        for (int y = 0; y < hgt; ++y) {
+            for (int x = 0; x < wd; ++x) {
+                if (grid[y][x] == '@') {
+                    return { x,y };
                 }
-            );
+            }
+        }
+        return { -1,-1 };
+    }
 
-        return closest->second;
+    // use '@', '$', '%' and '&' to repesent the starting locations of
+    // the four robots so we can tell them apart in the graph.
+
+    std::vector<std::string> make_part2_grid(const std::vector<std::string>& part1) {
+        auto g = part1;
+        auto s = find_start(part1);
+
+        g[s.y - 1][s.x - 1] = '@';
+        g[s.y - 1][s.x] = '#';
+        g[s.y - 1][s.x + 1] = '$';
+
+        g[s.y][s.x - 1] = '#';
+        g[s.y][s.x] = '#';
+        g[s.y][s.x + 1] = '#';
+
+        g[s.y + 1][s.x - 1] = '%';
+        g[s.y + 1][s.x] = '#';
+        g[s.y + 1][s.x + 1] = '&';
+
+        return g;
+    }
+
+    struct multi_trav_state {
+        std::array<char,4> nodes;
+        std::set<char> keys;
+
+        bool operator==(const multi_trav_state& s) const {
+            if (keys.size() != s.keys.size()) {
+                return false;
+            }
+            for (auto [lhs, rhs] : rv::zip(nodes, s.nodes)) {
+                if (lhs != rhs) {
+                    return false;
+                }
+            }
+            for (auto [lhs, rhs] : rv::zip(keys, s.keys)) {
+                if (lhs != rhs) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+
+    struct multi_trav_state_hash {
+        size_t operator()(const multi_trav_state& state) const {
+            size_t seed = 0;
+            for (auto node : state.nodes) {
+                boost::hash_combine(seed, node);
+            }
+            for (auto key : state.keys) {
+                boost::hash_combine(seed, key);
+            }
+            return seed;
+        }
+    };
+
+    std::vector<std::tuple<multi_trav_state, int>> neighboring_multi_states(
+            const multi_trav_state& u, const vault_graph& g) {
+
+        std::vector<std::tuple<multi_trav_state, int>> output;
+        for (auto [robot_index, robot] : rv::enumerate(u.nodes)) {
+            traversal_state robot_state = { robot, u.keys };
+            auto multi = neighboring_states(robot_state, g) |
+                rv::transform(
+                    [&](auto&& state_and_distance)->std::tuple<multi_trav_state, int> {
+                        const auto& [s, distance] = state_and_distance;
+
+                        multi_trav_state multi = u;
+                        multi.nodes[robot_index] = s.node;
+                        multi.keys = s.keys;
+
+                        return { std::move(multi), distance };
+                    }
+                ) | r::to<std::vector>();
+            r::copy(multi, std::back_inserter(output));
+        }
+        return output;
+    }
+
+    int dijkstra_shortest_path_part2(const vault_graph& g) {
+        std::unordered_map<multi_trav_state, int, multi_trav_state_hash> dist;
+        aoc::priority_queue<multi_trav_state, multi_trav_state_hash> queue;
+        multi_trav_state start_state = { {{'@','$','%','&'}}, {} };
+        queue.insert(start_state, 0);
+        dist[start_state] = 0;
+
+        while (!queue.empty()) {
+            auto u = queue.extract_min();
+            for (auto [v, dist_to_v] : neighboring_multi_states(u, g)) {
+                auto dist_to_u = dist.at(u);
+                auto dist_through_u_to_v = dist_to_u + dist_to_v;
+                auto curr_dist_to_v = dist.contains(v) ? dist.at(v) : std::numeric_limits<int>::max();
+
+                if (dist_through_u_to_v < curr_dist_to_v) {
+                    dist[v] = dist_through_u_to_v;
+                    if (queue.contains(v)) {
+                        queue.change_priority(v, dist_through_u_to_v);
+                    }
+                    else {
+                        queue.insert(v, dist_through_u_to_v);
+                    }
+                }
+            }
+        }
+
+        return find_best_solution(g, dist);
     }
 }
 
 void aoc::y2019::day_18(const std::string& title) {
 
     auto inp = aoc::file_to_string_vector(aoc::input_path(2019, 18));
-    auto graph = grid_to_graph(inp);
+    auto part1_graph = grid_to_graph(inp);
 
     std::println("--- Day 1: {} ---", title);
     std::println("  part 1: {}",
-        dijkstra_shortest_path(graph)
+        dijkstra_shortest_path_part1(part1_graph)
     );
+
+    auto part2_grid = make_part2_grid(inp);
+    auto part2_graph = grid_to_graph(part2_grid);
+
     std::println("  part 2: {}",
-        0
+        dijkstra_shortest_path_part2(part2_graph)
     );
 }
