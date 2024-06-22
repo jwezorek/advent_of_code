@@ -22,7 +22,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_15( "Oxygen System" ); },
         []() { day_16( "Flawed Frequency Transmission" ); },
         []() { day_17( "Set and Forget" ); },
-        []() { day_18( "Many-Worlds Interpretation" ); }
+        []() { day_18( "Many-Worlds Interpretation" ); },
+        []() { day_19( "Tractor Beam"); }
     };
     
     auto index = day - 1;
