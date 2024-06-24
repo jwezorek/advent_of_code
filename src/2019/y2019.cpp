@@ -23,7 +23,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_16( "Flawed Frequency Transmission" ); },
         []() { day_17( "Set and Forget" ); },
         []() { day_18( "Many-Worlds Interpretation" ); },
-        []() { day_19( "Tractor Beam"); }
+        []() { day_19( "Tractor Beam" ); },
+        []() { day_20( "Donut Maze" ); }
     };
     
     auto index = day - 1;
