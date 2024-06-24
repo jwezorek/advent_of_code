@@ -159,23 +159,42 @@ namespace {
         return n.label.size() == 2;
     }
 
-    struct state {
+    struct maze_loc {
         int level;
         int node;
+
+        bool operator==(const maze_loc& loc) const {
+            return level == loc.level && node == loc.node;
+        }
+    };
+
+    struct maze_loc_hash {
+        size_t operator()(const maze_loc& ml) const {
+            size_t seed = 0;
+            boost::hash_combine(seed, ml.node);
+            boost::hash_combine(seed, ml.level);
+            return seed;
+        }
+    };
+
+    using maze_loc_set = std::unordered_set<maze_loc, maze_loc_hash>;
+
+    struct state {
+        maze_loc loc;
         int dist;
     };
 
     std::vector<state> neighboring_states(
             const state& current, const donut_maze& maze, bool recursive_maze) {
 
-        const auto& adj_list = maze.at(current.node).neighbors;
+        const auto& adj_list = maze.at(current.loc.node).neighbors;
 
         if (!recursive_maze) {
             return adj_list |
                 rv::transform(
                     [&](auto&& passage)->state {
                         return {
-                            current.level,
+                            current.loc.level,
                             passage.dest,
                             current.dist + 1
                         };
@@ -185,7 +204,7 @@ namespace {
         return adj_list | 
             rv::filter(
                 [&](auto&& passage)->bool {
-                    if (current.level > 0) {
+                    if (current.loc.level > 0) {
                         return true;
                     }
                     return passage.level_delta >= 0;
@@ -193,7 +212,7 @@ namespace {
             ) | rv::transform(
                 [&](auto&& passage)->state {
                     return {
-                        current.level + passage.level_delta,
+                        current.loc.level + passage.level_delta,
                         passage.dest,
                         current.dist + 1
                     };
@@ -203,19 +222,19 @@ namespace {
 
     int solve_donut_maze(const donut_maze& maze, int start, int finish, bool recursive_maze) {
         
-        std::unordered_set<int> visited;
+        maze_loc_set visited;
         std::queue<state> queue;
-        queue.emplace(0, start, 0);
+        queue.emplace(maze_loc{ 0, start }, 0);
         while (!queue.empty()) {
             auto current = queue.front();
             queue.pop();
 
-            if (visited.contains(current.node)) {
+            if (visited.contains(current.loc)) {
                 continue;
             }
-            visited.insert(current.node);
+            visited.insert(current.loc);
 
-            if (current.node == finish && current.level == 0) {
+            if (current.loc == maze_loc{0, finish}) {
                 return current.dist;
             }
 
@@ -230,14 +249,14 @@ namespace {
 
 void aoc::y2019::day_20(const std::string& title) {
 
-    auto grid = aoc::file_to_string_vector(aoc::input_path(2019, 20));
+    auto grid = aoc::file_to_string_vector(aoc::input_path(2019, 20, "test2"));
     auto [maze, start, finish] = grid_to_donut_maze(grid);
 
     std::println("--- Day 20: {} ---", title);
-    std::println("  part 1: {}",
-        solve_donut_maze(maze, start, finish, false)
-    );
-    std::println("  part 2: {}", 0
-        /* solve_donut_maze(maze, start, finish, true) */
+    //std::println("  part 1: {}",
+    //    solve_donut_maze(maze, start, finish, false)
+    //);
+    std::println("  part 2: {}", 
+        solve_donut_maze(maze, start, finish, true) 
     );
 }
