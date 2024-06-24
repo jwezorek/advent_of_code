@@ -24,7 +24,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_17( "Set and Forget" ); },
         []() { day_18( "Many-Worlds Interpretation" ); },
         []() { day_19( "Tractor Beam" ); },
-        []() { day_20( "Donut Maze" ); }
+        []() { day_20( "Donut Maze" ); },
+        []() { day_21( "Springdroid Adventure" ); }
     };
     
     auto index = day - 1;

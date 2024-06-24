@@ -16,11 +16,15 @@ namespace {
 
 void aoc::y2019::day_21(const std::string& title) {
 
-    auto inp = aoc::file_to_string_vector(aoc::input_path(2019, 2)) | rv::transform(
-        [](auto&& str) {return std::stoi(str); }
-    ) | r::to<std::vector<int>>();
+    auto program = split(
+            aoc::file_to_string(aoc::input_path(2019, 21)), ','
+        ) | rv::transform(
+            [](auto&& str)->int64_t {
+                return aoc::string_to_int64(str);
+            }
+        ) | r::to<std::vector>();
 
-    std::println("--- Day 1: {} ---", title);
+    std::println("--- Day 21: {} ---", title);
     std::println("  part 1: {}",
         0
     );
