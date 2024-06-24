@@ -40,14 +40,21 @@ namespace {
     };
 
     using point_map = std::unordered_map<point, int, point_hash>;
-    struct node {
-        std::string label;
-        std::vector<int> neighbors;
+
+    struct passage {
+        int dest;
+        int level_delta;
     };
 
-    using graph = std::unordered_map<int, node>;
+    struct node {
+        std::string label;
+        std::vector<passage> neighbors;
+    };
 
-    int get_node_or_add_node_to_graph(const point& loc, graph& g, point_map& point_to_node_id, int& curr_id) {
+    using donut_maze = std::unordered_map<int, node>;
+
+    int get_node_or_add_node_to_graph(
+            const point& loc, donut_maze& g, point_map& point_to_node_id, int& curr_id) {
 
         if (!point_to_node_id.contains(loc)) {
             point_to_node_id[loc] = ++curr_id;
@@ -57,7 +64,7 @@ namespace {
         if (!g.contains(id)) {
             g[id] = node{
                 std::format("( {} , {} )", loc.x, loc.y),
-                std::vector<int>{}
+                std::vector<passage>{}
             };
         }
 
@@ -76,7 +83,16 @@ namespace {
         return label;
     }
 
-    void link_to_warp(int loc_id, graph& g, const std::vector<std::string>& grid, 
+    bool is_on_outer_edge(const std::vector<std::string>& grid, const point& loc) {
+        if (loc.x == 2 || loc.y == 2) {
+            return true;
+        }
+        int wd = static_cast<int>(grid.at(0).size());
+        int hgt = static_cast<int>(grid.size());
+        return (loc.x == wd - 3 || loc.y == hgt - 3);
+    }
+
+    void link_to_warp(int loc_id, donut_maze& maze, const std::vector<std::string>& grid,
             const point& loc, const point& dir,
             std::unordered_map<std::string, int>& warp_map,
             int& start_id, int& finish_id) {
@@ -96,12 +112,14 @@ namespace {
         }
 
         int warp_destination = warp_map[warp_label];
-        g[loc_id].neighbors.push_back(warp_destination);
-        g[warp_destination].neighbors.push_back(loc_id);
+        bool goes_up_a_level = is_on_outer_edge(grid, loc);
+
+        maze[loc_id].neighbors.emplace_back(warp_destination, goes_up_a_level ? -1 : 0); 
+        maze[warp_destination].neighbors.emplace_back(loc_id, goes_up_a_level ? 1 : -1);
     }
 
-    std::tuple<graph, int, int> donut_maze_to_graph(const std::vector<std::string>& grid) {
-        graph maze;
+    std::tuple<donut_maze, int, int> grid_to_donut_maze(const std::vector<std::string>& grid) {
+        donut_maze maze;
         point_map point_to_node_id;
         std::unordered_map<std::string, int> warp_to_node_id;
         int hgt = static_cast<int>(grid.size());
@@ -126,7 +144,7 @@ namespace {
                     }
                     if (grid[adj.y][adj.x] == '.') {
                         int adj_id = get_node_or_add_node_to_graph(adj, maze, point_to_node_id, node_id);
-                        maze[id].neighbors.push_back(adj_id);
+                        maze[id].neighbors.emplace_back(adj_id, 0);
                     } else {
                         link_to_warp(id, maze, grid, loc, dir, warp_to_node_id, start, finish);
                     }
@@ -141,15 +159,53 @@ namespace {
         return n.label.size() == 2;
     }
 
-    int find_shortest_path(const graph& g, int start, int finish) {
-        struct state {
-            int node;
-            int dist;
-        };
+    struct state {
+        int level;
+        int node;
+        int dist;
+    };
 
+    std::vector<state> neighboring_states(
+            const state& current, const donut_maze& maze, bool recursive_maze) {
+
+        const auto& adj_list = maze.at(current.node).neighbors;
+
+        if (!recursive_maze) {
+            return adj_list |
+                rv::transform(
+                    [&](auto&& passage)->state {
+                        return {
+                            current.level,
+                            passage.dest,
+                            current.dist + 1
+                        };
+                    }
+                ) | r::to<std::vector>();
+        }
+        return adj_list | 
+            rv::filter(
+                [&](auto&& passage)->bool {
+                    if (current.level > 0) {
+                        return true;
+                    }
+                    return passage.level_delta >= 0;
+                }
+            ) | rv::transform(
+                [&](auto&& passage)->state {
+                    return {
+                        current.level + passage.level_delta,
+                        passage.dest,
+                        current.dist + 1
+                    };
+                }
+            ) | r::to<std::vector>();
+    }
+
+    int solve_donut_maze(const donut_maze& maze, int start, int finish, bool recursive_maze) {
+        
         std::unordered_set<int> visited;
         std::queue<state> queue;
-        queue.emplace(start, 0);
+        queue.emplace(0, start, 0);
         while (!queue.empty()) {
             auto current = queue.front();
             queue.pop();
@@ -159,15 +215,12 @@ namespace {
             }
             visited.insert(current.node);
 
-            if (current.node == finish) {
+            if (current.node == finish && current.level == 0) {
                 return current.dist;
             }
 
-            for (auto neighbor : g.at(current.node).neighbors) {
-                queue.emplace(
-                    neighbor,
-                    current.dist + 1
-                );
+            for (const auto& neighbor : neighboring_states(current, maze, recursive_maze)) {
+                queue.push(neighbor);
             }
         }
 
@@ -178,13 +231,13 @@ namespace {
 void aoc::y2019::day_20(const std::string& title) {
 
     auto grid = aoc::file_to_string_vector(aoc::input_path(2019, 20));
-    auto [graph, start, finish] = donut_maze_to_graph(grid);
+    auto [maze, start, finish] = grid_to_donut_maze(grid);
 
     std::println("--- Day 20: {} ---", title);
     std::println("  part 1: {}",
-        find_shortest_path(graph, start, finish)
+        solve_donut_maze(maze, start, finish, false)
     );
-    std::println("  part 2: {}",
-        0
+    std::println("  part 2: {}", 0
+        /* solve_donut_maze(maze, start, finish, true) */
     );
 }
