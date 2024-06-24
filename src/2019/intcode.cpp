@@ -267,11 +267,16 @@ int64_t& aoc::intcode_computer::value(int64_t i) {
 }
 
 void aoc::intcode_computer::run(input_buffer& inp) {
+    run(inp,  [](int64_t val) { } );
+}
+
+void aoc::intcode_computer::run(input_buffer& inp, const output_fn& out) {
+
     run(
         [&inp]()->int64_t {
             return inp.next();
         },
-        [this](int64_t val) { }
+        out
     );
 }
 

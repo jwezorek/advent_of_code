@@ -1,5 +1,6 @@
 #include "../util.h"
 #include "y2019.h"
+#include "intcode.h"
 #include <filesystem>
 #include <functional>
 #include <print>
@@ -12,6 +13,30 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
+
+    using computer = aoc::intcode_computer;
+
+    std::vector<int64_t> string_to_intcode(const std::string& str) {
+        return str | rv::transform(
+                [](char ch)->int64_t {
+                    return static_cast<int64_t>(ch);
+                }
+            ) | r::to<std::vector>();
+    }
+
+    void run_springdroid(const computer& comp, const std::string& program) {
+        auto springdroid = comp;
+        aoc::input_buffer buffer(string_to_intcode(program));
+        std::stringstream ss;
+        springdroid.run(
+            buffer,
+            [&](int64_t v) {
+                ss << static_cast<char>(v);
+            }
+        );
+        std::println("{}", ss.str());
+    }
+
 }
 
 void aoc::y2019::day_21(const std::string& title) {
@@ -24,6 +49,19 @@ void aoc::y2019::day_21(const std::string& title) {
             }
         ) | r::to<std::vector>();
 
+    computer springdroid(program);
+    run_springdroid(
+        springdroid,
+        "NOT C T\n"
+        "NOT D J\n"
+        "AND T J\n"
+        "AND B J\n"
+        "NOT A T\n"
+        "OR T J\n"
+        "WALK\n"
+    );
+
+    /*
     std::println("--- Day 21: {} ---", title);
     std::println("  part 1: {}",
         0
@@ -31,4 +69,5 @@ void aoc::y2019::day_21(const std::string& title) {
     std::println("  part 2: {}",
         0
     );
+    */
 }
