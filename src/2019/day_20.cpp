@@ -114,7 +114,7 @@ namespace {
         int warp_destination = warp_map[warp_label];
         bool goes_up_a_level = is_on_outer_edge(grid, loc);
 
-        maze[loc_id].neighbors.emplace_back(warp_destination, goes_up_a_level ? -1 : 0); 
+        maze[loc_id].neighbors.emplace_back(warp_destination, goes_up_a_level ? -1 : 1); 
         maze[warp_destination].neighbors.emplace_back(loc_id, goes_up_a_level ? 1 : -1);
     }
 
@@ -249,13 +249,13 @@ namespace {
 
 void aoc::y2019::day_20(const std::string& title) {
 
-    auto grid = aoc::file_to_string_vector(aoc::input_path(2019, 20, "test2"));
+    auto grid = aoc::file_to_string_vector( aoc::input_path(2019, 20) );
     auto [maze, start, finish] = grid_to_donut_maze(grid);
 
     std::println("--- Day 20: {} ---", title);
-    //std::println("  part 1: {}",
-    //    solve_donut_maze(maze, start, finish, false)
-    //);
+    std::println("  part 1: {}",
+        solve_donut_maze(maze, start, finish, false)
+    );
     std::println("  part 2: {}", 
         solve_donut_maze(maze, start, finish, true) 
     );
