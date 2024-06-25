@@ -24,17 +24,26 @@ namespace {
             ) | r::to<std::vector>();
     }
 
-    void run_springdroid(const computer& comp, const std::string& program) {
+    int64_t run_springdroid(const computer& comp, const std::string& program) {
         auto springdroid = comp;
         aoc::input_buffer buffer(string_to_intcode(program));
         std::stringstream ss;
+        std::optional<int64_t> result;
         springdroid.run(
             buffer,
             [&](int64_t v) {
-                ss << static_cast<char>(v);
+                if (v > 255) {
+                    result = v;
+                } else {
+                    ss << static_cast<char>(v);
+                }
             }
         );
-        std::println("{}", ss.str());
+        if (!result) {
+            std::println("{}", ss.str());
+            return -1;
+        }
+        return result.value();
     }
 
 }
@@ -50,24 +59,37 @@ void aoc::y2019::day_21(const std::string& title) {
         ) | r::to<std::vector>();
 
     computer springdroid(program);
-    run_springdroid(
-        springdroid,
-        "NOT C T\n"
-        "NOT D J\n"
-        "AND T J\n"
-        "AND B J\n"
-        "NOT A T\n"
-        "OR T J\n"
-        "WALK\n"
-    );
+    ;
 
-    /*
+    
     std::println("--- Day 21: {} ---", title);
     std::println("  part 1: {}",
-        0
+        run_springdroid(
+            springdroid,
+            "NOT A J\n"  // o_
+
+            "NOT C T\n" // o#?_#
+            "AND A T\n"
+            "AND D T\n"
+
+            "OR T J\n"
+
+            "WALK\n"
+        )
     );
     std::println("  part 2: {}",
-        0
+        run_springdroid(
+            springdroid,
+            "NOT A J\n"  // o_
+
+            "NOT C T\n" // o#?_#
+            "AND A T\n"
+            "AND D T\n"
+
+            "OR T J\n"
+
+            "RUN\n"
+        )
     );
-    */
+    
 }
