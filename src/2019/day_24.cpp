@@ -41,41 +41,48 @@ namespace {
 
     constexpr int k_dim = 5;
 
-    uint64_t memoize(const vec3_set& set) {
-        uint64_t memo = 0;
-        int binary_digit = 0;
-        for (int y = 0; y < k_dim; ++y) {
-            for (int x = 0; x < k_dim; ++x) {
-                if (set.contains({x,y})) {
-                    memo = (memo | (static_cast<uint64_t>(1) << binary_digit));
-                }
-                binary_digit++;
-            }
-        }
-        return memo;
-    }
-
     auto neighbor_deltas() {
         static const std::array<vec3, 4> deltas = { { {0,-1,0}, {1,0,0}, {0,1,0}, {-1,0,0} } };
         return rv::all(deltas);
     }
 
+    template<typename T>
+    using five_by_five_array = std::array<std::array<T, k_dim>, k_dim>;
+
+    five_by_five_array<std::vector<vec3>> trans_level_neighbors() {
+        return {{
+            {{ {{2,1,-1}, {1,2,-1}},{{2,1,-1}},{{2,1,-1}},{{2,1,-1}},{{2,1,-1},{3,2,-1}} }},
+            {{ {{1,2,-1}}, {}, {{0,0,1},{1,0,1},{2,0,1},{3,0,1},{4,0,1}}, {}, {{3,2,-1}} }},
+            {{ {{1,2,-1}}, {{0,0,1},{0,1,1},{0,2,1},{0,3,1},{0,4,1}},{},{{4,0,1},{4,1,1},{4,2,1},{4,3,1},{ 4,4,1 }},{{3,2,-1}}}},
+            {{ {{1,2,-1}}, {}, {{0,4,1},{1,4,1},{2,4,1},{3,4,1},{4,4,1}}, {}, {{3,2,-1}} }},
+            {{ {{1,2,-1},{2,3,-1}}, {{2,3,-1}}, {{2,3,-1}}, {{2,3,-1}}, {{2,3,-1}, {3,2,-1}} }}
+        }};
+    }
+
     vec3_set neighboring_cells(const vec3& v, bool recursive) {
         if (!recursive) {
             return neighbor_deltas() | rv::transform(
-                    [&v](auto&& delta) {
-                        return v + delta;
-                    }
-                ) | rv::filter(
-                    [](auto&& v) {
-                        return v.x >= 0 &&
-                            v.y >= 0 &&
-                            v.x < k_dim &&
-                            v.y < k_dim;
-                    }
-                ) | r::to<vec3_set>();
-        } 
-        return {}; //TODO
+                [&v](auto&& delta) {
+                    return v + delta;
+                }
+            ) | rv::filter(
+                [](auto&& v) {
+                    return v.x >= 0 &&
+                        v.y >= 0 &&
+                        v.x < k_dim &&
+                        v.y < k_dim;
+                }
+            ) | r::to<vec3_set>();
+        }
+        auto set = neighboring_cells(v, false);
+        set.erase({ 2,2, v.z });
+
+        static const auto trans = trans_level_neighbors();
+        for (auto neighbor : trans[v.y][v.x]) {
+            set.insert({ neighbor.x, neighbor.y, neighbor.z + v.z });
+        }
+
+        return set;
     }
 
     vec3_set union_sets(const vec3_set& lhs, const vec3_set& rhs) {
@@ -134,16 +141,18 @@ namespace {
         return set;
     }
 
-    void display(const vec3_set& bugs) {
-        std::println("");
+    uint64_t memoize(const vec3_set& set) {
+        uint64_t memo = 0;
+        int binary_digit = 0;
         for (int y = 0; y < k_dim; ++y) {
             for (int x = 0; x < k_dim; ++x) {
-                std::print("{}",
-                    bugs.contains({x,y,0}) ? '#' : '.'
-                );
+                if (set.contains({ x,y })) {
+                    memo = (memo | (static_cast<uint64_t>(1) << binary_digit));
+                }
+                binary_digit++;
             }
-            std::println("");
         }
+        return memo;
     }
 
     uint64_t do_part_1(const std::vector<std::string>& g) {
@@ -157,6 +166,14 @@ namespace {
         }
         return memo;
     }
+
+    uint64_t do_part_2(const std::vector<std::string>& g) {
+        auto bugs = grid_to_cell_set(g);
+        for (int i = 0; i < 200; ++i) {
+            bugs = next_generation(bugs, true);
+        }
+        return bugs.size();
+    }
 }
 
 void aoc::y2019::day_24(const std::string& title) {
@@ -169,6 +186,6 @@ void aoc::y2019::day_24(const std::string& title) {
         do_part_1(inp)
     );
     std::println("  part 2: {}",
-        0
+        do_part_2(inp)
     );
 }
