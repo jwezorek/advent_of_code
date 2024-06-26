@@ -35,6 +35,7 @@ namespace aoc {
         int64_t program_counter_;
         std::optional<int64_t> output_;
         int64_t rel_base_;
+        int ticks_;
 
         bool run_one_instruction(const input_fn& inp, const output_fn& out);
 
@@ -46,6 +47,7 @@ namespace aoc {
         const int64_t& value(int64_t i) const;
         int64_t& value(int64_t i);
         int64_t output() const;
+        int ticks() const;
 
         void run(input_buffer& inp);
         void run(input_buffer& inp, const output_fn& out);

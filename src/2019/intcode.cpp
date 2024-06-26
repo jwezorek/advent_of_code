@@ -218,6 +218,7 @@ namespace {
 bool aoc::intcode_computer::run_one_instruction(
         const input_fn& inp, const output_fn& out) {
 
+    ticks_++;
     auto instr = parse_next_instruction(*this);
     if (!instr) {
         return false;
@@ -236,7 +237,8 @@ bool aoc::intcode_computer::run_one_instruction(
 aoc::intcode_computer::intcode_computer(const std::vector<int64_t>& memory) :
     memory_( to_memory_table(memory) ),
     program_counter_(0),
-    rel_base_(0) {
+    rel_base_(0),
+    ticks_(0) {
 }
 
 void aoc::intcode_computer::reset(const std::vector<int64_t>& memory) {
@@ -244,10 +246,15 @@ void aoc::intcode_computer::reset(const std::vector<int64_t>& memory) {
     program_counter_ = 0;
     output_ = {};
     rel_base_ = 0;
+    ticks_ = 0;
 }
 
 int64_t aoc::intcode_computer::output() const {
     return *output_;
+}
+
+int aoc::intcode_computer::ticks() const {
+    return ticks_;
 }
 
 const int64_t& aoc::intcode_computer::value(int64_t i) const {

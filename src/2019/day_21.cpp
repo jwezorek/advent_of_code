@@ -40,9 +40,11 @@ namespace {
             }
         );
         if (!result) {
+            std::println("clock ticks: {}", springdroid.ticks());
             std::println("{}", ss.str());
             return -1;
         }
+        
         return result.value();
     }
 
@@ -82,7 +84,10 @@ void aoc::y2019::day_21(const std::string& title) {
             springdroid,
             "NOT A J\n"  // o_
 
-            "NOT C T\n" // o#?_#
+            "NOT C T\n" // o#?_#  || o#-?#
+            "NOT T T\n"
+            "AND B T\n"
+            "NOT T T\n"
             "AND A T\n"
             "AND D T\n"
 
