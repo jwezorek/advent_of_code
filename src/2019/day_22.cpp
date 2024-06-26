@@ -37,8 +37,7 @@ namespace {
     }
 
     int128_t multiplicative_inverse_modulo(int128_t a, int128_t m) {
-        int128_t gcd, x, y;
-        std::tie(gcd, x, y) = extended_euclidean(a, m);
+        auto [gcd, x, y] = extended_euclidean(a, m);
         if (gcd != 1) {
             throw std::invalid_argument("a and m must be coprime.");
         }
