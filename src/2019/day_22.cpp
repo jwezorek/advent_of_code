@@ -13,6 +13,7 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
+
     using int128_t = boost::multiprecision::int128_t;
 
     int128_t mod(int128_t a, int128_t m) {
@@ -21,6 +22,27 @@ namespace {
             result += m;
         }
         return result;
+    }
+
+    std::tuple<int128_t, int128_t, int128_t> extended_euclidean(int128_t a, int128_t b) {
+        int128_t x0 = 1, y0 = 0;
+        int128_t x1 = 0, y1 = 1;
+        while (b != 0) {
+            int128_t q = a / b;
+            std::tie(a, b) = std::make_tuple(b, a % b);
+            std::tie(x0, x1) = std::make_tuple(x1, x0 - q * x1);
+            std::tie(y0, y1) = std::make_tuple(y1, y0 - q * y1);
+        }
+        return { a, x0, y0 }; // a is the gcd, x0 is the coefficient for a, y0 for b
+    }
+
+    int128_t multiplicative_inverse_modulo(int128_t a, int128_t m) {
+        int128_t gcd, x, y;
+        std::tie(gcd, x, y) = extended_euclidean(a, m);
+        if (gcd != 1) {
+            throw std::invalid_argument("a and m must be coprime.");
+        }
+        return mod(x, m);
     }
 
     class lcf {
@@ -51,7 +73,7 @@ namespace {
             if (m_ != g.modulus()) {
                 throw std::invalid_argument("modulus mismatch");
             }
-            
+
             auto c = g.a();
             auto d = g.b();
 
@@ -67,29 +89,10 @@ namespace {
         }
     };
 
-    /*
-    lcf operator+(const lcf& lhs, const lcf& rhs) {
-        if (lhs.modulus() != rhs.modulus()) {
-            throw std::invalid_argument("modulus mismatch");
-        }
-        auto m = lhs.modulus();
-        auto a = mod(lhs.a() + rhs.a(), m);
-        auto b = mod(lhs.b() + rhs.b(), m);
-
-        return { a, b, m };
+    int128_t invert(const lcf& lcf, int128_t y) {
+        auto a_inverse = multiplicative_inverse_modulo(lcf.a(), lcf.modulus());
+        return mod(a_inverse * (y - lcf.b()), lcf.modulus());
     }
-
-    lcf operator-(const lcf& lhs, const lcf& rhs) {
-        if (lhs.modulus() != rhs.modulus()) {
-            throw std::invalid_argument("modulus mismatch");
-        }
-        auto m = lhs.modulus();
-        auto a = mod(lhs.a() - rhs.a(), m);
-        auto b = mod(lhs.b() - rhs.b(), m);
-
-        return { a, b, m };
-    }
-    */
 
     enum shuffle_type {
         new_stack,
@@ -106,7 +109,8 @@ namespace {
         auto nums = aoc::extract_numbers(str, true);
         if (str.contains("cut")) {
             return { cut, nums.front() };
-        } else if (str.contains("increment")) {
+        }
+        else if (str.contains("increment")) {
             return { increment, nums.front() };
         }
         return { new_stack, 0 };
@@ -115,12 +119,12 @@ namespace {
     lcf shuffle_to_lcf(const shuffle& shuffle, int128_t modulus) {
         auto n = shuffle.arg;
         switch (shuffle.type) {
-            case new_stack:
-                return {-1, -1, modulus };
-            case cut:
-                return { 1, -n, modulus };
-            case increment:
-                return { n, 0, modulus };
+        case new_stack:
+            return { -1, -1, modulus };
+        case cut:
+            return { 1, -n, modulus };
+        case increment:
+            return { n, 0, modulus };
         }
         throw std::invalid_argument("unknown shuffle type");
     }
@@ -139,6 +143,19 @@ namespace {
         );
     }
 
+    lcf pow_compose(const lcf& func, int128_t k) {
+        auto g = lcf(1, 0, func.modulus());
+        auto f = func;
+        while (k > 0) {
+            if (k % 2 == 1) {
+                g = g(f);
+            }
+            k /= 2;
+            f = f(f);
+        }
+        return g;
+    }
+
     std::string to_string(int128_t n) {
         std::stringstream ss;
         ss << n;
@@ -148,19 +165,35 @@ namespace {
 
 void aoc::y2019::day_22(const std::string& title) {
 
+    /*
+        I couldn't figure part 2 of this one out. This code implements
+        what is described here: https://codeforces.com/blog/entry/72593
+        doing the composition-by-squaring method for part 2.
+    
+    */
+
     auto inp = aoc::file_to_string_vector(
             aoc::input_path(2019, 22)
         ) | rv::transform(
             str_to_shuffle
         ) | r::to<std::vector>();
 
-    
-
     std::println("--- Day 1: {} ---", title);
     std::println("  part 1: {}",
         to_string(compose_shuffles(inp, 10007)(2019))
     );
+
     std::println("  part 2: {}",
-        0
+        to_string(
+            invert(
+                pow_compose(
+                    compose_shuffles(inp, 119315717514047),
+                    101741582076661
+                ),
+                2020
+            )
+        )
     );
+
+
 }
