@@ -177,7 +177,7 @@ add_executable(advent_of_code
     src/2015/day_24.cpp
     src/2015/day_25.cpp
     src/2015/y2015.cpp
-)
+ "src/2015/md5.cpp" "src/2015/md5.h")
 
 target_link_libraries(advent_of_code PRIVATE Eigen3::Eigen)
 
