@@ -8,7 +8,8 @@ void aoc::y2015::do_advent_of_code(int day) {
         []() { day_01( "Not Quite Lisp" ); },
         []() { day_02( "I Was Told There Would Be No Math" ); },
         []() { day_03( "Perfectly Spherical Houses in a Vacuum" ); },
-        []() { day_04( "The Ideal Stocking Stuffer" ); }
+        []() { day_04( "The Ideal Stocking Stuffer" ); },
+        []() { day_05( "Doesn't He Have Intern-Elves For This?" ); }
     };
     
     auto index = day - 1;
