@@ -5,7 +5,8 @@
 
 void aoc::y2015::do_advent_of_code(int day) {
     const static auto advent_of_code_2015 = std::vector<std::function<void()>>{
-        []() { day_01( "Not Quite Lisp" ); }
+        []() { day_01( "Not Quite Lisp" ); },
+        []() { day_02( "I Was Told There Would Be No Math" ); }
     };
     
     auto index = day - 1;
