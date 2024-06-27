@@ -232,8 +232,8 @@ std::vector<std::vector<std::string>> aoc::group_strings_separated_by_blank_line
 
 std::vector<int64_t> aoc::extract_numbers_int64(const std::string& str, bool allow_negatives) {
     std::function<bool(char)> is_digit = (allow_negatives) ?
-        [](char ch)->bool {return std::isdigit(ch); } :
-        [](char ch)->bool {return std::isdigit(ch) || ch == '-'; };
+        [](char ch)->bool {return std::isdigit(ch) || ch == '-'; } :
+        [](char ch)->bool {return std::isdigit(ch); };
     auto just_numbers = aoc::collapse_whitespace(str |
         rv::transform(
             [is_digit](char ch)->char {

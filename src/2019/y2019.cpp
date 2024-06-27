@@ -28,7 +28,8 @@ void aoc::y2019::do_advent_of_code(int day) {
         []() { day_21( "Springdroid Adventure" ); },
         []() { day_22( "Slam Shuffle" ); },
         []() { day_23( "Category Six" ); },
-        []() { day_24( "Planet of Discord" ); }
+        []() { day_24( "Planet of Discord" ); },
+        []() { day_25( "Cryostasis" ); }
     };
     
     auto index = day - 1;
