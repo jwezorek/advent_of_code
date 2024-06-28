@@ -13,7 +13,8 @@ void aoc::y2015::do_advent_of_code(int day) {
         []() { day_06( "Probably a Fire Hazard" ); },
         []() { day_07( "Some Assembly Required" ); },
         []() { day_08( "Matchsticks"); },
-        []() { day_09("All in a Single Night"); }
+        []() { day_09("All in a Single Night"); },
+        []() { day_10("Elves Look, Elves Say"); }
     };
     
     auto index = day - 1;
