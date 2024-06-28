@@ -11,7 +11,8 @@ void aoc::y2015::do_advent_of_code(int day) {
         []() { day_04( "The Ideal Stocking Stuffer" ); },
         []() { day_05( "Doesn't He Have Intern-Elves For This?" ); },
         []() { day_06( "Probably a Fire Hazard" ); },
-        []() { day_07( "Some Assembly Required" ); }
+        []() { day_07( "Some Assembly Required" ); },
+        []() { day_08( "Matchsticks"); }
     };
     
     auto index = day - 1;
