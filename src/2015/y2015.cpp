@@ -12,9 +12,10 @@ void aoc::y2015::do_advent_of_code(int day) {
         []() { day_05( "Doesn't He Have Intern-Elves For This?" ); },
         []() { day_06( "Probably a Fire Hazard" ); },
         []() { day_07( "Some Assembly Required" ); },
-        []() { day_08( "Matchsticks"); },
-        []() { day_09("All in a Single Night"); },
-        []() { day_10("Elves Look, Elves Say"); }
+        []() { day_08( "Matchsticks" ); },
+        []() { day_09( "All in a Single Night" ); },
+        []() { day_10( "Elves Look, Elves Say" ); },
+        []() { day_11( "Corporate Policy" ); }
     };
     
     auto index = day - 1;
