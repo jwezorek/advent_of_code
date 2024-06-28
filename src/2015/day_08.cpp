@@ -43,6 +43,25 @@ namespace {
         }
         return out.str();
     }
+
+    std::string escape(const std::string& inp) {
+        std::stringstream out;
+        out << '"';
+        for (auto ch : inp) {
+            if (ch == '"') {
+                out << '\\';
+                out << '"';
+                continue;
+            } else if (ch == '\\') {
+                out << '\\';
+                out << '\\';
+                continue;
+            }
+            out << ch;
+        }
+        out << '"';
+        return out.str();
+    }
 }
 
 void aoc::y2015::day_08(const std::string& title) {
@@ -62,6 +81,14 @@ void aoc::y2015::day_08(const std::string& title) {
         )
     );
     std::println("  part 2: {}",
-        0
+        r::fold_left(
+            inp | rv::transform(
+                [](const std::string& str)->int {
+                    return escape(str).size() - str.size();
+                }
+            ),
+            0,
+            std::plus<>()
+        )
     );
 }
