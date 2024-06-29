@@ -12,6 +12,9 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
+
+    constexpr int k_calories = 4;
+
     bool get_first_composition(int n, int k, std::vector<int>& composition)
     {
         if (n < k) {
@@ -41,104 +44,33 @@ namespace {
         return true;
     }
 
-    void display_composition(const std::vector<int>& composition)
-    {
-        std::print("[ ");
-        for (auto i : composition | rv::take(composition.size() - 1)) {
-            std::print("{} , ", i);
-        }
-        std::println("{} ]", composition.back());
-    }
-
-
-    void display_all_compositions(int n, int k)
-    {
-        std::vector<int> composition(k, 0);  
-        for (bool exists = get_first_composition(n, k, composition);
-                exists;
-                exists = get_next_composition(n, k, composition)) {
-            display_composition(composition);
-        }
-    }
-
-    struct ingredient {
-        int capacity;
-        int durability;
-        int flavor;
-        int texture;
-        int calories;
-    };
+    using ingredient = std::vector<int>;
 
     ingredient str_to_ingredient(const std::string& str) {
-        auto amounts = aoc::extract_numbers(str, true);
-        return {
-            amounts[0],
-            amounts[1],
-            amounts[2],
-            amounts[3],
-            amounts[4],
-        };
+        return aoc::extract_numbers(str, true);
     }
 
     int score_recipe(const std::vector<ingredient>& ingredients, const std::vector<int>& amounts) {
-        auto capacity = r::fold_left(
-            rv::zip(ingredients, amounts) | rv::transform(
-                [](auto&& tup)->int {
-                    const auto& [ingr, amt] = tup;
-                    return ingr.capacity * amt;
+        return r::fold_left(
+            rv::iota(0, 4) |
+            rv::transform(
+                [&](int prop)->int {
+                    auto value = r::fold_left(
+                        rv::zip(ingredients, amounts) | rv::transform(
+                            [&](auto&& tup)->int {
+                                const auto& [ingr, amt] = tup;
+                                return ingr[prop] * amt;
+                            }
+                        ),
+                        0,
+                        std::plus<>()
+                    );
+                    return std::max(value, 0);
                 }
             ),
-            0,
-            std::plus<>()
-        );  
-        auto durability = r::fold_left(
-            rv::zip(ingredients, amounts) | rv::transform(
-                [](auto&& tup)->int {
-                    const auto& [ingr, amt] = tup;
-                    return ingr.durability * amt;
-                }
-            ),
-            0,
-            std::plus<>()
+            1,
+            std::multiplies<>()
         );
-        auto flavor = r::fold_left(
-            rv::zip(ingredients, amounts) | rv::transform(
-                [](auto&& tup)->int {
-                    const auto& [ingr, amt] = tup;
-                    return ingr.flavor * amt;
-                }
-            ),
-            0,
-            std::plus<>()
-        );
-        auto texture = r::fold_left(
-            rv::zip(ingredients, amounts) | rv::transform(
-                [](auto&& tup)->int {
-                    const auto& [ingr, amt] = tup;
-                    return ingr.texture * amt;
-                }
-            ),
-            0,
-            std::plus<>()
-        );
-
-        if (capacity < 0) {
-            capacity = 0;
-        }
-
-        if (durability < 0) {
-            durability = 0;
-        }
-
-        if (flavor < 0) {
-            flavor = 0;
-        }
-
-        if (texture < 0) {
-            texture = 0;
-        }
-
-        return capacity * durability * flavor * texture;
     }
 
     int calory_total(const std::vector<ingredient>& ingredients, const std::vector<int>& amounts) {
@@ -146,7 +78,7 @@ namespace {
             rv::zip(ingredients, amounts) | rv::transform(
                 [](auto&& tup)->int {
                     const auto& [ingr, amt] = tup;
-                    return ingr.calories * amt;
+                    return ingr.at(k_calories) * amt;
                 }
             ),
             0,
