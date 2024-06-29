@@ -18,7 +18,8 @@ void aoc::y2015::do_advent_of_code(int day) {
         []() { day_11( "Corporate Policy" ); },
         []() { day_12( "JSAbacusFramework.io" ); },
         []() { day_13( "Knights of the Dinner Table" ); },
-        []() { day_14( "Reindeer Olympics" ); }
+        []() { day_14( "Reindeer Olympics" ); },
+        []() { day_15("Science for Hungry People"); }
     };
     
     auto index = day - 1;
