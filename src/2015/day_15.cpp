@@ -15,8 +15,8 @@ namespace {
 
     constexpr int k_calories = 4;
 
-    bool get_first_composition(int n, int k, std::vector<int>& composition)
-    {
+    bool get_first_composition(int n, std::vector<int>& composition) {
+        auto k = static_cast<int>(composition.size());
         if (n < k) {
             return false;
         }
@@ -27,8 +27,8 @@ namespace {
         return true;
     }
 
-    bool get_next_composition(int n, int k, std::vector<int>& composition)
-    {
+    bool get_next_composition(int n, std::vector<int>& composition) {
+        auto k = static_cast<int>(composition.size());
         if (composition[0] == n - k + 1) {
             return false;
         }
@@ -87,28 +87,26 @@ namespace {
     }
 
     int highest_scoring_cookie(const std::vector<ingredient>& ingredients) {
-        std::vector<int> composition(4, 0);
+        std::vector<int> recipe(4, 0);
         int max = 0;
-        for (bool exists = get_first_composition(100, 4, composition);
+        for (bool exists = get_first_composition(100, recipe);
                 exists;
-                exists = get_next_composition(100, 4, composition)) {
-            int score = score_recipe(ingredients, composition);
-            max = std::max(max, score);
+                exists = get_next_composition(100, recipe)) {
+            max = std::max(max, score_recipe(ingredients, recipe));
         }
         return max;
     }
 
     int highest_scoring_500_calory_cookie(const std::vector<ingredient>& ingredients) {
-        std::vector<int> composition(4, 0);
+        std::vector<int> recipe(4, 0);
         int max = 0;
-        for (bool exists = get_first_composition(100, 4, composition);
+        for (bool exists = get_first_composition(100, recipe);
                 exists;
-                exists = get_next_composition(100, 4, composition)) {
-            if (calory_total(ingredients, composition) != 500) {
+                exists = get_next_composition(100, recipe)) {
+            if (calory_total(ingredients, recipe) != 500) {
                 continue;
             }
-            int score = score_recipe(ingredients, composition);
-            max = std::max(max, score);
+            max = std::max(max, score_recipe(ingredients, recipe));
         }
         return max;
     }
