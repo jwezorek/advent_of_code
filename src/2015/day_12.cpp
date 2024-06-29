@@ -16,24 +16,25 @@ using json = nlohmann::json;
 
 namespace {
 
-    int recursive_sum_of_numbers_of_non_red_objects(const json& json) {
+    int recursive_sum_of_numbers_in_non_red_objects(const json& json) {
 
         if (json.is_number()) {
             auto num = json.get<int>();
             return num;
         }
 
-        if (json.is_array() || json.is_object()) {
+        if (json.is_structured()) {
             int sum = 0;
             if (json.is_object()) {
                 for (auto item : json.items()) {
-                    if (item.value().is_string() && item.value().get<std::string>() == "red") {
+                    const auto& value = item.value();
+                    if (value.is_string() && value.get<std::string>() == "red") {
                         return 0;
                     }
                 }
             }
             for (auto item : json.items()) {
-                sum += recursive_sum_of_numbers_of_non_red_objects(item.value());
+                sum += recursive_sum_of_numbers_in_non_red_objects(item.value());
             }
             return sum;
         }
@@ -57,7 +58,7 @@ void aoc::y2015::day_12(const std::string& title) {
     );
     
     std::println("  part 2: {}",
-        recursive_sum_of_numbers_of_non_red_objects(
+        recursive_sum_of_numbers_in_non_red_objects(
             json::parse(inp)
         )
     );
