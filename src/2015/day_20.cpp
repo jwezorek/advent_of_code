@@ -29,19 +29,35 @@ namespace {
         return divisors;
     }
     
-    int64_t sum_of_divisors(int64_t num) {
-        return r::fold_left(
-            rv::all(all_divisors(num)),
-            0,
-            std::plus<int64_t>()
-        );
-    }
-
     int64_t do_part_1(int64_t num) {
         int64_t v = 0;
         int i = 1;
         do {
-            v = sum_of_divisors(i) * 10;
+            v = r::fold_left(
+                rv::all(all_divisors(i)),
+                0,
+                std::plus<int64_t>()
+            );
+            v *= 10;
+            ++i;
+        } while (v < num);
+        return i - 1;
+    }
+
+    int64_t do_part_2(int64_t num) {
+        int64_t v = 0;
+        int i = 1;
+        do {
+            auto sum_of_div = r::fold_left(
+                rv::all(all_divisors(i)) | rv::filter(
+                    [&](auto div) {
+                        return i / div <= 50;
+                    }
+                ),
+                0,
+                std::plus<int64_t>()
+            );
+            v = sum_of_div * 11;
             ++i;
         } while (v < num);
         return i - 1;
@@ -57,6 +73,6 @@ void aoc::y2015::day_20(const std::string& title) {
         do_part_1(num)
     );
     std::println("  part 2: {}",
-        0
+        do_part_2(num)
     );
 }
