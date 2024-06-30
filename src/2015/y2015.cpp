@@ -20,7 +20,8 @@ void aoc::y2015::do_advent_of_code(int day) {
         []() { day_13( "Knights of the Dinner Table" ); },
         []() { day_14( "Reindeer Olympics" ); },
         []() { day_15( "Science for Hungry People" ); },
-        []() { day_16( "Aunt Sue" ); }
+        []() { day_16( "Aunt Sue" ); },
+        []() { day_17( "No Such Thing as Too Much"); }
     };
     
     auto index = day - 1;
