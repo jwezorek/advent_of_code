@@ -23,7 +23,8 @@ void aoc::y2015::do_advent_of_code(int day) {
         []() { day_16( "Aunt Sue" ); },
         []() { day_17( "No Such Thing as Too Much"); },
         []() { day_18( "Like a GIF For Your Yard"); },
-        []() { day_19( "Medicine for Rudolph" ); }
+        []() { day_19( "Medicine for Rudolph" ); },
+        []() { day_20("Infinite Elves and Infinite Houses"); }
     };
     
     auto index = day - 1;
