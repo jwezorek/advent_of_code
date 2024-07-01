@@ -147,8 +147,15 @@ namespace {
         );
     }
     
-    game_state do_turn(const game_state& state, spell_type spell) {
+    game_state do_turn(const game_state& state, spell_type spell, bool hard_mode) {
         game_state next_state = state;
+
+        if (hard_mode) {
+            next_state.player.hit_points--;
+            if (next_state.player.hit_points <= 0) {
+                return next_state;
+            }
+        }
 
         do_spell_effects(next_state);
         if (next_state.boss.hit_points <= 0) {
@@ -174,7 +181,7 @@ namespace {
         return { 50, 500, 0 };
     }
 
-    std::vector<std::tuple<game_state, int>> players_next_moves(const game_state& gs) {
+    std::vector<std::tuple<game_state, int>> players_next_moves(const game_state& gs, bool hard_mode) {
 
         if (gs.player.hit_points <= 0 || gs.boss.hit_points <= 0) {
             return {};
@@ -186,7 +193,7 @@ namespace {
                 }
             ) | rv::transform(
                 [&](auto spell)->std::tuple<game_state, int> {
-                    return { do_turn(gs, spell), g_spell_to_mana.at(spell) };
+                    return { do_turn(gs, spell, hard_mode), g_spell_to_mana.at(spell) };
                 }
             ) | r::to<std::vector>();
     }
@@ -203,7 +210,7 @@ namespace {
         return min_mana_win;
     }
 
-    int lowest_mana_win(const character_stats& player, const character_stats& boss) {
+    int lowest_mana_win(const character_stats& player, const character_stats& boss, bool hard_mode) {
 
         state_to_mana_map mana_consumed;
         aoc::priority_queue<game_state, game_state_hash> queue;
@@ -213,7 +220,7 @@ namespace {
 
         while (!queue.empty()) {
             auto u = queue.extract_min();
-            auto moves = players_next_moves(u);
+            auto moves = players_next_moves(u, hard_mode);
 
             for (auto [v, dist_to_v] : moves) {
                 auto dist_to_u = mana_consumed.at(u);
@@ -256,9 +263,9 @@ void aoc::y2015::day_22(const std::string& title) {
 
     std::println("--- Day 22: {} ---", title);
     std::println("  part 1: {}",
-        lowest_mana_win(player, boss)
+        lowest_mana_win(player, boss, false)
     );
     std::println("  part 2: {}",
-        0
+        lowest_mana_win(player, boss, true)
     );
 }
