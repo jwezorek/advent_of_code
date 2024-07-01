@@ -25,7 +25,8 @@ void aoc::y2015::do_advent_of_code(int day) {
         []() { day_18( "Like a GIF For Your Yard"); },
         []() { day_19( "Medicine for Rudolph" ); },
         []() { day_20( "Infinite Elves and Infinite Houses" ); },
-        []() { day_21( "RPG Simulator 20XX" ); }
+        []() { day_21( "RPG Simulator 20XX" ); },
+        []() { day_22("Wizard Simulator 20XX"); }
     };
     
     auto index = day - 1;
