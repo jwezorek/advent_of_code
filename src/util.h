@@ -120,4 +120,23 @@ namespace aoc {
                 }
             ) | rv::join;
     }
+
+    auto three_combos_indices(int n) {
+        namespace r = std::ranges;
+        namespace rv = std::ranges::views;
+        return rv::iota(0, n - 1) |
+            rv::transform(
+                [n](auto i) {
+                    return rv::iota(i + 1, n) | rv::transform(
+                            [i,n](auto j) {
+                                return rv::iota(j + 1, n) | rv::transform(
+                                    [i,j](auto k) {
+                                        return std::tuple<int, int, int>(i, j,k);
+                                    }
+                                );
+                            }
+                        ) | rv::join;
+                }
+            ) | rv::join;
+    }
 }

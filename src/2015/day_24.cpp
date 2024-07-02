@@ -5,6 +5,7 @@
 #include <print>
 #include <ranges>
 #include <unordered_set>
+#include <set>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -23,38 +24,34 @@ namespace {
         return count;
     }
 
-    std::vector<set_token> subsets_with_correct_sum_and_size(
-        const std::vector<int> nums, int sum) {
+    std::vector<set_token> subsets_of_given_sum(const std::vector<int> nums, int sum) {
         auto n = static_cast<set_token>(nums.size());
         std::vector<set_token> subsets;
-        int min_set_sz = std::numeric_limits<int>::max();
         for (set_token tok = 0; tok < (1 << n); ++tok) {
             set_token subset_sum = 0;
-            int set_sz = 0;
             for (set_token j = 0; j < n; ++j) {
                 subset_sum += ((1 << j) & tok) ? nums[j] : 0;
-                set_sz += ((1 << j) & tok) ? 1 : 0;
                 if (subset_sum > sum) {
                     continue;
                 }
             }
-            if (sum == subset_sum) {
+            if (subset_sum == sum) {
                 subsets.push_back(tok);
-                min_set_sz = std::min(set_sz, min_set_sz);
             }
         }
-        int max_subset_sz = n - 2 * min_set_sz;
-        return subsets |
-            rv::filter(
-                [max_subset_sz](auto subset) {
-                    return hamming_weight(subset) <= max_subset_sz;
-                }
-            ) | r::to<std::vector>();
+        return subsets;
     }
 
-    std::vector<std::array<set_token, 3>> subset_triples(const std::vector<set_token>& sets, int n) {
+    std::vector<std::array<set_token, 3>> subset_triples(
+            const std::vector<set_token>& inp_sets, int n, int sum, int smallest_set_sz) {
+        int max_set_sz = n - 2 * smallest_set_sz;
+        auto sets = inp_sets | rv::filter(
+                [max_set_sz](auto tok) {
+                    return hamming_weight(tok) <= max_set_sz;
+                }
+            ) | r::to<std::vector>();
         std::vector<std::array<set_token, 3>> output;
-        output.reserve(500000);
+        output.reserve(1000000);
         for (auto [i, j] : aoc::two_combos_indices(sets.size())) {
             if ((sets[i] & sets[j]) == 0) {
                 auto set_union = sets[i] | sets[j];
@@ -93,7 +90,18 @@ namespace {
         return ss.str();
     }
 
-    int smallest_set_size(const std::vector<std::array<set_token, 3>>& triples) {
+    int smallest_set_size(const std::vector<set_token>& sets) {
+        return r::min(
+            sets | rv::transform(
+                [](auto&& set)->int {
+                    return hamming_weight(set);
+                }
+            )
+        );
+    }
+
+    template<int N>
+    int smallest_set_size(const std::vector<std::array<set_token, N>>& triples) {
         return r::min(
             triples | rv::transform(
                  [](const auto& triple)->int {
@@ -109,7 +117,8 @@ namespace {
         );
     }
 
-    std::vector<set_token> smallest_sets(const std::vector<std::array<set_token, 3>>& triples) {
+    template<int N>
+    std::vector<set_token> smallest_sets(const std::vector<std::array<set_token, N>>& triples) {
         auto small_sz = smallest_set_size(triples);
         std::unordered_set<set_token> small_sets;
         for (const auto& triple : triples) {
@@ -137,6 +146,29 @@ namespace {
             )
         );
     }
+
+    int64_t do_part_1(const std::vector<int>& nums) {
+        auto subset_sum = r::fold_left(nums, 0, std::plus<>()) / 3;
+        auto subsets = subsets_of_given_sum(nums, subset_sum);
+        auto triples = subset_triples(
+            subsets, nums.size(), subset_sum, smallest_set_size(subsets)
+        );
+        auto small_sets = smallest_sets(triples);
+        return smallest_quantum_entanglement(nums, small_sets);
+    }
+
+    int64_t do_part_2(const std::vector<int>& nums) {
+        auto sum = r::fold_left(nums, 0, std::plus<>());
+        auto subset_sum = sum / 4;
+        auto subsets = subsets_of_given_sum(nums, subset_sum);
+        int smallest_set_cardinality = smallest_set_size(subsets);
+        auto smallest_sets = subsets | rv::filter(
+                [smallest_set_cardinality](auto set) {
+                    return hamming_weight(set) == smallest_set_cardinality;
+                }
+            ) | r::to<std::vector>();
+        return smallest_quantum_entanglement(nums, smallest_sets);
+    }
 }
 
 void aoc::y2015::day_24(const std::string& title) {
@@ -149,16 +181,23 @@ void aoc::y2015::day_24(const std::string& title) {
             }
         ) | r::to<std::vector>();
 
-    auto subset_sum = r::fold_left(nums, 0, std::plus<>()) / 3;
-    auto subsets = subsets_with_correct_sum_and_size(nums, subset_sum);
-    auto triples = subset_triples(subsets, nums.size());
-    auto small_sets = smallest_sets(triples);
-
     std::println("--- Day 24: {} ---", title);
+
+    // Do part 1 for real ... that is, by finding all
+    // divisions into three subsets with the same
+    // weight and then finding all the smallest ones
+    // and returning the smallest product.
+
     std::println("  part 1: {}",
-        smallest_quantum_entanglement(nums, small_sets)
+        do_part_1(nums)
     );
+
+    // Do part 2 by assuming that the smallest product
+    // of all the lowest cardinality subsets that sum
+    // to the total/4 is the answer. THis works for
+    // part 1 too but I don't know that it has to be true.
+
     std::println("  part 2: {}",
-        0
+        do_part_2(nums)
     );
 }
