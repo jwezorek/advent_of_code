@@ -26,8 +26,9 @@ void aoc::y2015::do_advent_of_code(int day) {
         []() { day_19( "Medicine for Rudolph" ); },
         []() { day_20( "Infinite Elves and Infinite Houses" ); },
         []() { day_21( "RPG Simulator 20XX" ); },
-        []() { day_22("Wizard Simulator 20XX"); },
-        []() { day_23("Opening the Turing Lock"); }
+        []() { day_22( "Wizard Simulator 20XX"); },
+        []() { day_23( "Opening the Turing Lock"); },
+        []() { day_24( "It Hangs in the Balance"); }
     };
     
     auto index = day - 1;
