@@ -13,8 +13,7 @@ find_package(Eigen3 3.3 REQUIRED)
 
 add_executable(advent_of_code
     src/main.cpp
-    src/util.cpp
-
+    src/util/util.cpp
     src/2023/day_01.cpp
     src/2023/day_02.cpp
     src/2023/day_03.cpp

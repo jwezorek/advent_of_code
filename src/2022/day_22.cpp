@@ -1,5 +1,5 @@
-#include "../util.h"
-#include "../concat.h"
+#include "../util/util.h"
+#include "../util/concat.h"
 #include "y2022.h"
 #include <filesystem>
 #include <functional>
@@ -12,7 +12,6 @@ namespace r = std::ranges;
 namespace rv = std::ranges::views;
 
 /*------------------------------------------------------------------------------------------------*/
-
 
 namespace {
 

@@ -1,5 +1,5 @@
-#include "../util.h"
-#include "../peglib.h"
+#include "../util/util.h"
+#include "../util/peglib.h"
 #include "y2022.h"
 #include <filesystem>
 #include <functional>
