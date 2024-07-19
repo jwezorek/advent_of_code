@@ -14,6 +14,8 @@ find_package(Eigen3 3.3 REQUIRED)
 add_executable(advent_of_code
     src/main.cpp
     src/util/util.cpp
+    src/util/make_year.cpp
+
     src/2023/day_01.cpp
     src/2023/day_02.cpp
     src/2023/day_03.cpp
@@ -149,6 +151,33 @@ add_executable(advent_of_code
     src/2019/day_25.cpp
     src/2019/y2019.cpp
     src/2019/intcode.cpp
+
+    src/2018/day_01.cpp
+    src/2018/day_02.cpp
+    src/2018/day_03.cpp
+    src/2018/day_04.cpp
+    src/2018/day_05.cpp
+    src/2018/day_06.cpp
+    src/2018/day_07.cpp
+    src/2018/day_08.cpp
+    src/2018/day_09.cpp
+    src/2018/day_10.cpp
+    src/2018/day_11.cpp
+    src/2018/day_12.cpp
+    src/2018/day_13.cpp
+    src/2018/day_14.cpp
+    src/2018/day_15.cpp
+    src/2018/day_16.cpp
+    src/2018/day_17.cpp
+    src/2018/day_18.cpp
+    src/2018/day_19.cpp
+    src/2018/day_20.cpp
+    src/2018/day_21.cpp
+    src/2018/day_22.cpp
+    src/2018/day_23.cpp
+    src/2018/day_24.cpp
+    src/2018/day_25.cpp
+    src/2018/y2018.cpp
 
     src/2015/day_01.cpp
     src/2015/day_02.cpp

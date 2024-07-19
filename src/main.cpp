@@ -3,19 +3,28 @@
 #include "2021/y2021.h"
 #include "2020/y2020.h"
 #include "2019/y2019.h"
+#include "2018/y2018.h"
 #include "2015/y2015.h"
 #include "util/util.h"
+#include "util/make_year.h"
 #include <iostream>
 #include <vector>
 #include <functional>
 #include <string>
 #include <print>
+#include <ranges>
+
+namespace r = std::ranges;
+namespace rv = std::ranges::views;
 
 /*------------------------------------------------------------------------------------------------*/
+
 namespace {
+
     void do_advent_of_code(int year, int day) {
         static const std::unordered_map<int, std::function<void(int)>> years = { 
             {2015, aoc::y2015::do_advent_of_code},
+            {2018, aoc::y2018::do_advent_of_code},
             {2019, aoc::y2019::do_advent_of_code},
             {2020, aoc::y2020::do_advent_of_code},
             {2021, aoc::y2021::do_advent_of_code},
@@ -28,11 +37,26 @@ namespace {
         }
         years.at(year)(day);
     }
+
+    bool is_integer(const std::string& str) {
+        return r::find_if(str, [](auto ch) {return !std::isdigit(ch); }) == str.end();
+    }
 }
 
 int main(int argc, char* argv[]) {
 
     if (argc < 3) {
+        std::string arg = argv[1];
+        if (is_integer(arg)) {
+            auto success = aoc::make_year_stubs(std::stoi(argv[1]));
+            if (success) {
+                std::print("stubbed in year {}... \n", arg);
+                return 0;
+            } else {
+                std::print("failed to stub in year {}... \n", arg);
+                return -1;
+            }
+        }
         std::print( "specify day and year\n" );
         return -1;
     }
