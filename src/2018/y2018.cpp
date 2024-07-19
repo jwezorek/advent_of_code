@@ -7,7 +7,7 @@
 void aoc::y2018::do_advent_of_code(int day) {
     const static auto advent_of_code_2018 = std::vector<std::function<void()>>{
         []() { day_01( "Chronal Calibration" ); },
-        []() { day_02( "<unknown>" ); },
+        []() { day_02( "Inventory Management System" ); },
         []() { day_03( "<unknown>" ); },
         []() { day_04( "<unknown>" ); },
         []() { day_05( "<unknown>" ); },
