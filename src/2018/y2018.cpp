@@ -9,7 +9,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_01( "Chronal Calibration" ); },
         []() { day_02( "Inventory Management System" ); },
         []() { day_03( "No Matter How You Slice It" ); },
-        []() { day_04( "<unknown>" ); },
+        []() { day_04( "Repose Record" ); },
         []() { day_05( "<unknown>" ); },
         []() { day_06( "<unknown>" ); },
         []() { day_07( "<unknown>" ); },
