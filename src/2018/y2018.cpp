@@ -10,7 +10,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_02( "Inventory Management System" ); },
         []() { day_03( "No Matter How You Slice It" ); },
         []() { day_04( "Repose Record" ); },
-        []() { day_05( "<unknown>" ); },
+        []() { day_05( "Alchemical Reduction" ); },
         []() { day_06( "<unknown>" ); },
         []() { day_07( "<unknown>" ); },
         []() { day_08( "<unknown>" ); },
