@@ -11,7 +11,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_03( "No Matter How You Slice It" ); },
         []() { day_04( "Repose Record" ); },
         []() { day_05( "Alchemical Reduction" ); },
-        []() { day_06( "<unknown>" ); },
+        []() { day_06( "Chronal Coordinates" ); },
         []() { day_07( "<unknown>" ); },
         []() { day_08( "<unknown>" ); },
         []() { day_09( "<unknown>" ); },
