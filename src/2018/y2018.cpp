@@ -14,7 +14,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_06( "Chronal Coordinates" ); },
         []() { day_07( "The Sum of Its Parts" ); },
         []() { day_08( "Memory Maneuver" ); },
-        []() { day_09( "<unknown>" ); },
+        []() { day_09( "Marble Mania" ); },
         []() { day_10( "<unknown>" ); },
         []() { day_11( "<unknown>" ); },
         []() { day_12( "<unknown>" ); },
