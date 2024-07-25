@@ -13,7 +13,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_05( "Alchemical Reduction" ); },
         []() { day_06( "Chronal Coordinates" ); },
         []() { day_07( "The Sum of Its Parts" ); },
-        []() { day_08( "<unknown>" ); },
+        []() { day_08( "Memory Maneuver" ); },
         []() { day_09( "<unknown>" ); },
         []() { day_10( "<unknown>" ); },
         []() { day_11( "<unknown>" ); },
