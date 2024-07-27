@@ -17,7 +17,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_09( "Marble Mania" ); },
         []() { day_10( "The Stars Align" ); },
         []() { day_11( "Chronal Charge" ); },
-        []() { day_12( "" ); },
+        []() { day_12( "Subterranean Sustainability" ); },
         []() { day_13( "" ); },
         []() { day_14( "" ); },
         []() { day_15( "" ); },
