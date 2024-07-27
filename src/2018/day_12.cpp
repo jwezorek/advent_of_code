@@ -55,22 +55,6 @@ namespace {
         return neighborhood;
     }
 
-    std::string cell_set_to_string(const cell_set& cells, 
-            std::optional<int> opt_first = {}, std::optional<int> opt_last = {}) {
-        int first = (opt_first) ? *opt_first : *cells.begin();
-        int last = (opt_last) ? *opt_last : *cells.rbegin();
-        std::stringstream ss;
-        for (int i = first; i <= last; ++i) {
-            ss << (cells.contains(i) ? '#' : '.');
-        }
-        return ss.str();
-    }
-
-    std::string key_to_neighborhood_str( uint8_t key ) {
-        auto set = key_to_neighborhood(key);
-        return cell_set_to_string(set, -2, 2);
-    }
-
     rules parse_rules_strs(const std::vector<std::string>& inp) {
         rules rule_set;
         r::fill(rule_set, 0);
