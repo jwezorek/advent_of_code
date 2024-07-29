@@ -20,7 +20,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_12( "Subterranean Sustainability" ); },
         []() { day_13( "Mine Cart Madness" ); },
         []() { day_14( "Chocolate Charts" ); },
-        []() { day_15( "" ); },
+        []() { day_15( "Beverage Bandits" ); },
         []() { day_16( "" ); },
         []() { day_17( "" ); },
         []() { day_18( "" ); },
