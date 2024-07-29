@@ -52,6 +52,8 @@ namespace {
         bool b_is_reg;
     };
 
+    using code_set_tbl = std::unordered_map<int, std::unordered_set<op_code>>;
+    using op_code_tbl = std::unordered_map<int, op_code>;
     using quadruple = std::array<int, 4>;
 
     int add(int a, int b) {
@@ -201,9 +203,6 @@ namespace {
             }
         );
     }
-
-    using code_set_tbl = std::unordered_map<int, std::unordered_set<op_code>>;
-    using op_code_tbl = std::unordered_map<int, op_code>;
 
     code_set_tbl values_to_possible_codes(
             const std::vector<test>& tests) {
