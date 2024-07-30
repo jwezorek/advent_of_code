@@ -22,7 +22,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_14( "Chocolate Charts" ); },
         []() { day_15( "Beverage Bandits" ); },
         []() { day_16( "Chronal Classification" ); },
-        []() { day_17( "" ); },
+        []() { day_17( "Reservoir Research" ); },
         []() { day_18( "" ); },
         []() { day_19( "" ); },
         []() { day_20( "" ); },
