@@ -19,26 +19,29 @@ namespace rv = std::ranges::views;
 
 namespace {
 
-    struct graph_node;
-    using node_ptr = std::shared_ptr<graph_node>;
-
     struct graph_node {
         char direction;
-        std::vector<node_ptr> adj_list;
+        std::vector<int> adj_list;
 
         graph_node(char dir = {}) : direction(dir)
         {}
     };
 
-    struct digraph {
-        node_ptr src;
-        node_ptr dst;
+    using digraph = std::vector<graph_node>;
+    struct subgraph {
+        int src;
+        int dst;
     };
+
+    int make_node(digraph& g, char dir = {}) {
+        int new_node_id = static_cast<int>(g.size());
+        g.push_back({ dir });
+        return new_node_id;
+    }
 
     class regex_node {
     public:
-        virtual std::string to_string() const = 0;
-        virtual digraph to_graph() const = 0;
+        virtual subgraph to_graph(digraph& g) const = 0;
     };
 
     using regex_ptr = std::shared_ptr<regex_node>;
@@ -49,12 +52,14 @@ namespace {
         regex(regex_ptr child) : child_(child)
         {}
 
-        std::string to_string() const override {
-            return child_->to_string();
-        }
-
-        digraph to_graph() const override {
-            return child_->to_graph();
+        subgraph to_graph(digraph& g) const override {
+            subgraph out;
+            out.src = make_node(g);
+            auto body = child_->to_graph(g);
+            out.dst = make_node(g);
+            g[out.src].adj_list.push_back(body.src);
+            g[body.dst].adj_list.push_back(out.dst);
+            return out;
         }
     };
 
@@ -66,40 +71,24 @@ namespace {
             children_(nodes), has_eps_trans_(has_eps)
         {}
 
-        std::string to_string() const override {
-            std::stringstream ss;
-            ss << "( ";
-            for (int i = 0; i < children_.size(); ++i) {
-                ss << children_[i]->to_string();
-                if (i < children_.size() - 1) {
-                    ss << " | ";
-                }
-            }
-            if (has_eps_trans_) {
-                ss << "*";
-            }
-            ss << " )";
-            return ss.str();
-        }
-
-        digraph to_graph() const override {
-            digraph g{
-                std::make_shared<graph_node>(),
-                std::make_shared<graph_node>()
+        subgraph to_graph(digraph& g) const override {
+            subgraph disjunc{
+                make_node(g),
+                make_node(g)
             };
+
             for (auto child : children_) {
-                auto subgraph = child->to_graph();
-                g.src->adj_list.push_back(subgraph.src);
-                subgraph.dst->adj_list.push_back(g.dst);
+                auto subgraph = child->to_graph(g);
+                g[disjunc.src].adj_list.push_back(subgraph.src);
+                g[subgraph.dst].adj_list.push_back(disjunc.dst);
             }
 
             if (has_eps_trans_) {
-                g.src->adj_list.push_back(g.dst);
+                g[disjunc.src].adj_list.push_back(disjunc.dst);
             }
 
-            return g;
+            return disjunc;
         }
-
     };
 
     class sequence : public regex_node {
@@ -109,34 +98,24 @@ namespace {
             children_(nodes)
         {}
 
-        std::string to_string() const override {
-            std::stringstream ss;
-            for (int i = 0; i < children_.size(); ++i) {
-                ss << children_[i]->to_string();
-                ss << " ";
-            }
-            return ss.str();
-        }
+        subgraph to_graph(digraph& g) const override {
+            subgraph seq;
+            std::optional<int> prev;
 
-        digraph to_graph() const override {
-            digraph g;
-            node_ptr prev;
-
-            digraph subgraph;
+            subgraph child_subgraph = { -1,-1 };
             for (auto child : children_) {
-                subgraph = child->to_graph();
+                child_subgraph = child->to_graph(g);
                 if (prev) {
-                    prev->adj_list.push_back(subgraph.src);
+                    g[*prev].adj_list.push_back(child_subgraph.src);
                 } else {
-                    g.src = subgraph.src;
+                    seq.src = child_subgraph.src;
                 }
-                prev = subgraph.dst;
+                prev = child_subgraph.dst;
             }
 
-            g.dst = subgraph.dst;
-            return g;
+            seq.dst = child_subgraph.dst;
+            return seq;
         }
-
     };
 
     class text : public regex_node {
@@ -146,32 +125,27 @@ namespace {
             txt_(txt)
         {}
 
-        std::string to_string() const override {
-            return txt_;
-        }
+        subgraph to_graph(digraph& g) const override {
+            subgraph directions_subgraph;
+            std::optional<int> prev;
 
-        digraph to_graph() const override {
-            digraph g;
-            node_ptr prev;
-
-            node_ptr dir_node;
+            int dir_node = -1;
             for (auto dir : txt_) {
-                dir_node = std::make_shared<graph_node>(dir);
+                dir_node = make_node(g, dir);
                 if (prev) {
-                    prev->adj_list.push_back(dir_node);
+                    g[*prev].adj_list.push_back(dir_node);
                 } else {
-                    g.src = dir_node;
+                    directions_subgraph.src = dir_node;
                 }
                 prev = dir_node;
             }
 
-            g.dst = dir_node;
-            return g;
+            directions_subgraph.dst = dir_node;
+            return directions_subgraph;
         }
-
     };
 
-    using iterator = std::string::iterator;
+    using iterator = std::string::const_iterator;
 
     bool parse_char(iterator& i, const iterator& end, char ch) {
         if (i == end) {
@@ -205,7 +179,7 @@ namespace {
         return std::make_shared<regex>(contents);
     }
 
-    regex_ptr  parse_text(iterator& i, const iterator& end) {
+    regex_ptr parse_text(iterator& i, const iterator& end) {
         if (i == end) {
             return {};
         }
@@ -304,7 +278,13 @@ namespace {
     using point = aoc::vec2<int>;
     using point_set = aoc::vec2_set<int>;
 
-    class edge {
+    template<typename U>
+    using point_map = aoc::vec2_map<int, U>;
+
+    using north_pole_base = point_map<std::vector<point>>;
+    using dist_map = point_map<int>;
+
+    class door {
         point u_;
         point v_;
 
@@ -319,7 +299,7 @@ namespace {
         }
 
     public:
-        edge(const auto& u, const auto& v) : u_(u), v_(v) {
+        door(const auto& u, const auto& v) : u_(u), v_(v) {
             if (!compare_pts(u_, v_)) {
                 std::swap(u_, v_);
             }
@@ -333,13 +313,13 @@ namespace {
             return v_;
         }
 
-        bool operator==(const edge& e) const {
+        bool operator==(const door& e) const {
             return u_ == e.u() && v_ == e.v();
         }
     };
 
-    struct edge_hash {
-        size_t operator()(const edge& e) const {
+    struct door_hash {
+        size_t operator()(const door& e) const {
             size_t seed = 0;
             boost::hash_combine(seed, aoc::hash_vec2<int>{}(e.u()));
             boost::hash_combine(seed, aoc::hash_vec2<int>{}(e.v()));
@@ -347,10 +327,10 @@ namespace {
         }
     };
 
-    using edge_set = std::unordered_set<edge, edge_hash>;
+    using door_set = std::unordered_set<door, door_hash>;
 
     struct traversal_state {
-        node_ptr node;
+        int node;
         point loc;
 
         bool operator==(const traversal_state& state) const {
@@ -361,7 +341,7 @@ namespace {
     struct traversal_state_hash {
         size_t operator()(const traversal_state& node) const {
             size_t seed = 0;
-            boost::hash_combine(seed, node.node.get());
+            boost::hash_combine(seed, node.node);
             boost::hash_combine(seed, aoc::hash_vec2<int>{}(node.loc));
             return seed;
         }
@@ -378,13 +358,12 @@ namespace {
         return loc + dir_to_delta.at(dir);
     }
 
-    std::tuple<point_set, edge_set> find_rooms_and_doors(const digraph& g) {
-        edge_set doors;
-        point_set rooms;
+    door_set traverse_all_doors(int src, const digraph& g) {
+        door_set doors;
         trav_state_set visited;
         std::stack<traversal_state> stack;
         
-        stack.push( {g.src, point{0,0}} );
+        stack.push( {src, point{0,0}} );
 
         while (!stack.empty()) {
             auto current = stack.top();
@@ -394,65 +373,60 @@ namespace {
                 continue;
             }
             visited.insert(current);
-            rooms.insert(current.loc);
 
-            auto next_loc = (current.node->direction) ?
-                move_in_direction(current.loc, current.node->direction) :
+            auto next_loc = (g[current.node].direction) ?
+                move_in_direction(current.loc, g[current.node].direction) :
                 current.loc;
 
             if (next_loc != current.loc) {
                 doors.insert({ current.loc, next_loc });
-                rooms.insert( next_loc );
             }
             
-            for (auto next_node : current.node->adj_list) {
+            for (auto next_node : g[current.node].adj_list) {
                 stack.push({ next_node, next_loc });
             }
         }
 
-        return { std::move(rooms), std::move(doors) };
+        return doors;
     }
-
-    using north_pole_base = aoc::vec2_map<int,std::vector<point>>;
     
-    north_pole_base build_base(const edge_set& doors) {
+    north_pole_base build_base(const std::string& base_directions) {
+        auto i = base_directions.begin();
+        digraph graph;
+        auto doors = traverse_all_doors(
+            parse(i, base_directions.end())->to_graph(graph).src, graph 
+        );
+
         north_pole_base base;
         for (const auto& door : doors) {
             base[door.u()].push_back(door.v());
             base[door.v()].push_back(door.u());
         }
+
         return base;
     }
 
-    int most_doors(const north_pole_base& base) {
-        
-        struct item {
-            point loc;
-            int dist;
-        };
-
-        int max_dist = 0;
-        std::queue<item> queue;
-        point_set visited;
+    dist_map explore_north_pole_base(const std::string& base_directions) {
+        auto base = build_base(base_directions);
+        dist_map distances;
+        std::queue<std::tuple<point,int>> queue;
 
         queue.push({ {0,0}, 0 });
         while (!queue.empty()) {
-            auto current = queue.front();
+            auto [loc , dist] = queue.front();
             queue.pop();
 
-            if (visited.contains( current.loc )) {
+            if (distances.contains(loc)) {
                 continue;
             }
-            visited.insert( current.loc );
+            distances[loc] = dist;
 
-            max_dist = std::max(max_dist, current.dist);
-
-            for (const auto& next : base.at(current.loc)) {
-                queue.push({ next, current.dist + 1 });
+            for (const auto& next : base.at(loc)) {
+                queue.push({ next, dist + 1 });
             }
         }
 
-        return max_dist;
+        return distances;
     }
 }
 
@@ -462,14 +436,17 @@ void aoc::y2018::day_20(const std::string& title) {
             aoc::input_path(2018, 20)
         ); 
 
-    auto i = inp.begin();
-    auto regex = parse(i, inp.end());
-    auto graph = regex->to_graph();
-    auto [rooms, doors] = find_rooms_and_doors(graph);
-    auto base = build_base(doors);
+    auto distances = explore_north_pole_base(inp);
 
     std::println("--- Day 20: {} ---", title);
-    std::println("  part 1: {}", most_doors(base) );
-    std::println("  part 2: {}", 0);
+    std::println("  part 1: {}", r::max( distances | rv::values ) );
+    std::println("  part 2: {}",
+        r::count_if(
+            distances | rv::values,
+            [](int dist) {
+                return dist >= 1000;
+            }
+        )
+    );
     
 }
