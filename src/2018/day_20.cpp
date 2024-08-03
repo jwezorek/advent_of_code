@@ -284,45 +284,20 @@ namespace {
     using north_pole_base = point_map<std::vector<point>>;
     using dist_map = point_map<int>;
 
-    class door {
-        point u_;
-        point v_;
-
-        bool compare_pts(const auto& u, const auto& v) {
-            if (u.y < v.y) {
-                return true;
-            }
-            if (u.y > v.y) {
-                return false;
-            }
-            return u.x < v.x;
-        }
-
-    public:
-        door(const auto& u, const auto& v) : u_(u), v_(v) {
-            if (!compare_pts(u_, v_)) {
-                std::swap(u_, v_);
-            }
-        }
-
-        point u() const {
-            return u_;
-        }
-
-        point v() const {
-            return v_;
-        }
+    struct door {
+        point u;
+        point v;
 
         bool operator==(const door& e) const {
-            return u_ == e.u() && v_ == e.v();
+            return u == e.u && v == e.v;
         }
     };
 
     struct door_hash {
         size_t operator()(const door& e) const {
             size_t seed = 0;
-            boost::hash_combine(seed, aoc::hash_vec2<int>{}(e.u()));
-            boost::hash_combine(seed, aoc::hash_vec2<int>{}(e.v()));
+            boost::hash_combine(seed, aoc::hash_vec2<int>{}(e.u));
+            boost::hash_combine(seed, aoc::hash_vec2<int>{}(e.v));
             return seed;
         }
     };
@@ -380,6 +355,7 @@ namespace {
 
             if (next_loc != current.loc) {
                 doors.insert({ current.loc, next_loc });
+                doors.insert({ next_loc,  current.loc });
             }
             
             for (auto next_node : g[current.node].adj_list) {
@@ -399,8 +375,7 @@ namespace {
 
         north_pole_base base;
         for (const auto& door : doors) {
-            base[door.u()].push_back(door.v());
-            base[door.v()].push_back(door.u());
+            base[door.u].push_back(door.v);
         }
 
         return base;
