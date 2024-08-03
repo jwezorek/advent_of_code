@@ -25,7 +25,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_17( "Reservoir Research" ); },
         []() { day_18( "Settlers of The North Pole" ); },
         []() { day_19( "Go With The Flow" ); },
-        []() { day_20( "" ); },
+        []() { day_20( "A Regular Map" ); },
         []() { day_21( "" ); },
         []() { day_22( "" ); },
         []() { day_23( "" ); },
