@@ -19,133 +19,29 @@ namespace rv = std::ranges::views;
 
 namespace {
 
-    struct graph_node {
+    struct finite_automata_node {
         char direction;
         std::vector<int> adj_list;
 
-        graph_node(char dir = {}) : direction(dir)
+        finite_automata_node(char dir = {}) : direction(dir)
         {}
     };
 
-    using digraph = std::vector<graph_node>;
+    using finite_automata = std::vector<finite_automata_node>;
     struct subgraph {
         int src;
         int dst;
     };
 
-    int make_node(digraph& g, char dir = {}) {
+    int make_node(finite_automata& g, char dir = {}) {
         int new_node_id = static_cast<int>(g.size());
         g.push_back({ dir });
         return new_node_id;
     }
 
-    class regex_node {
-    public:
-        virtual subgraph to_graph(digraph& g) const = 0;
-    };
-
-    using regex_ptr = std::shared_ptr<regex_node>;
-
-    class regex : public regex_node {
-        regex_ptr child_;
-    public:
-        regex(regex_ptr child) : child_(child)
-        {}
-
-        subgraph to_graph(digraph& g) const override {
-            subgraph out;
-            out.src = make_node(g);
-            auto body = child_->to_graph(g);
-            out.dst = make_node(g);
-            g[out.src].adj_list.push_back(body.src);
-            g[body.dst].adj_list.push_back(out.dst);
-            return out;
-        }
-    };
-
-    class disjunction : public regex_node {
-        std::vector<regex_ptr> children_;
-        bool has_eps_trans_;
-    public:
-        disjunction(const std::vector<regex_ptr>& nodes, bool has_eps) :
-            children_(nodes), has_eps_trans_(has_eps)
-        {}
-
-        subgraph to_graph(digraph& g) const override {
-            subgraph disjunc{
-                make_node(g),
-                make_node(g)
-            };
-
-            for (auto child : children_) {
-                auto subgraph = child->to_graph(g);
-                g[disjunc.src].adj_list.push_back(subgraph.src);
-                g[subgraph.dst].adj_list.push_back(disjunc.dst);
-            }
-
-            if (has_eps_trans_) {
-                g[disjunc.src].adj_list.push_back(disjunc.dst);
-            }
-
-            return disjunc;
-        }
-    };
-
-    class sequence : public regex_node {
-        std::vector<regex_ptr> children_;
-    public:
-        sequence(const std::vector<regex_ptr>& nodes) :
-            children_(nodes)
-        {}
-
-        subgraph to_graph(digraph& g) const override {
-            subgraph seq;
-            std::optional<int> prev;
-
-            subgraph child_subgraph = { -1,-1 };
-            for (auto child : children_) {
-                child_subgraph = child->to_graph(g);
-                if (prev) {
-                    g[*prev].adj_list.push_back(child_subgraph.src);
-                } else {
-                    seq.src = child_subgraph.src;
-                }
-                prev = child_subgraph.dst;
-            }
-
-            seq.dst = child_subgraph.dst;
-            return seq;
-        }
-    };
-
-    class text : public regex_node {
-        std::string txt_;
-    public:
-        text(const std::string& txt) :
-            txt_(txt)
-        {}
-
-        subgraph to_graph(digraph& g) const override {
-            subgraph directions_subgraph;
-            std::optional<int> prev;
-
-            int dir_node = -1;
-            for (auto dir : txt_) {
-                dir_node = make_node(g, dir);
-                if (prev) {
-                    g[*prev].adj_list.push_back(dir_node);
-                } else {
-                    directions_subgraph.src = dir_node;
-                }
-                prev = dir_node;
-            }
-
-            directions_subgraph.dst = dir_node;
-            return directions_subgraph;
-        }
-    };
-
     using iterator = std::string::const_iterator;
+
+    std::optional<subgraph> parse(iterator& i, const iterator& end, finite_automata& graph);
 
     bool parse_char(iterator& i, const iterator& end, char ch) {
         if (i == end) {
@@ -158,9 +54,9 @@ namespace {
         return false;
     }
 
-    regex_ptr parse(iterator& i, const iterator& end);
+    std::optional<subgraph> parse_regex(
+            iterator& i, const iterator& end, finite_automata& graph) {
 
-    regex_ptr parse_regex(iterator& i, const iterator& end) {
         if (i == end) {
             return {};
         }
@@ -168,54 +64,82 @@ namespace {
         if (!parse_char(i, end, '^')) {
             return {};
         }
-        auto contents = parse(i, end);
-        if (!contents) {
+        auto body = parse(i, end, graph);
+        if (!body) {
             return {};
         }
+
         if (!parse_char(i, end, '$')) {
             return {};
         }
 
-        return std::make_shared<regex>(contents);
+        subgraph out;
+        out.src = make_node(graph);
+        out.dst = make_node(graph);
+        graph[out.src].adj_list.push_back(body->src);
+        graph[body->dst].adj_list.push_back(out.dst);
+
+        return out;
     }
 
-    regex_ptr parse_text(iterator& i, const iterator& end) {
+    std::optional<subgraph> parse_text(
+            iterator& i, const iterator& end, finite_automata& graph) {
+
         if (i == end) {
             return {};
         }
+
         std::stringstream ss;
         while (i != end && std::isalpha(*i)) {
             ss << *i;
             i++;
         }
+
         auto txt = ss.str();
         if (txt.empty()) {
             return {};
         }
-        return std::make_shared<text>(txt);
+
+        subgraph directions_subgraph;
+        std::optional<int> prev;
+
+        int dir_node = -1;
+        for (auto dir : txt) {
+            dir_node = make_node(graph, dir);
+            if (prev) {
+                graph[*prev].adj_list.push_back(dir_node);
+            } else {
+                directions_subgraph.src = dir_node;
+            }
+            prev = dir_node;
+        }
+
+        directions_subgraph.dst = dir_node;
+        return directions_subgraph;
     }
 
-    regex_ptr parse_sequence(iterator& i, const iterator& end) {
+    std::optional<subgraph> parse_sequence(
+            iterator& i, const iterator& end, finite_automata& g) {
 
         if (i == end || *i == ')' || *i == '|' || *i == '$') {
             return {};
         }
 
-        std::vector<regex_ptr> contents;
-        regex_ptr reg;
+        std::vector<subgraph> contents;
+        std::optional<subgraph> reg;
 
         do {
             if (i != end && std::isalpha(*i)) {
-                reg = parse_text(i, end);
+                reg = parse_text(i, end, g);
                 if (reg) {
-                    contents.push_back(reg);
+                    contents.push_back(*reg);
                 }
                 continue;
             }
 
-            reg = parse(i, end);
+            reg = parse(i, end, g);
             if (reg) {
-                contents.push_back(reg);
+                contents.push_back(*reg);
             }
 
         } while (reg);
@@ -224,29 +148,46 @@ namespace {
             return {};
         }
 
-        return std::make_shared<sequence>(contents);
+        subgraph seq;
+        std::optional<int> prev;
+        subgraph child_subgraph = { -1,-1 };
+
+        for (auto cs : contents) {
+            child_subgraph = cs;
+            if (prev) {
+                g[*prev].adj_list.push_back(child_subgraph.src);
+            } else {
+                seq.src = child_subgraph.src;
+            }
+            prev = child_subgraph.dst;
+        }
+
+        seq.dst = child_subgraph.dst;
+        return seq;
     }
 
-    regex_ptr parse_disjunction(iterator& i, const iterator& end) {
+    std::optional<subgraph> parse_disjunction(
+            iterator& i, const iterator& end, finite_automata& g) {
+
         if (i == end) {
             return {};
         }
 
-        std::vector<regex_ptr> contents;
-        bool has_eps = false;
+        std::vector<subgraph> contents;
+        bool has_eps_trans = false;
 
         if (!parse_char(i, end, '(')) {
             return {};
         }
         while (i != end && *i != ')') {
-            auto reg = parse(i, end);
+            auto reg = parse(i, end, g);
             if (reg) {
-                contents.push_back(reg);
+                contents.push_back(*reg);
             }
             if (i != end && *i == '|') {
                 ++i;
                 if (i != end && *i == ')') {
-                    has_eps = true;
+                    has_eps_trans = true;
                 }
             }
         }
@@ -254,25 +195,48 @@ namespace {
             return {};
         }
 
-        return std::make_shared<disjunction>(contents, has_eps);
+        subgraph disjunc{
+                make_node(g),
+                make_node(g)
+        };
+
+        for (auto subgraph : contents) {
+            g[disjunc.src].adj_list.push_back(subgraph.src);
+            g[subgraph.dst].adj_list.push_back(disjunc.dst);
+        }
+
+        if (has_eps_trans) {
+            g[disjunc.src].adj_list.push_back(disjunc.dst);
+        }
+
+        return disjunc;
     }
 
-    regex_ptr parse(iterator& i, const iterator& end) {
+    std::optional<subgraph> parse(
+            iterator& i, const iterator& end, finite_automata& g) {
+
         if (i == end) {
             return {};
         }
 
-        auto reg = parse_regex(i, end);
+        auto reg = parse_regex(i, end, g);
         if (reg) {
             return reg;
         }
 
-        reg = parse_disjunction(i, end);
+        reg = parse_disjunction(i, end, g);
         if (reg) {
             return reg;
         }
 
-        return parse_sequence(i, end);
+        return parse_sequence(i, end, g);
+    }
+
+    std::tuple<int, finite_automata> regex_to_finite_automata(const std::string& inp) {
+        finite_automata fa;
+        auto iter = inp.begin();
+        auto src_and_dst = parse(iter, inp.end(), fa);
+        return { src_and_dst->src, std::move(fa) };
     }
 
     using point = aoc::vec2<int>;
@@ -324,16 +288,18 @@ namespace {
     using trav_state_set = std::unordered_set<traversal_state, traversal_state_hash>;
 
     point move_in_direction(const point& loc, char dir) {
+
         const static std::unordered_map<char, point> dir_to_delta = {
             {'N', {0,-1}},
             {'E', {1, 0}},
             {'S', {0,1}},
             {'W', {-1, 0}}
         };
+
         return loc + dir_to_delta.at(dir);
     }
 
-    door_set traverse_all_doors(int src, const digraph& g) {
+    door_set traverse_all_doors(int src, const finite_automata& g) {
         door_set doors;
         trav_state_set visited;
         std::stack<traversal_state> stack;
@@ -367,11 +333,8 @@ namespace {
     }
     
     north_pole_base build_base(const std::string& base_directions) {
-        auto i = base_directions.begin();
-        digraph graph;
-        auto doors = traverse_all_doors(
-            parse(i, base_directions.end())->to_graph(graph).src, graph 
-        );
+        auto [src, finite_automata] = regex_to_finite_automata(base_directions);
+        auto doors = traverse_all_doors( src, finite_automata );
 
         north_pole_base base;
         for (const auto& door : doors) {
