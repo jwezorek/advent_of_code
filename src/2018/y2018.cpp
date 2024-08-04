@@ -26,7 +26,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_18( "Settlers of The North Pole" ); },
         []() { day_19( "Go With The Flow" ); },
         []() { day_20( "A Regular Map" ); },
-        []() { day_21( "" ); },
+        []() { day_21( "Chronal Conversion" ); },
         []() { day_22( "" ); },
         []() { day_23( "" ); },
         []() { day_24( "" ); },
