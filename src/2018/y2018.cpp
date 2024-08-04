@@ -27,7 +27,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_19( "Go With The Flow" ); },
         []() { day_20( "A Regular Map" ); },
         []() { day_21( "Chronal Conversion" ); },
-        []() { day_22( "" ); },
+        []() { day_22( "Mode Maze" ); },
         []() { day_23( "" ); },
         []() { day_24( "" ); },
         []() { day_25( "" ); }
