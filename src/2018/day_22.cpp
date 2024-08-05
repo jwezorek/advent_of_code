@@ -196,17 +196,6 @@ namespace {
 
     using time_map = std::unordered_map<traversal_state, int, traversal_state_hash>;
 
-    int lowest_time(const time_map& map, const point& target) {
-        return r::min(
-            map | rv::filter(
-                [target](auto&& pair) {
-                    const auto& [state, time] = pair;
-                    return state.loc == target && state.tool_equipped == torch;
-                }
-            ) | rv::values
-        );
-    }
-
     int lowest_time_path(const grid<cave_type>& cavern, const point& target) {
 
         time_map elapsed_time;
@@ -228,6 +217,11 @@ namespace {
                     std::numeric_limits<int>::max();
 
                 if (dist_through_u_to_v < curr_dist_to_v) {
+
+                    if (v.loc == target && v.tool_equipped == torch) {
+                        return dist_through_u_to_v;
+                    }
+
                     elapsed_time[v] = dist_through_u_to_v;
                     if (queue.contains(v)) {
                         queue.change_priority(v, dist_through_u_to_v);
@@ -238,7 +232,7 @@ namespace {
             }
         }
 
-        return lowest_time(elapsed_time, target);
+        return -1;
     }
 
     int do_part_2(const scan_results& scan) {
