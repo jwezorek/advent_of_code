@@ -12,13 +12,13 @@ namespace aoc {
         T y;
         T z;
 
-        bool operator==(const vec2<T>& rhs) const {
+        bool operator==(const vec3<T>& rhs) const {
             return x == rhs.x && y == rhs.y && z == rhs.z;
         }
     };
 
     template<typename T>
-    vec2<T> operator+(const vec2<T>& lhs, const vec2<T>& rhs) {
+    vec3<T> operator+(const vec3<T>& lhs, const vec3<T>& rhs) {
         return {
             lhs.x + rhs.x,
             lhs.y + rhs.y,
@@ -27,7 +27,7 @@ namespace aoc {
     }
 
     template<typename T>
-    vec2<T> operator-(const vec2<T>& lhs, const vec2<T>& rhs) {
+    vec3<T> operator-(const vec3<T>& lhs, const vec3<T>& rhs) {
         return {
             lhs.x - rhs.x,
             lhs.y - rhs.y,
@@ -36,7 +36,7 @@ namespace aoc {
     }
 
     template<typename T>
-    vec2<T> operator*(T lhs, const vec2<T>& rhs) {
+    vec3<T> operator*(T lhs, const vec3<T>& rhs) {
         return {
             lhs * rhs.x,
             lhs * rhs.y,
