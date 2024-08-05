@@ -207,7 +207,7 @@ add_executable(advent_of_code
     src/2015/y2015.cpp
     src/2015/md5.cpp
     src/2015/md5.h
- "src/util/vec2.h" "src/util/grid.h")
+)
 
 target_link_libraries(advent_of_code PRIVATE Eigen3::Eigen)
 
