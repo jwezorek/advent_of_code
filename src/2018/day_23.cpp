@@ -277,8 +277,12 @@ namespace {
         auto test = density | r::to<std::vector>();
 
         bool has_intersections = false;
-        for (auto [a, b] : aoc::two_combinations(test | rv::keys | r::to<std::vector>())) {
-            has_intersections = intersect(key_to_box(a), key_to_box(b)).has_value();
+        auto test_set = test | rv::keys | r::to<std::vector>();
+        for (auto [a, b] : aoc::two_combinations(test_set)) {
+            auto yes = intersect(key_to_box(a), key_to_box(b)).has_value();
+            if (yes) {
+                has_intersections = true;
+            }
         }
 
         std::println("density complete {} : {} : {}", density.size(), r::max(density | rv::values), has_intersections);
