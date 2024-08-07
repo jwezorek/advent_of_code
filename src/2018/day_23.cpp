@@ -141,13 +141,19 @@ namespace {
         }
     }
 
-    std::vector<rectangle> explode_rectangles(const rectangle& lhs, const rectangle& rhs) {
+    struct explosion_2d {
+        rectangle intersection;
+        std::vector<rectangle> lhs;
+        std::vector<rectangle> rhs;
+    };
+
+    std::optional<explosion_2d> explode_rectangles(const rectangle& lhs, const rectangle& rhs) {
         auto inter = intersect(lhs, rhs);
         if (!inter) {
             return {};
         }
-        std::vector<rectangle> pieces;
-        pieces.push_back(*inter);
+        explosion_2d e;
+        e.intersection = *inter;
         constexpr auto neg_infinity = std::numeric_limits<int64_t>::min();
         constexpr auto infinity = std::numeric_limits<int64_t>::max();
 
@@ -161,35 +167,44 @@ namespace {
         for (const auto& mask : masks) {
             auto piece = intersect(mask, lhs);
             if (piece) {
-                pieces.push_back(*piece);
+                e.lhs.push_back(*piece);
             }
             piece = intersect(mask, rhs);
             if (piece) {
-                pieces.push_back(*piece);
+                e.rhs.push_back(*piece);
             }
         }
 
-        return pieces;
+        return e;
     }
 
     rectangle project_to_2d(const box& b) {
         return { {b.min_pt.x, b.min_pt.y}, {b.max_pt.x, b.max_pt.y} };
     }
 
-    std::vector<box> explode_boxes(const box& lhs, const box& rhs) {
+    struct explosion {
+        box intersection;
+        std::vector<box> lhs;
+        std::vector<box> rhs;
+    };
+
+    std::optional<explosion> explode_boxes(const box& lhs, const box& rhs) {
 
         auto inter = intersect(lhs, rhs);
         if (!inter) {
             return {};
         }
-        std::vector<box> pieces;
-        pieces.push_back(*inter);
+        explosion e;
+        e.intersection = *inter;
         constexpr auto neg_inf = std::numeric_limits<int64_t>::min();
         constexpr auto inf = std::numeric_limits<int64_t>::max();
 
-        auto explosion_2D = explode_rectangles(project_to_2d(lhs), project_to_2d(rhs));
-        for (const auto& rect : explosion_2D | rv::drop(1)) {
-            pieces.push_back(to_box(rect, inter->min_pt.z, inter->max_pt.z));
+        auto explosion_2d = explode_rectangles(project_to_2d(lhs), project_to_2d(rhs));
+        for (const auto& rect : explosion_2d->lhs) {
+            e.lhs.push_back(to_box(rect, inter->min_pt.z, inter->max_pt.z));
+        }
+        for (const auto& rect : explosion_2d->rhs) {
+            e.rhs.push_back(to_box(rect, inter->min_pt.z, inter->max_pt.z));
         }
 
         std::array<box, 2> masks = { {
@@ -200,50 +215,105 @@ namespace {
         for (const auto& mask : masks) {
             auto piece = intersect(mask, lhs);
             if (piece) {
-                pieces.push_back(*piece);
+                e.lhs.push_back(*piece);
             }
             piece = intersect(mask, rhs);
             if (piece) {
-                pieces.push_back(*piece);
+                e.rhs.push_back(*piece);
             }
         }
 
-        return pieces;
+        return e;
     }
 
-    void update_density_tree(rtree& tree, const box& next_box, std::queue<box>& queue) {
+    struct weighted_box {
+        ::box box;
+        int weight;
+    };
+
+    void update_density_tree(rtree& tree, const weighted_box& next_box, std::queue<weighted_box>& queue) {
         std::vector<rtree_value> results;
-        tree.query(bgi::intersects(box_to_key(next_box)), std::back_inserter(results));
+        tree.query(bgi::intersects(box_to_key(next_box.box)), std::back_inserter(results));
         if (results.empty()) {
-            tree.insert({ box_to_key(next_box) , 1 });
+            tree.insert({ box_to_key(next_box.box) , next_box.weight });
             return;
         }
-        for (const auto& collision : results ) {
-            auto collision_box = key_to_box(collision.first);
-            int density = collision.second;
-            auto explosion = explode_boxes(collision_box, next_box);
 
-            tree.remove(collision);
+        auto collision = results.front();
 
-            if (explosion.empty()) {
-                throw std::runtime_error("???");
-            }
-            tree.insert({ box_to_key(explosion.front()) , density + 1 });
-            for (const auto& leftover : explosion | rv::drop(1)) {
-                queue.push(leftover);
-            }
+        auto collision_box = key_to_box(collision.first);
+        int density = collision.second;
+        auto explosion = explode_boxes(collision_box, next_box.box);
+
+        if (!explosion) {
+            throw std::runtime_error("???");
         }
+
+        tree.remove(collision);
+        
+        tree.insert({ box_to_key(explosion->intersection) , density + next_box.weight });
+        for (const auto& leftover : explosion->lhs) {
+            queue.push({ leftover, density });
+        }
+        for (const auto& leftover : explosion->rhs) {
+            queue.push({ leftover,  next_box.weight });
+        }
+    }
+
+    void display(const rtree& tree) {
+        for (const auto [key, density] : tree) {
+            std::println("({}, {}, {})-({}, {}, {}) => {}",
+                key.min_corner().x,
+                key.min_corner().y,
+                key.min_corner().z,
+                key.max_corner().x,
+                key.max_corner().y,
+                key.max_corner().z,
+                density
+            );
+        }
+    }
+
+    void print_queue(const std::queue<weighted_box>& queue) {
+        auto q = queue;
+        std::println("[");
+        while (!q.empty()) {
+            auto wbox = q.front();
+            std::println("({}, {}, {}) - ({}, {}, {}) : {}",
+                wbox.box.min_pt.x,
+                wbox.box.min_pt.y,
+                wbox.box.min_pt.z,
+                wbox.box.max_pt.x,
+                wbox.box.max_pt.y,
+                wbox.box.max_pt.z,
+                wbox.weight
+            );
+            q.pop();
+        }
+        std::println("]");
+    }
+
+    rtree make_density_tree(const std::vector<weighted_box>& boxes) {
+        rtree density_tree;
+        std::queue<weighted_box> queue(boxes.begin(), boxes.end());
+        while (!queue.empty()) {
+
+            auto box = queue.front();
+            queue.pop();
+            update_density_tree(density_tree, box, queue);
+
+        }
+        return density_tree;
     }
 
     rtree make_density_tree(const std::vector<box>& boxes) {
         rtree density_tree;
-        std::queue<box> queue(boxes.begin(), boxes.end());
-        while (!queue.empty()) {
-            auto box = queue.front();
-            queue.pop();
-            update_density_tree(density_tree, box, queue);
-        }
-        return density_tree;
+        auto weighted_boxes = boxes | rv::transform(
+                [](auto&& box)->weighted_box {
+                    return { box, 1 };
+                }
+            ) | r::to<std::vector>();
+        return make_density_tree(weighted_boxes);
     }
 
     box bounds(const nanobot& bot) {
@@ -252,11 +322,6 @@ namespace {
             {bot.loc.x + bot.radius, bot.loc.y + bot.radius, bot.loc.z + bot.radius}
         };
     }
-
-    struct nested_box {
-        box b;
-        int depth;
-    };
 
     std::vector<box> intersect_box_with_all(const box& box, const std::vector<::box>& boxes) {
         std::vector<::box> out;
@@ -271,21 +336,44 @@ namespace {
         }
         return out;
     }
+
     int64_t do_part_2(const std::vector<nanobot>& bots) {
         auto boxes = bots | rv::transform(bounds) | r::to<std::vector>();
-        auto density = make_density_tree(boxes | rv::take(6) | r::to<std::vector>());
-        auto test = density | r::to<std::vector>();
-
-        bool has_intersections = false;
-        auto test_set = test | rv::keys | r::to<std::vector>();
-        for (auto [a, b] : aoc::two_combinations(test_set)) {
-            auto yes = intersect(key_to_box(a), key_to_box(b)).has_value();
-            if (yes) {
-                has_intersections = true;
+        std::vector<rtree> trees;
+        auto chunks = boxes | rv::chunk(20) | r::to<std::vector<std::vector<box>>>();
+        for (const auto& chunk : chunks) {
+            trees.push_back(make_density_tree(chunk));
+        }
+        std::vector<weighted_box> top_boxes;
+        for (const auto& tree : trees) {
+            auto top_regions = tree | rv::filter(
+                    [](const rtree_value& v) {return v.second >= 17; }
+                ) | rv::transform(
+                    [](const rtree_value& v)->weighted_box {
+                        return { key_to_box(v.first), v.second };
+                    }
+                );
+            for (auto&& rgn : top_regions) {
+                top_boxes.push_back(rgn);
             }
         }
+        auto density = make_density_tree(top_boxes);
+        int deepest = r::max(density | rv::values);
+        auto deepest_boxes = density | rv::filter(
+                [deepest](const rtree_value& v) {
+                    return v.second == deepest;
+                }
+            ) | rv::keys | rv::transform(
+                key_to_box
+            ) | r::to<std::vector>();
 
-        std::println("density complete {} : {} : {}", density.size(), r::max(density | rv::values), has_intersections);
+        std::println("depth:{} count:{}", deepest, deepest_boxes.size());
+        auto roi = deepest_boxes.front();
+        std::println("{} {} {}",
+            roi.max_pt.x - roi.min_pt.x + 1,
+            roi.max_pt.y - roi.min_pt.y + 1,
+            roi.max_pt.z - roi.min_pt.z + 1
+        );
         return -1;
     }
 }
@@ -297,10 +385,6 @@ void aoc::y2018::day_23(const std::string& title) {
     ) | rv::transform(
         string_to_nanobot
     ) | r::to<std::vector>();
-
-    rtree_key a = { {1,1,0},{4,4,0} };
-    rtree_key b = { {4,2,0},{9,3,0} };
-    bool test = bg::intersects(a, b);
 
     std::println("--- Day 23: {} ---", title);
     std::println("  part 1: {}", do_part_1(inp) );
