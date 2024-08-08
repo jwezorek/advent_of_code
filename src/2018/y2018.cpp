@@ -29,7 +29,7 @@ void aoc::y2018::do_advent_of_code(int day) {
         []() { day_21( "Chronal Conversion" ); },
         []() { day_22( "Mode Maze" ); },
         []() { day_23( "Experimental Emergency Teleportation" ); },
-        []() { day_24( "" ); },
+        []() { day_24( "Immune System Simulator 20XX" ); },
         []() { day_25( "" ); }
     };
     
