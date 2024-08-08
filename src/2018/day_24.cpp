@@ -71,16 +71,16 @@ namespace {
     }
 
     std::tuple<army, army> parse(const std::vector<std::string>& inp) {
-        auto preprocess = inp | rv::drop(1) | rv::transform(
-                [](auto&& line)->std::string {
-                    if (line.contains( ':' )) {
-                        return {};
+        auto armies = aoc::group_strings_separated_by_blank_lines(
+                inp | rv::drop(1) | rv::transform(
+                    [](auto&& line)->std::string {
+                        if (line.contains(':')) {
+                            return {};
+                        }
+                        return line;
                     }
-                    return line;
-                }
-            ) | r::to<std::vector>();
-        auto armies = aoc::group_strings_separated_by_blank_lines(preprocess) |
-            rv::transform(
+                ) | r::to<std::vector>()
+            ) | rv::transform(
                 [](auto&& str_group) {
                     return str_group | rv::transform(parse_group) | r::to<std::vector>();
                 }
@@ -134,7 +134,7 @@ namespace {
         return lhs.initiative < rhs.initiative;
     }
 
-    group* find_target(
+    group* select_target(
             const group& attacker, army& defenders, 
             const std::unordered_set<group*>& targeted) {
 
@@ -192,7 +192,7 @@ namespace {
 
         std::unordered_set<group*> targeted;
         for (auto* attacker : ordered_attackers) {
-            auto* target = find_target(*attacker, defenders, targeted);
+            auto* target = select_target(*attacker, defenders, targeted);
             if (target) {
                 targeted.insert(target);
                 pairings.emplace_back(attacker, target);
