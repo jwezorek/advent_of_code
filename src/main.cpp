@@ -4,6 +4,7 @@
 #include "2020/y2020.h"
 #include "2019/y2019.h"
 #include "2018/y2018.h"
+#include "2017/y2017.h"
 #include "2015/y2015.h"
 #include "util/util.h"
 #include "util/make_year.h"
@@ -24,6 +25,7 @@ namespace {
     void do_advent_of_code(int year, int day) {
         static const std::unordered_map<int, std::function<void(int)>> years = { 
             {2015, aoc::y2015::do_advent_of_code},
+            {2017, aoc::y2017::do_advent_of_code},
             {2018, aoc::y2018::do_advent_of_code},
             {2019, aoc::y2019::do_advent_of_code},
             {2020, aoc::y2020::do_advent_of_code},

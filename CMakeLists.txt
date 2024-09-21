@@ -179,6 +179,33 @@ add_executable(advent_of_code
     src/2018/day_25.cpp
     src/2018/y2018.cpp
 
+    src/2017/day_01.cpp
+    src/2017/day_02.cpp
+    src/2017/day_03.cpp
+    src/2017/day_04.cpp
+    src/2017/day_05.cpp
+    src/2017/day_06.cpp
+    src/2017/day_07.cpp
+    src/2017/day_08.cpp
+    src/2017/day_09.cpp
+    src/2017/day_10.cpp
+    src/2017/day_11.cpp
+    src/2017/day_12.cpp
+    src/2017/day_13.cpp
+    src/2017/day_14.cpp
+    src/2017/day_15.cpp
+    src/2017/day_16.cpp
+    src/2017/day_17.cpp
+    src/2017/day_18.cpp
+    src/2017/day_19.cpp
+    src/2017/day_20.cpp
+    src/2017/day_21.cpp
+    src/2017/day_22.cpp
+    src/2017/day_23.cpp
+    src/2017/day_24.cpp
+    src/2017/day_25.cpp
+    src/2017/y2017.cpp
+
     src/2015/day_01.cpp
     src/2015/day_02.cpp
     src/2015/day_03.cpp
