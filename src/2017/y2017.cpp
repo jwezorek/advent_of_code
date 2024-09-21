@@ -7,7 +7,7 @@
 void aoc::y2017::do_advent_of_code(int day) {
     const static auto advent_of_code_2017 = std::vector<std::function<void()>>{
         []() { day_01( "Inverse Captcha" ); },
-        []() { day_02( "<unknown>" ); },
+        []() { day_02( "Corruption Checksum" ); },
         []() { day_03( "<unknown>" ); },
         []() { day_04( "<unknown>" ); },
         []() { day_05( "<unknown>" ); },
