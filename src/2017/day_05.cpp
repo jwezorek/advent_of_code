@@ -13,7 +13,7 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
-    int do_jump_maze(const std::vector<int>& inp) {
+    int do_jump_maze(const std::vector<int>& inp, const std::function<int(int)>& update_fn) {
 
         int n = static_cast<int>(inp.size());
         auto jumps = inp;
@@ -23,24 +23,7 @@ namespace {
         while (loc >= 0 && loc < n) {
             count++;
             auto next_jump = jumps[loc];
-            jumps[loc]++;
-            loc += next_jump;
-        }
-
-        return count;
-    }
-
-    int do_jump_maze_2(const std::vector<int>& inp) {
-
-        int n = static_cast<int>(inp.size());
-        auto jumps = inp;
-        int loc = 0;
-        int count = 0;
-
-        while (loc >= 0 && loc < n) {
-            count++;
-            auto next_jump = jumps[loc];
-            jumps[loc] += (next_jump >= 3) ? -1 : 1;
+            jumps[loc] += update_fn(next_jump);
             loc += next_jump;
         }
 
@@ -59,7 +42,14 @@ void aoc::y2017::day_05(const std::string& title) {
         ) | r::to<std::vector>();
 
     std::println("--- Day 5: {} ---", title);
-    std::println("  part 1: {}", do_jump_maze(inp) );
-    std::println("  part 2: {}", do_jump_maze_2(inp) );
+    std::println("  part 1: {}", 
+        do_jump_maze(inp, [](int) {return 1; })
+    );
+    std::println("  part 2: {}", 
+        do_jump_maze(
+            inp, 
+            [](int v) {return (v >= 3) ? -1 : 1; }
+        )
+    );
     
 }
