@@ -5,7 +5,7 @@
 #include <functional>
 #include <print>
 #include <ranges>
-#include <unordered_set>
+#include <unordered_map>
 #include <boost/functional/hash.hpp>
 
 namespace r = std::ranges;
@@ -41,23 +41,20 @@ namespace {
         }
     };
 
-    using nums_set = std::unordered_set<numbers, hash_nums, equate_nums>;
+    using nums_map = std::unordered_map<numbers, int, hash_nums, equate_nums>;
 
-    struct redistribution {
-        int amnt;
-        int count;
-    };
-
-    std::vector<redistribution> get_redistributions(int amnt, int n) {
-        std::vector<redistribution> output;
+    std::vector<std::tuple<int,int>> get_redistributions(int amnt, int n) {
+        std::vector<std::tuple<int, int>> output;
         auto mod = amnt % n;
         if (mod != 0) {
+            auto dist_amnt = amnt / n + 1;
+            auto dist_count = mod;
             output.emplace_back(
-                amnt / n + 1,
-                mod
+                dist_amnt,
+                dist_count
             );
-            amnt -= output.back().amnt * output.back().count;
-            n -= output.back().count;
+            amnt -= dist_amnt * dist_count;
+            n -= dist_count;
         } 
         if (amnt > 0) {
             output.emplace_back(
@@ -73,38 +70,29 @@ namespace {
         auto amnt = *iter;
         *(iter++) = 0;
         auto distributions = get_redistributions(amnt, static_cast<int>(nums.size()));
-        for (const auto& dist : distributions) {
-            for (int i = 0; i < dist.count; ++i) {
+        for (const auto& [dist_amnt, dist_count] : distributions) {
+            for (int i = 0; i < dist_count; ++i) {
                 if (iter == nums.end()) {
                     iter = nums.begin();
                 }
-                *(iter++) += dist.amnt;
+                *(iter++) += dist_amnt;
             }
         }
     }
     
-    int num_nonrepearing_redistributions( numbers nums) {
-        nums_set nums_seen;
+    std::tuple<int,int> num_nonrepearing_redistributions( numbers nums) {
+        nums_map nums_seen;
 
         int count = 0;
         while (!nums_seen.contains(nums)) {
-            nums_seen.insert(nums);
+            nums_seen[nums] = count;
             redistribute(nums);
             ++count;
         }
 
-        return count;
+        return { count, count - nums_seen[nums] };
     }
 
-}
-
-void test_redist(int amnt, int n) {
-    auto redist = get_redistributions(amnt, n);
-    std::print("({} , {}) => ", amnt, n);
-    for (const auto red : redist) {
-        std::print("[ amnt: {}, count: {}] ", red.amnt, red.count);
-    }
-    std::println("");
 }
 
 void aoc::y2017::day_06(const std::string& title) {
@@ -117,7 +105,9 @@ void aoc::y2017::day_06(const std::string& title) {
     );
 
     std::println("--- Day 6: {} ---", title);
-    std::println("  part 1: {}", num_nonrepearing_redistributions( inp ));
-    std::println("  part 2: {}", 0);
+
+    auto [first_repeat_count, size_of_loop] = num_nonrepearing_redistributions( inp );
+    std::println("  part 1: {}", first_repeat_count);
+    std::println("  part 2: {}", size_of_loop);
     
 }
