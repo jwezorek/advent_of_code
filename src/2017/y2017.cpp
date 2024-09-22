@@ -11,7 +11,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_03( "Spiral Memory" ); },
         []() { day_04( "High-Entropy Passphrases" ); },
         []() { day_05( "A Maze of Twisty Trampolines, All Alike" ); },
-        []() { day_06( "<unknown>" ); },
+        []() { day_06( "Memory Reallocation" ); },
         []() { day_07( "<unknown>" ); },
         []() { day_08( "<unknown>" ); },
         []() { day_09( "<unknown>" ); },
