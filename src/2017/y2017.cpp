@@ -12,7 +12,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_04( "High-Entropy Passphrases" ); },
         []() { day_05( "A Maze of Twisty Trampolines, All Alike" ); },
         []() { day_06( "Memory Reallocation" ); },
-        []() { day_07( "<unknown>" ); },
+        []() { day_07( "Recursive Circus" ); },
         []() { day_08( "<unknown>" ); },
         []() { day_09( "<unknown>" ); },
         []() { day_10( "<unknown>" ); },
