@@ -14,7 +14,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_06( "Memory Reallocation" ); },
         []() { day_07( "Recursive Circus" ); },
         []() { day_08( "I Heard You Like Registers" ); },
-        []() { day_09( "<unknown>" ); },
+        []() { day_09( "Stream Processing" ); },
         []() { day_10( "<unknown>" ); },
         []() { day_11( "<unknown>" ); },
         []() { day_12( "<unknown>" ); },
