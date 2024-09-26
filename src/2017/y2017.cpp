@@ -16,7 +16,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_08( "I Heard You Like Registers" ); },
         []() { day_09( "Stream Processing" ); },
         []() { day_10( "Knot Hash" ); },
-        []() { day_11( "<unknown>" ); },
+        []() { day_11( "Hex Ed" ); },
         []() { day_12( "<unknown>" ); },
         []() { day_13( "<unknown>" ); },
         []() { day_14( "<unknown>" ); },
