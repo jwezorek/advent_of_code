@@ -18,7 +18,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_10( "Knot Hash" ); },
         []() { day_11( "Hex Ed" ); },
         []() { day_12( "Digital Plumber" ); },
-        []() { day_13( "<unknown>" ); },
+        []() { day_13( "Packet Scanners" ); },
         []() { day_14( "<unknown>" ); },
         []() { day_15( "<unknown>" ); },
         []() { day_16( "<unknown>" ); },
