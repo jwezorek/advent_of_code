@@ -15,7 +15,6 @@ namespace rv = std::ranges::views;
 
 namespace {
 
-
     struct state {
         int pos;
         int skip_size;
@@ -49,8 +48,7 @@ namespace {
         state.skip_size++;
     }
 
-    void knot_hash(std::vector<int>& list, const std::vector<int>& lengths) {
-        state state;
+    void knot_hash(std::vector<int>& list, state& state, const std::vector<int>& lengths) {
         for (const auto len : lengths) {
             perform_knot_hash_step(list, state, len);
         }
@@ -58,15 +56,61 @@ namespace {
 
     int do_part_1(const std::vector<int>& lengths) {
         auto list = rv::iota(0, 256) | r::to<std::vector>();
-        knot_hash(list, lengths);
+        state state;
+        knot_hash(list, state, lengths);
         return list[0] * list[1];
+    }
+
+    std::vector<int> process_input(const std::string& str) {
+        auto lengths = str | rv::transform(
+                [](char ch)->int {
+                    return ch;
+                }
+            ) | r::to<std::vector>();
+        const static std::array<int, 5> suffix = { {17, 31, 73, 47, 23} };
+        r::copy(suffix, std::back_inserter(lengths));
+        return lengths;
+    }
+
+    std::vector<int> make_dense(const std::vector<int>& sparse) {
+        return sparse | rv::chunk(16) | rv::transform(
+            [](auto rng)->int {
+                return r::fold_left(
+                    rng, 0, [](int lhs, int rhs) { return lhs ^ rhs; }
+                );
+            }
+        ) | r::to<std::vector>();
+    }
+
+    std::string to_hex(int v) {
+        std::stringstream ss;
+        ss << std::hex << v;
+        auto str = ss.str();
+        if (str.size() == 1) {
+            str = std::string{ '0' } + str;
+        }
+        return str;
+    }
+
+    std::string do_part_2(const std::string& inp) {
+        auto sparse = rv::iota(0, 256) | r::to<std::vector>();
+        state state;
+        auto lengths = process_input(inp);
+        for (int i = 0; i < 64; ++i) {
+            knot_hash(sparse, state, lengths);
+        }
+        return make_dense(
+                sparse
+            ) | rv::transform(
+                to_hex
+            ) | rv::join | r::to<std::string>();
     }
 }
 
 void aoc::y2017::day_10(const std::string& title) {
-
+    auto inp_str = aoc::file_to_string(aoc::input_path(2017, 10));
     auto inp = aoc::split(
-            aoc::file_to_string(aoc::input_path(2017, 10)), ','
+            inp_str, ','
         ) | rv::transform(
             [](const std::string& str) {
                 return std::stoi(str);
@@ -75,6 +119,6 @@ void aoc::y2017::day_10(const std::string& title) {
 
     std::println("--- Day 10: {} ---", title);
     std::println("  part 1: {}", do_part_1(inp) );
-    std::println("  part 2: {}", 0);
+    std::println("  part 2: {}", do_part_2(inp_str));
     
 }
