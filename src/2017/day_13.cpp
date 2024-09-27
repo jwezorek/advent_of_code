@@ -15,72 +15,46 @@ namespace rv = std::ranges::views;
 namespace {
 
     struct scanner {
-        int position;
+        int layer;
         int range;
-        int dir;
-
-        scanner(int rng = 0) : position(0), range(rng), dir(1)
-        {}
     };
-    using scanner_map = std::unordered_map<int, scanner>;
 
-    void update_scanner(scanner& s) {
-        int next = s.position + s.dir;
-        if (next == s.range || next == -1) {
-            s.dir *= -1;
-        }
-        s.position += s.dir;
+    bool caught(int delay, const scanner& s) {
+        return (delay + s.layer) % (2 * (s.range-1)) == 0;
     }
 
-    void update_scanners(scanner_map& scanners) {
-        for (auto& scanner : scanners | rv::values) {
-            update_scanner(scanner);
-        }
-    }
-
-    std::vector<int> caught_by_scanners(const scanner_map& inp) {
-        std::vector<int> caught;
-        int n = r::max(inp | rv::keys);
-        scanner_map scanners = inp;
-
-        for (int i = 0; i <= n; ++i) {
-            if (scanners.contains(i)) {
-                if (scanners[i].position == 0) {
-                    caught.push_back(i);
-                }
+    std::vector<scanner> caught_by_scanners(const std::vector<scanner>& scanners) {
+        return scanners | rv::filter(
+            [](auto&& scanner) {
+                return caught(0, scanner);
             }
-            update_scanners(scanners);
-        }
-
-        return caught;
+        ) | r::to<std::vector>();
     }
 
-    int do_part_1(const scanner_map& inp) {
-        
-        auto caught = caught_by_scanners(inp);
+    bool was_caught_by_scanners(int delay, const std::vector<scanner>& scanners) {
+        return r::find_if(scanners,
+                [delay](auto&& scanner) {
+                    return caught(delay, scanner);
+                }
+            ) != scanners.end();
+    }
+
+    int do_part_1(const std::vector<scanner>& scanners) {
+        auto caught = caught_by_scanners(scanners);
 
         int severity = 0;
-        for (int v : caught) {
-            severity += v * inp.at(v).range;
+        for (auto v : caught) {
+            severity += v.layer * v.range;
         }
 
         return severity;
     }
 
-    int do_part_2(const scanner_map& inp) {
-        int delay = 0;
-        std::vector<int> caught;
-        do {
+    int do_part_2(const std::vector<scanner>& scanners) {
+        int delay = 1;
+        while (was_caught_by_scanners(delay, scanners)) {
             ++delay;
-            if (delay % 10000 == 0) {
-                std::println("{}", delay);
-            }
-            auto scanners = inp;
-            for (int i = 0; i < delay; ++i) {
-                update_scanners(scanners);
-            }
-            caught = caught_by_scanners(scanners);
-        } while (!caught.empty());
+        }
         return delay;
     }
 }
@@ -90,14 +64,14 @@ void aoc::y2017::day_13(const std::string& title) {
     auto inp = aoc::file_to_string_vector(
             aoc::input_path(2017, 13)
         ) | rv::transform(
-            [](auto&& str)->scanner_map::value_type {
+            [](auto&& str)->scanner {
                 auto nums = aoc::extract_numbers(str);
-                return { nums.front(), scanner(nums.back()) };
+                return { nums.front(), nums.back() };
             }
-        ) | r::to<scanner_map>();
+        ) | r::to<std::vector>();
 
     std::println("--- Day 13: {} ---", title);
     std::println("  part 1: {}", do_part_1(inp) );
-    std::println("  part 2: {}", 0 );
+    std::println("  part 2: {}", do_part_2(inp) );
     
 }
