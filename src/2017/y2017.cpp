@@ -21,7 +21,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_13( "Packet Scanners" ); },
         []() { day_14( "Disk Defragmentation" ); },
         []() { day_15( "Dueling Generators" ); },
-        []() { day_16( "<unknown>" ); },
+        []() { day_16( "Permutation Promenade" ); },
         []() { day_17( "<unknown>" ); },
         []() { day_18( "<unknown>" ); },
         []() { day_19( "<unknown>" ); },
