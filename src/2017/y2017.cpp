@@ -19,7 +19,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_11( "Hex Ed" ); },
         []() { day_12( "Digital Plumber" ); },
         []() { day_13( "Packet Scanners" ); },
-        []() { day_14( "<unknown>" ); },
+        []() { day_14( "Disk Defragmentation" ); },
         []() { day_15( "<unknown>" ); },
         []() { day_16( "<unknown>" ); },
         []() { day_17( "<unknown>" ); },
