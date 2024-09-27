@@ -31,7 +31,7 @@ namespace aoc {
         return std::make_tuple(arguments[Is]...);
     }
 
-    template <typename U, std::size_t N>
+    template <std::size_t N, typename U>
     auto create_tuple(const std::vector<U>& arguments) {
         return create_tuple_impl<U>(std::make_index_sequence<N>{}, arguments);
     }
@@ -39,7 +39,7 @@ namespace aoc {
     template <std::size_t N>
     auto split_to_tuple(const std::string& s, char delim) {
         auto vec = split(s, delim);
-        return create_tuple<std::string,N>(vec);
+        return create_tuple<N, std::string>(vec);
     }
  
     template<typename V, typename H = std::hash< V>>

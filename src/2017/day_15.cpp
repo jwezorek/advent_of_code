@@ -13,16 +13,18 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
-
+    uint64_t do_part_1(uint64_t gen_a, uint64_t gen_b) {
+        return 0;
+    }
 }
 
 void aoc::y2017::day_15(const std::string& title) {
 
-    auto [gen_a, gen_b] = create_tuple<int, 2>(
+    auto [gen_a, gen_b] = create_tuple<2>(
             extract_numbers(aoc::file_to_string(aoc::input_path(2017, 15)))
         );
     std::println("--- Day 15: {} ---", title);
-    std::println("  part 1: {}", gen_a);
-    std::println("  part 2: {}", gen_b);
+    std::println("  part 1: {}", do_part_1(gen_a, gen_b));
+    std::println("  part 2: {}", 0);
     
 }
