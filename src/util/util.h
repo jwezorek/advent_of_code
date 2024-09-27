@@ -26,20 +26,20 @@ namespace aoc {
     int64_t string_to_int64(const std::string& str);
     std::vector<std::vector<std::string>> group_strings_separated_by_blank_lines(const std::vector<std::string>& lines);
 
-    template <std::size_t... Is>
-    auto create_tuple_impl(std::index_sequence<Is...>, const std::vector<std::string>& arguments) {
+    template <typename U, std::size_t... Is>
+    auto create_tuple_impl(std::index_sequence<Is...>, const std::vector<U>& arguments) {
         return std::make_tuple(arguments[Is]...);
     }
 
-    template <std::size_t N>
-    auto create_tuple(const std::vector<std::string>& arguments) {
-        return create_tuple_impl(std::make_index_sequence<N>{}, arguments);
+    template <typename U, std::size_t N>
+    auto create_tuple(const std::vector<U>& arguments) {
+        return create_tuple_impl<U>(std::make_index_sequence<N>{}, arguments);
     }
 
     template <std::size_t N>
     auto split_to_tuple(const std::string& s, char delim) {
         auto vec = split(s, delim);
-        return create_tuple<N>(vec);
+        return create_tuple<std::string,N>(vec);
     }
  
     template<typename V, typename H = std::hash< V>>
