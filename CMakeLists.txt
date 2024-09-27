@@ -204,6 +204,7 @@ add_executable(advent_of_code
     src/2017/day_23.cpp
     src/2017/day_24.cpp
     src/2017/day_25.cpp
+    src/2017/knot_hash.cpp
     src/2017/y2017.cpp
 
     src/2015/day_01.cpp
