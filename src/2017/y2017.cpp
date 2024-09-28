@@ -23,7 +23,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_15( "Dueling Generators" ); },
         []() { day_16( "Permutation Promenade" ); },
         []() { day_17( "Spinlock" ); },
-        []() { day_18( "<unknown>" ); },
+        []() { day_18( "Duet" ); },
         []() { day_19( "<unknown>" ); },
         []() { day_20( "<unknown>" ); },
         []() { day_21( "<unknown>" ); },
