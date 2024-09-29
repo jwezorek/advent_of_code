@@ -25,7 +25,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_17( "Spinlock" ); },
         []() { day_18( "Duet" ); },
         []() { day_19( "A Series of Tubes" ); },
-        []() { day_20( "<unknown>" ); },
+        []() { day_20( "Particle Swarm" ); },
         []() { day_21( "<unknown>" ); },
         []() { day_22( "<unknown>" ); },
         []() { day_23( "<unknown>" ); },
