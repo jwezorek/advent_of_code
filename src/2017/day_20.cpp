@@ -15,12 +15,12 @@ namespace rv = std::ranges::views;
 
 namespace {
     using vec = aoc::vec3<int64_t>;
-
     struct particle {
         vec pos;
         vec vel;
         vec acc;
     };
+    using vec_map = aoc::vec3_map<int64_t,std::vector<particle>>;
 
     particle parse_particle(const std::string& str) {
         auto v = aoc::extract_numbers_int64(str, true);
@@ -113,6 +113,30 @@ namespace {
 
         return closest_to_origin(current);
     }
+
+    int do_part_2(const std::vector<particle>& inp) {
+        int no_collision_count = 0;
+        auto curr = inp;
+        while (no_collision_count < 50) {
+            vec_map new_locs;
+            for (auto& p : curr) {
+                update_particle(p);
+                new_locs[p.pos].push_back(p);
+            }
+            if (new_locs.size() == curr.size()) {
+                ++no_collision_count;
+                continue;
+            }
+            curr.clear();
+            no_collision_count = 0;
+            for (const auto& [loc, particles] : new_locs) {
+                if (particles.size() == 1) {
+                    curr.push_back(particles.front());
+                }
+            }
+        }
+        return curr.size();
+    }
 }
 
 void aoc::y2017::day_20(const std::string& title) {
@@ -125,6 +149,6 @@ void aoc::y2017::day_20(const std::string& title) {
 
     std::println("--- Day 20: {} ---", title);
     std::println("  part 1: {}", do_part_1(inp) );
-    std::println("  part 2: {}", 0);
+    std::println("  part 2: {}", do_part_2(inp) );
     
 }
