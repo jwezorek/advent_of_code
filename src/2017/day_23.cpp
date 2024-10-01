@@ -132,6 +132,34 @@ namespace {
         }
         return state.num_mults;
     }
+
+    bool is_prime(int64_t n) {
+        // Handle edge cases
+        if (n <= 1) return false;
+        if (n == 2 || n == 3) return true;
+        if (n % 2 == 0 || n % 3 == 0) return false;
+
+        // Check divisibility from 5 to sqrt(n), using the fact that primes are of the form 6k ± 1
+        for (int64_t i = 5; i * i <= n; i += 6) {
+            if (n % i == 0 || n % (i + 2) == 0) return false;
+        }
+
+        return true;
+    }
+
+    int64_t part_2() {
+        int64_t a = 1, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0;
+
+        b = 67 * 100 + 100000;
+        c = 67 * 100 + 100000 + 17000;
+        h = 0;
+        for (auto i = b; i <= c; i += 17) {
+            if (!is_prime(i)) {
+                ++h;
+            }
+        }
+        return h;
+    }
 }
 
 void aoc::y2017::day_23(const std::string& title) {
@@ -144,6 +172,6 @@ void aoc::y2017::day_23(const std::string& title) {
 
     std::println("--- Day 23: {} ---", title);
     std::println("  part 1: {}", run_program(inp) );
-    std::println("  part 2: {}", 0);
+    std::println("  part 2: {}", part_2() );
     
 }
