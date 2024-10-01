@@ -28,7 +28,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_20( "Particle Swarm" ); },
         []() { day_21( "Fractal Art" ); },
         []() { day_22( "Sporifica Virus" ); },
-        []() { day_23( "<unknown>" ); },
+        []() { day_23( "Coprocessor Conflagration" ); },
         []() { day_24( "<unknown>" ); },
         []() { day_25( "<unknown>" ); }
     };
