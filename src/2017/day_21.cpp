@@ -7,7 +7,10 @@
 #include <print>
 #include <ranges>
 #include <numbers>
+#include <unordered_map>
+#include <iostream>
 #include <Eigen/Dense>
+#include <boost/functional/hash.hpp>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -57,6 +60,31 @@ namespace {
     }
 
     using grid = std::vector<std::string>;
+    struct hash_grid {
+        size_t operator()(const grid& g) const {
+            size_t seed = g.size();
+            for (const auto& row : g) {
+                boost::hash_combine(seed, std::hash<std::string>{}(row));
+            }
+            return seed;
+        }
+    };
+
+    struct equate_grid {
+        bool operator()(const grid& lhs, const grid& rhs) const {
+            if (lhs.size() != rhs.size()) {
+                return false;
+            }
+            for (const auto& [ls, rs] : rv::zip(lhs, rhs)) {
+                if (ls != rs) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+
+    using subgrid_tbl = std::unordered_map<grid, grid, hash_grid, equate_grid>;
 
     grid blank_grid(int sz) {
         return grid(sz, std::string(sz, '.'));
@@ -90,7 +118,7 @@ namespace {
             translation_matrix(-offset, -offset);
     }
 
-    grid apply(const grid& g, const matrix& mat) {
+    grid apply(const grid& g,  const matrix& mat) {
         auto sz = static_cast<int>(g.size());
         auto out = blank_grid(sz);
         for (int y = 0; y < sz; ++y) {
@@ -106,6 +134,9 @@ namespace {
     }
 
     std::vector<std::vector<grid>> to_subgrids(const grid& g) {
+        if (g.size() == 2 || g.size() == 3) {
+            return { { g } };
+        }
         int subgrid_sz = (g.size() % 2) == 0 ? 2 : 3;
         int n = g.size() / subgrid_sz;
         std::vector<std::vector<grid>> subgrids(n, std::vector<grid>(n, blank_grid(subgrid_sz)));
@@ -142,64 +173,89 @@ namespace {
         return g;
     }
 
-    void display_grid(const grid& g) {
-        for (auto row : g) {
-            std::println("{}", row);
+    std::vector<matrix> all_transformations(int sz) {
+        std::vector<matrix> matrices;
+
+        for (int i = 0; i < 4; ++i) {
+            matrix mat = grid_rot_matrix(i, sz);
+            matrices.push_back(mat);
         }
-        std::println("");
+
+        for (int i = 0; i < 4; ++i) {
+            matrix mat = grid_rot_matrix(i, sz) * grid_reflect_matrix(sz);
+            matrices.push_back(mat);
+        }
+
+        return matrices;
+    }
+
+    std::tuple<grid, grid> parse_rule(const std::string& str) {
+        auto parts = aoc::split(str, ' ');
+        return {
+            aoc::split(parts.front(), '/'),
+            aoc::split(parts.back(), '/')
+        };
+    }
+
+    subgrid_tbl to_rules_tbl(const std::vector<std::tuple<grid, grid>>& rules) {
+        subgrid_tbl tbl;
+
+        std::unordered_map<int, std::vector<matrix>> sz_to_trans = {
+            {2, all_transformations(2)},
+            {3, all_transformations(3)}
+        };
+        
+        for ( const auto& [before, after] : rules) {
+            for (const auto& mat : sz_to_trans.at(before.size())) {
+                grid transformed = apply(before, mat);
+                tbl[transformed] = after;
+            }
+        }
+
+        return tbl;
+    }
+
+    grid initial_state() {
+        return grid{
+            ".#.",
+            "..#",
+            "###"
+        };
+    }
+
+    int apply_rules(const subgrid_tbl& rules, int n) {
+        auto g = initial_state();
+        for (int i = 0; i < n; ++i) {
+            auto subs = to_subgrids(g);
+            for (auto& row : subs) {
+                for (auto& sg : row) {
+                    sg = rules.at(sg);
+                }
+            }
+            g = from_subgrids(subs);
+        }
+        int count = 0;
+        for (const auto& row : g) {
+            for (auto ch : row) {
+                count += ch == '#' ? 1 : 0;
+            }
+        }
+        return count;
     }
 }
 
 void aoc::y2017::day_21(const std::string& title) {
 
-    auto inp = aoc::file_to_string_vector(
+    auto rules = to_rules_tbl(
+        aoc::file_to_string_vector(
             aoc::input_path(2017, 21)
-        ); 
-
-    grid test = { 
-        ".#..##.##",
-        "#.......#",
-        "###..####",
-        "#########", 
-        ".####.#..", 
-        "..##..###",
-        "#.......#",
-        "###..####",
-        "#########" };
-    display_grid(test);
-    std::println("---");
-
-    auto sg = to_subgrids(test);
-    int n = sg.size();
-    for (int j = 0; j < n; ++j) {
-        for (int i = 0; i < n; ++i) {
-            std::println("( {}, {} )", i, j);
-            display_grid(sg[j][i]);
-            std::println("");
-        }
-    }
-
-    std::println("---");
-    test = from_subgrids(sg);
-    display_grid(test);
-
-    /*
-    std::println("");
-    for (int i = 0; i < 4; ++i) {
-        auto mat = grid_rot_matrix(i, test.size());
-        auto rotated = apply(test, mat);
-        display_grid(rotated);
-    }
-
-    for (int i = 0; i < 4; ++i) {
-        auto mat = grid_rot_matrix(i, test.size()) * grid_reflect_matrix(test.size());
-        auto rotated = apply(test, mat);
-        display_grid(rotated);
-    }
-    */
+        ) | rv::transform(
+            parse_rule
+        ) | r::to<std::vector>()
+    );
 
     std::println("--- Day 21: {} ---", title);
-    std::println("  part 1: {}", 0);
-    std::println("  part 2: {}", 0);
+    std::println("  part 1: {}", apply_rules(rules, 5) );
+    std::println("  part 2: {}", apply_rules(rules, 18) );
     
 }
