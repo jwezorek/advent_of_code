@@ -30,7 +30,7 @@ void aoc::y2017::do_advent_of_code(int day) {
         []() { day_22( "Sporifica Virus" ); },
         []() { day_23( "Coprocessor Conflagration" ); },
         []() { day_24( "Electromagnetic Moat" ); },
-        []() { day_25( "<unknown>" ); }
+        []() { day_25( "The Halting Problem" ); }
     };
     
     auto index = day - 1;
