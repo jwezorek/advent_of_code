@@ -1,3 +1,4 @@
+#include "2024/y2024.h"
 #include "2023/y2023.h"
 #include "2022/y2022.h"
 #include "2021/y2021.h"
@@ -31,7 +32,8 @@ namespace {
             {2020, aoc::y2020::do_advent_of_code},
             {2021, aoc::y2021::do_advent_of_code},
             {2022, aoc::y2022::do_advent_of_code},
-            {2023, aoc::y2023::do_advent_of_code}
+            {2023, aoc::y2023::do_advent_of_code},
+            {2024, aoc::y2024::do_advent_of_code}
         };
         if (!years.contains(year)) {
             std::println("'Advent of Code {}' not found.", year);
