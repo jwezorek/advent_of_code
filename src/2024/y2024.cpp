@@ -6,8 +6,8 @@
 
 void aoc::y2024::do_advent_of_code(int day) {
     const static auto advent_of_code_2024 = std::vector<std::function<void()>>{
-        []() { day_01( "<unknown>" ); },
-        []() { day_02( "<unknown>" ); },
+        []() { day_01( "Historian Hysteria" ); },
+        []() { day_02( "Red-Nosed Reports" ); },
         []() { day_03( "<unknown>" ); },
         []() { day_04( "<unknown>" ); },
         []() { day_05( "<unknown>" ); },
