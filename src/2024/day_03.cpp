@@ -21,20 +21,21 @@ namespace {
         std::vector<instruction> output;
 
         std::regex pattern(R"(mul\((\d+),(\d+)\)|do\(\)|don't\(\))");
-        std::smatch match;
-
         std::sregex_iterator it(input.begin(), input.end(), pattern);
-        std::sregex_iterator end;
 
-        while (it != end) {
-            if ((*it)[0] == "do()") {
+        while (it != std::sregex_iterator{}) {
+            const auto& match = *it;
+            if (match[0] == "do()") {
                 output.emplace_back(true);
-            } else if ((*it)[0] == "don't()") {
+            } else if (match[0] == "don't()") {
                 output.emplace_back(false);
-            } else if ((*it)[1].matched && (*it)[2].matched) {
-                int x = std::stoi((*it)[1].str());
-                int y = std::stoi((*it)[2].str());
-                output.emplace_back(std::pair<int, int>{x, y});
+            } else {
+                output.emplace_back(
+                    std::pair<int, int>{
+                        std::stoi(match[1].str()),
+                        std::stoi(match[2].str())
+                    }
+                );
             }
             ++it;
         }
