@@ -6,7 +6,7 @@
 #include <print>
 #include <ranges>
 #include <regex>
-#include <optional>
+#include <variant>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -15,37 +15,9 @@ namespace rv = std::ranges::views;
 
 namespace {
 
-    struct instruction {
-        std::optional<std::pair<int, int>> mult;
-        bool enable_mult;
+    using instruction = std::variant<std::pair<int, int>, bool>;
 
-        instruction(int x, int y) : mult{ {x,y} }, enable_mult{ false }
-        {}
-
-        instruction(bool enable) : mult{}, enable_mult { enable }
-        {}
-    };
-
-    std::vector<instruction> just_multiply_instructions(const std::string& input) {
-        std::vector<instruction> output;
-
-        std::regex pattern(R"(mul\((-?\d+),(-?\d+)\))");
-        std::smatch match;
-
-        std::sregex_iterator it(input.begin(), input.end(), pattern);
-        std::sregex_iterator end;
-
-        while (it != end) {
-            int x = std::stoi((*it)[1].str());
-            int y = std::stoi((*it)[2].str());
-            output.emplace_back(x, y);
-            ++it;
-        }
-
-        return output;
-    }
-
-    std::vector<instruction> all_instructions(const std::string& input) {
+    std::vector<instruction> parse_instructions(const std::string& input) {
         std::vector<instruction> output;
 
         std::regex pattern(R"(mul\((-?\d+),(-?\d+)\)|\bdo\(\)|\bdon't\(\))");
@@ -62,7 +34,7 @@ namespace {
             } else if ((*it)[1].matched && (*it)[2].matched) {
                 int x = std::stoi((*it)[1].str());
                 int y = std::stoi((*it)[2].str());
-                output.emplace_back(x, y);
+                output.emplace_back(std::pair<int, int>{x, y});
             }
             ++it;
         }
@@ -70,21 +42,29 @@ namespace {
         return output;
     }
 
-    int perform_instructions( const std::vector<instruction>& instructions) {
+    int perform_instructions( const std::vector<instruction>& instrs, bool just_mults) {
 
         bool mult_enabled = true;
         return r::fold_left(
-            instructions | rv::transform(
-                [&mult_enabled](auto&& instr) {
-                    if (instr.mult) {
-                        if (!mult_enabled) {
-                            return 0;
-                        }
-                        auto [x, y] = instr.mult.value();
-                        return x * y;
-                    }
-                    mult_enabled = instr.enable_mult;
-                    return 0;
+            instrs | rv::transform(
+                [&](auto&& instr) {
+                    return std::visit(
+                        aoc::overload{
+                            [&](const std::pair<int,int>& mult) {
+                                if (!mult_enabled) {
+                                    return 0;
+                                }
+                                return mult.first * mult.second;
+                            },
+                            [&](bool enable_mult) {
+                                if (!just_mults) {
+                                    mult_enabled = enable_mult;
+                                }
+                                return 0;
+                            }
+                        },
+                        instr
+                    );
                 }
             ),
             0,
@@ -95,15 +75,17 @@ namespace {
 
 void aoc::y2024::day_03(const std::string& title) {
 
-    auto inp = aoc::file_to_string(
+    auto inp = parse_instructions(
+        aoc::file_to_string(
             aoc::input_path(2024, 3)
-        ); 
+        )
+    );
 
     std::println("--- Day 3: {} ---", title);
     std::println("  part 1: {}", 
-        perform_instructions( just_multiply_instructions(inp)) );
-    std::println("  part 2: {}", 
-        perform_instructions( all_instructions(inp) )
+        perform_instructions( inp, true) );
+    std::println("  part 2: {}",
+        perform_instructions( inp, false )
     );
     
 }
