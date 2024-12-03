@@ -20,7 +20,7 @@ namespace {
     std::vector<instruction> parse_instructions(const std::string& input) {
         std::vector<instruction> output;
 
-        std::regex pattern(R"(mul\((-?\d+),(-?\d+)\)|\bdo\(\)|\bdon't\(\))");
+        std::regex pattern(R"(mul\((\d+),(\d+)\)|do\(\)|don't\(\))");
         std::smatch match;
 
         std::sregex_iterator it(input.begin(), input.end(), pattern);
