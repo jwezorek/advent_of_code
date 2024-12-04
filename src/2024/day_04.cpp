@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <functional>
 #include <print>
+#include <algorithm>
 #include <ranges>
 #include <unordered_set>
 
@@ -21,7 +22,7 @@ namespace {
             static_cast<int>(g.front().size()),
             static_cast<int>(g.size())
         };
-    }
+    } 
 
     bool in_bounds(const grid& g, const point& loc) {
         auto [cols, rows] = bounds(g);
@@ -39,21 +40,20 @@ namespace {
 
     int count_xmas_strings(const grid& g) {
         auto [cols, rows] = bounds(g);
-        static const std::array<point, 8> dirs = {{
+        const std::array<point, 8> dirs = {{
             {0,-1}, {1,-1}, {1,0}, {1,1}, {0,1}, {-1,1}, {-1,0}, {-1, -1}
         }};
-        int count = 0;
-        for (int row = 0; row < rows; ++row) {
-            for (int col = 0; col < cols; ++col) {
-                for (const auto& dir : dirs) {
-                    auto str = string_in_dir(g, { col,row }, dir, 4);
-                    if (str == "XMAS") {
-                        ++count;
-                    }
+        return static_cast<int>(
+            r::count_if(
+                rv::cartesian_product(
+                    rv::iota(0, cols), rv::iota(0, rows), dirs
+                ),
+                [&](auto&& triple) -> bool {
+                    const auto& [col, row, dir] = triple;
+                    return string_in_dir(g, { col,row }, dir, 4) == "XMAS";
                 }
-            }
-        }
-        return count;
+            )
+        );
     }
 
     bool is_xmas_cross(const grid& g, const point& loc) {
@@ -73,15 +73,17 @@ namespace {
 
     int count_xmas_crosses(const grid& g) {
         auto [cols, rows] = bounds(g);
-        int count = 0;
-        for (int row = 0; row < rows; ++row) {
-            for (int col = 0; col < cols; ++col) {
-                if (is_xmas_cross(g, {col,row})) {
-                    ++count;
+        return static_cast<int>(
+            r::count_if(
+                rv::cartesian_product(
+                    rv::iota(0, cols), rv::iota(0, rows)
+                ),
+                [&](auto&& loc) -> bool {
+                    const auto& [col, row] = loc;
+                    return is_xmas_cross(g, { col,row });
                 }
-            }
-        }
-        return count;
+            )
+        );
     }
 }
 
