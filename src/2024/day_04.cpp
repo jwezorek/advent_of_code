@@ -60,17 +60,12 @@ namespace {
     }
 
     bool is_xmas_cross(const grid& g, const point& loc) {
-        auto [cols, rows] = bounds(g);
-        if (loc.x < 1 || loc.y < 1 || loc.x >= cols - 1 || loc.y >= rows - 1) {
-            return false;
-        }
-        if (g[loc.y][loc.x] != 'A') {
-            return false;
-        }
+
         auto nw_str = string_in_dir(g, loc + point{ -1,-1 }, { 1,1 }, 3);
         if (nw_str != "MAS" && nw_str != "SAM") {
             return false;
         }
+
         auto ne_str = string_in_dir(g, loc + point{ 1,-1 }, { -1,1 }, 3);
         if (ne_str != "MAS" && ne_str != "SAM") {
             return false;
