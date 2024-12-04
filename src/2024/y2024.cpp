@@ -9,7 +9,7 @@ void aoc::y2024::do_advent_of_code(int day) {
         []() { day_01( "Historian Hysteria" ); },
         []() { day_02( "Red-Nosed Reports" ); },
         []() { day_03( "Mull It Over" ); },
-        []() { day_04( "<unknown>" ); },
+        []() { day_04( "Ceres Search" ); },
         []() { day_05( "<unknown>" ); },
         []() { day_06( "<unknown>" ); },
         []() { day_07( "<unknown>" ); },
