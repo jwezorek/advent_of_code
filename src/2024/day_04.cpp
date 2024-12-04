@@ -29,15 +29,12 @@ namespace {
     }
 
     std::string string_in_dir(const grid& g, const point& start, const point& dir, int len) {
-        std::stringstream ss;
-        for (int i = 0; i < len; ++i) {
-            auto loc = start + i * dir;
-            if (!in_bounds(g, loc)) {
-                break;
+        return rv::iota(0, len) | rv::transform(
+            [&](auto i) {
+                auto loc = start + i * dir;
+                return (in_bounds(g, loc)) ? g[loc.y][loc.x] : ' ';
             }
-            ss << g[loc.y][loc.x];
-        }
-        return ss.str();
+        ) | r::to<std::string>();
     }
 
     int count_xmas_strings(const grid& g) {
