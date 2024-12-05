@@ -49,8 +49,8 @@ namespace {
     }
 
     bool is_valid_rule(const graph& g, const rule& rule) {
-        for (auto [i, j] : aoc::two_combinations(rule)) {
-            if (!g.at(i).contains(j)) {
+        for (auto [i, j] : rule | rv::pairwise) {
+            if (g.at(j).contains(i)) {
                 return false;
             }
         }
