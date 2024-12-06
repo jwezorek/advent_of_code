@@ -7,6 +7,7 @@
 #include <print>
 #include <ranges>
 #include <unordered_set>
+#include <execution>
 #include <boost/functional/hash.hpp>
 
 namespace r = std::ranges;
@@ -110,13 +111,16 @@ namespace {
 
     int count_loops(const point& start, const bounds& bounds, const point_set& walls) {
         auto floors = visited_locs(start, bounds, walls);
-        return r::count_if(
-            floors,
-            [&](auto&& loc) {
-                auto new_walls = walls;
-                new_walls.insert(loc);
-                return simulate_guard(start, bounds, new_walls);
-            }
+
+        // use parallel count_if...
+        return static_cast<int>(
+            std::count_if(std::execution::par, floors.begin(), floors.end(), 
+                [&](auto loc) {
+                    auto new_walls = walls;
+                    new_walls.insert(loc);
+                    return simulate_guard(start, bounds, new_walls);
+                }
+            )
         );
     }
 }
