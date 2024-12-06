@@ -63,8 +63,10 @@ namespace {
         return loc.x >= 0 && loc.y >= 0 && loc.x < bounds.wd && loc.y < bounds.hgt;
     }
 
-    bool simulate_guard(const point& start, const bounds& bounds, 
-            const point_set& walls, std::function<void(const state&)> on_visit = {}) {
+    bool simulate_guard(const point& start, 
+            const bounds& bounds, 
+            const point_set& walls, 
+            const std::function<void(const state&)>& on_visit = {}) {
 
         static const std::array<point, 4> dirs = {{
             {0,-1}, {1,0}, {0,1}, {-1,0}
