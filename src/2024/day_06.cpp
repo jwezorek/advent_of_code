@@ -85,6 +85,7 @@ namespace {
             }
             s.loc = s.loc + dirs.at(s.dir);
         }
+
         return visited.contains(s);
     }
 
