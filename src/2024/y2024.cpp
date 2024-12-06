@@ -11,7 +11,7 @@ void aoc::y2024::do_advent_of_code(int day) {
         []() { day_03( "Mull It Over" ); },
         []() { day_04( "Ceres Search" ); },
         []() { day_05( "Print Queue" ); },
-        []() { day_06( "<unknown>" ); },
+        []() { day_06( "Guard Gallivant" ); },
         []() { day_07( "<unknown>" ); },
         []() { day_08( "<unknown>" ); },
         []() { day_09( "<unknown>" ); },
