@@ -13,6 +13,7 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
+
     struct equation {
         int64_t result;
         std::vector<int64_t> args;
@@ -68,27 +69,39 @@ namespace {
         );
     }
 
+    int num_digits(int64_t v) {
+        if (v < 10) {
+            return 1;
+        } else if (v == 10) {
+            return 2;
+        }
+        return static_cast<int>(std::ceil(std::log10(v)));
+    }
+
     int64_t concatenate(int64_t lhs, int64_t rhs) {
-        std::stringstream ss;
-        ss << lhs << rhs;
-        return aoc::string_to_int64(ss.str());
+        int64_t pow_of_10 = std::pow(10.0, static_cast<double>(num_digits(rhs)));
+        return rhs + pow_of_10 * lhs;
     }
 
     int64_t eval_equation(const std::vector<int64_t>& args, const std::vector<op>& ops) {
-        int64_t result = args.front();
-        for (auto [op, arg] : rv::zip(ops, args | rv::drop(1))) {
-            if (op == multiply) {
-                result *= arg;
-            } else if (op == add) {
-                result += arg;
-            } else {
-                result = concatenate(result, arg);
+        return r::fold_left(
+            rv::zip(ops, args | rv::drop(1)),
+            args.front(),
+            [](int64_t lhs, auto&& rhs)->int64_t {
+                const auto& [op, arg] = rhs;
+                switch (op) {
+                    case multiply:
+                        return lhs * arg;
+                    case add:
+                        return lhs + arg;
+                    case concat:
+                        return concatenate(lhs, arg);
+                }
             }
-        }
-        return result;
+       );
     }
 
-    bool is_solvable(const equation& eq) {
+    bool is_solvable_mult_and_add(const equation& eq) {
         for (auto operations : mults_and_adds(eq.args.size() - 1)) {
             auto result = eval_equation(eq.args, operations);
             if (result == eq.result) {
@@ -108,26 +121,14 @@ namespace {
         return false;
     }
 
-    int64_t sum_solved_equations(const std::vector<equation>& equs) {
-        return r::fold_left(
-            equs | rv::transform(
-                [](auto&& equ) {
-                    return (is_solvable(equ)) ? equ.result : static_cast<int64_t>(0);
-                }
-            ),
-            static_cast<int64_t>(0),
-            std::plus<int64_t>()
-        );
-    }
+    using is_solvable_fn = std::function<int64_t(const equation&)>;
 
-    int64_t sum_solved_equations_all_ops(const std::vector<equation>& equs) {
+    int64_t sum_solved_equations(const std::vector<equation>& equs, 
+            const is_solvable_fn& is_solvable) {
         return r::fold_left(
             equs | rv::transform(
-                [](auto&& equ) {
-                    if (is_solvable(equ)) {
-                        return equ.result;
-                    }
-                    return (is_solvable_all_ops(equ)) ? equ.result : static_cast<int64_t>(0);
+                [&](auto&& equ) {
+                    return (is_solvable(equ)) ? equ.result : 0ll;
                 }
             ),
             static_cast<int64_t>(0),
@@ -145,7 +146,11 @@ void aoc::y2024::day_07(const std::string& title) {
         ) | r::to<std::vector>();
     
     std::println("--- Day 7: {} ---", title);
-    std::println("  part 1: {}", sum_solved_equations(inp));
-    std::println("  part 2: {}", sum_solved_equations_all_ops(inp));
+    std::println("  part 1: {}", 
+        sum_solved_equations(inp, is_solvable_mult_and_add)
+    );
+    std::println("  part 2: {}", 
+        sum_solved_equations(inp, is_solvable_all_ops)
+    );
     
 }
