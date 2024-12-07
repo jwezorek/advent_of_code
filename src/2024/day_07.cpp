@@ -28,9 +28,9 @@ namespace {
     }
 
     enum op {
-        concat,
         multiply,
-        add
+        add,
+        concat
     };
 
     auto ops(bool all_ops) {
