@@ -33,7 +33,7 @@ namespace {
         concat
     };
 
-    auto mults_and_adds(int n) {
+    auto mults_and_add_ops(int n) {
         uint64_t max = (static_cast<uint64_t>(1) << n);
         return rv::iota(static_cast<uint64_t>(0), max) | rv::transform(
             [n](auto v)->std::vector<op> {
@@ -94,15 +94,14 @@ namespace {
                         return lhs * arg;
                     case add:
                         return lhs + arg;
-                    case concat:
-                        return concatenate(lhs, arg);
                 }
+                return concatenate(lhs, arg);
             }
        );
     }
 
-    bool is_solvable_mult_and_add(const equation& eq) {
-        for (auto operations : mults_and_adds(eq.args.size() - 1)) {
+    bool is_solvable(const equation& eq, const auto& enum_ops) {
+        for (auto operations : enum_ops(eq.args.size() - 1)) {
             auto result = eval_equation(eq.args, operations);
             if (result == eq.result) {
                 return true;
@@ -110,25 +109,13 @@ namespace {
         }
         return false;
     }
-
-    bool is_solvable_all_ops(const equation& eq) {
-        for (auto operations : all_ops(eq.args.size() - 1)) {
-            auto result = eval_equation(eq.args, operations);
-            if (result == eq.result) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    using is_solvable_fn = std::function<int64_t(const equation&)>;
 
     int64_t sum_solved_equations(const std::vector<equation>& equs, 
-            const is_solvable_fn& is_solvable) {
+            const auto& enum_ops) {
         return r::fold_left(
             equs | rv::transform(
                 [&](auto&& equ) {
-                    return (is_solvable(equ)) ? equ.result : 0ll;
+                    return (is_solvable(equ, enum_ops)) ? equ.result : 0ll;
                 }
             ),
             static_cast<int64_t>(0),
@@ -147,10 +134,10 @@ void aoc::y2024::day_07(const std::string& title) {
     
     std::println("--- Day 7: {} ---", title);
     std::println("  part 1: {}", 
-        sum_solved_equations(inp, is_solvable_mult_and_add)
+        sum_solved_equations(inp, mults_and_add_ops)
     );
     std::println("  part 2: {}", 
-        sum_solved_equations(inp, is_solvable_all_ops)
+        sum_solved_equations(inp, all_ops)
     );
     
 }
