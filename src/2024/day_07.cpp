@@ -59,18 +59,30 @@ namespace {
         }
     }
 
+    int num_digits(int64_t n) {
+        if (n < 10) {
+            return 1;
+        } else if (n == 10) {
+            return 2;
+        }
+        return static_cast<int>(std::ceil(std::log10(n)));
+    }
+
     std::optional<int64_t> unconcatenate(int64_t lhs, int64_t rhs) {
-        auto lhs_str = std::to_string(lhs);
-        auto rhs_str = std::to_string(rhs);
-        if (rhs_str.size() > lhs_str.size()) {
+        auto lhs_digits = num_digits(lhs);
+        auto rhs_digits = num_digits(rhs);
+        if (rhs_digits > lhs_digits) {
             return {};
         }
-        auto n = lhs_str.size() - rhs_str.size();
-        if (lhs_str.substr(n) != rhs_str) {
+        int64_t pow_of_10 = r::fold_left(
+            rv::repeat(10ll) | rv::take(rhs_digits),
+            1ll,
+            std::multiplies<int64_t>()
+        );
+        if (lhs % pow_of_10 != rhs) {
             return {};
         }
-        auto result = lhs_str.substr(0, n);
-        return aoc::string_to_int64(result);
+        return lhs / pow_of_10;
     }
 
     std::optional<equation> undo_last_operation(const equation& equ, operation op) {
