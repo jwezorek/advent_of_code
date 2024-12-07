@@ -5,7 +5,7 @@
 #include <functional>
 #include <print>
 #include <ranges>
-#include <unordered_set>
+#include <unordered_map>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -27,19 +27,35 @@ namespace {
         };
     }
 
-    enum op {
+    enum operation {
         multiply,
         add,
         concat
     };
 
-    auto ops(bool all_ops) {
-        static const std::vector<op> all = { concat, multiply, add };
-        static const std::vector<op> mult_and_add = { multiply, add };
+    const std::vector<operation>& ops(bool all_ops) {
+        static const std::vector<operation> all = { concat, multiply, add };
+        static const std::vector<operation> mult_and_add = { multiply, add };
         if (all_ops) {
-            return rv::all( all );
+            return all;
         } else {
-            return rv::all( mult_and_add );
+            return mult_and_add;
+        }
+    }
+
+    std::optional<int64_t> subtract(int64_t lhs, int64_t rhs) {
+        if (lhs - rhs >= 0) {
+            return lhs - rhs;
+        } else {
+            return {};
+        }
+    }
+
+    std::optional<int64_t> divide(int64_t lhs, int64_t rhs) {
+        if (lhs % rhs == 0) {
+            return lhs / rhs;
+        }else {
+            return {};
         }
     }
 
@@ -57,45 +73,19 @@ namespace {
         return aoc::string_to_int64(result);
     }
 
-    bool is_solvable(const equation & eq, const auto & enum_ops) {
-        for (auto operations : enum_ops(eq.rhs.size() - 1)) {
-            if (eval_equation(eq.lhs, eq.rhs, operations)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    std::optional<int64_t> new_lhs(int64_t old_lhs, int64_t rhs, op op) {
-        std::optional<int64_t> result;
-        switch (op) {
-            case add:
-                if (old_lhs - rhs >= 0) {
-                    return old_lhs - rhs;
-                }
-                else {
-                    return {};
-                }
-                break;
-            case multiply:
-                if (old_lhs % rhs == 0) {
-                    return old_lhs / rhs;
-                } else {
-                    return {};
-                }
-                break;
-            case concat: 
-                return unconcatenate(old_lhs, rhs);
-        }
-    }
-
-    std::optional<equation> reduce_equation(const equation& equ, op op) {
-        auto lhs = new_lhs(equ.lhs, equ.rhs.back(), op);
-        if (!lhs) {
+    std::optional<equation> undo_last_operation(const equation& equ, operation op) {
+        using undo_fn = std::function<std::optional<int64_t>(int64_t, int64_t)>;
+        const static std::unordered_map<operation, undo_fn> undo = {
+            { add, subtract },
+            { multiply, divide },
+            { concat, unconcatenate }
+        };
+        auto new_lhs = undo.at(op)(equ.lhs, equ.rhs.back());
+        if (!new_lhs) {
             return {};
         }
         return equation{
-            *lhs,
+            *new_lhs,
             equ.rhs | rv::take(equ.rhs.size() - 1) | r::to<std::vector>()
         };
     }
@@ -105,7 +95,7 @@ namespace {
             return equ.lhs == equ.rhs.front();
         }
         for (auto op : ops(all_ops)) {
-            auto new_equ = reduce_equation(equ, op);
+            auto new_equ = undo_last_operation(equ, op);
             if (new_equ && is_solvable_equation(*new_equ, all_ops)) {
                 return true;
             }
