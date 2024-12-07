@@ -56,9 +56,8 @@ namespace {
                     digits.push_back(number % 3);
                     number /= 3;
                 }
-                std::reverse(digits.begin(), digits.end());
                 while (digits.size() < static_cast<size_t>(n)) {
-                    digits.insert(digits.begin(), 0);
+                    digits.push_back(0);
                 }
                 return digits | rv::transform(
                     [](int v) {
