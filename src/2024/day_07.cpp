@@ -49,10 +49,11 @@ namespace {
         if (rhs_str.size() > lhs_str.size()) {
             return {};
         }
-        if (lhs_str.substr(lhs_str.size() - rhs_str.size()) != rhs_str) {
+        auto n = lhs_str.size() - rhs_str.size();
+        if (lhs_str.substr(n) != rhs_str) {
             return {};
         }
-        auto result = lhs_str.substr(0, lhs_str.size() - rhs_str.size());
+        auto result = lhs_str.substr(0, n);
         return aoc::string_to_int64(result);
     }
 
