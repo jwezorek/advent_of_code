@@ -15,8 +15,8 @@ namespace rv = std::ranges::views;
 namespace {
 
     struct equation {
-        int64_t result;
-        std::vector<int64_t> args;
+        int64_t lhs;
+        std::vector<int64_t> rhs;
     };
 
     equation parse_equation(const std::string& str) {
@@ -28,96 +28,98 @@ namespace {
     }
 
     enum op {
-        multiply = 0,
-        add,
-        concat
+        concat,
+        multiply,
+        add
     };
 
-    auto mults_and_add_ops(int n) {
-        uint64_t max = (static_cast<uint64_t>(1) << n);
-        return rv::iota(static_cast<uint64_t>(0), max) | rv::transform(
-            [n](auto v)->std::vector<op> {
-                std::vector<op> args;
-                for (int j = 0; j < n; j++) {
-                    int digit = 1 << j;
-                    args.push_back(v & digit ? multiply : add);
-                }
-                return args;
-            }
-        );
-    }
-
-    auto all_ops(int n) {
-        uint64_t max = static_cast<uint64_t>(std::pow(3, n));
-        return rv::iota(static_cast<uint64_t>(0), max) | rv::transform(
-            [n](auto number)->std::vector<op> {
-                std::vector<int> digits;
-                while (number > 0) {
-                    digits.push_back(number % 3);
-                    number /= 3;
-                }
-                while (digits.size() < static_cast<size_t>(n)) {
-                    digits.push_back(0);
-                }
-                return digits | rv::transform(
-                    [](int v) {
-                        return static_cast<op>(v); 
-                    }
-                ) | r::to<std::vector>();
-            }
-        );
-    }
-
-    int num_digits(int64_t v) {
-        if (v < 10) {
-            return 1;
-        } else if (v == 10) {
-            return 2;
+    auto ops(bool all_ops) {
+        static const std::vector<op> all = { concat, multiply, add };
+        static const std::vector<op> mult_and_add = { multiply, add };
+        if (all_ops) {
+            return rv::all( all );
+        } else {
+            return rv::all( mult_and_add );
         }
-        return static_cast<int>(std::ceil(std::log10(v)));
     }
 
-    int64_t concatenate(int64_t lhs, int64_t rhs) {
-        int64_t pow_of_10 = std::pow(10.0, static_cast<double>(num_digits(rhs)));
-        return rhs + pow_of_10 * lhs;
+    std::optional<int64_t> unconcatenate(int64_t lhs, int64_t rhs) {
+        auto lhs_str = std::to_string(lhs);
+        auto rhs_str = std::to_string(rhs);
+        if (rhs_str.size() > lhs_str.size()) {
+            return {};
+        }
+        if (lhs_str.substr(lhs_str.size() - rhs_str.size()) != rhs_str) {
+            return {};
+        }
+        auto result = lhs_str.substr(0, lhs_str.size() - rhs_str.size());
+        return aoc::string_to_int64(result);
     }
 
-    int64_t eval_equation(const std::vector<int64_t>& args, const std::vector<op>& ops) {
-        return r::fold_left(
-            rv::zip(ops, args | rv::drop(1)),
-            args.front(),
-            [](int64_t lhs, auto&& rhs)->int64_t {
-                const auto& [op, arg] = rhs;
-                switch (op) {
-                    case multiply:
-                        return lhs * arg;
-                    case add:
-                        return lhs + arg;
-                }
-                return concatenate(lhs, arg);
-            }
-       );
-    }
-
-    bool is_solvable(const equation& eq, const auto& enum_ops) {
-        for (auto operations : enum_ops(eq.args.size() - 1)) {
-            auto result = eval_equation(eq.args, operations);
-            if (result == eq.result) {
+    bool is_solvable(const equation & eq, const auto & enum_ops) {
+        for (auto operations : enum_ops(eq.rhs.size() - 1)) {
+            if (eval_equation(eq.lhs, eq.rhs, operations)) {
                 return true;
             }
         }
         return false;
     }
 
-    int64_t sum_solved_equations(const std::vector<equation>& equs, 
-            const auto& enum_ops) {
+    std::optional<int64_t> new_lhs(int64_t old_lhs, int64_t rhs, op op) {
+        std::optional<int64_t> result;
+        switch (op) {
+            case add:
+                if (old_lhs - rhs >= 0) {
+                    return old_lhs - rhs;
+                }
+                else {
+                    return {};
+                }
+                break;
+            case multiply:
+                if (old_lhs % rhs == 0) {
+                    return old_lhs / rhs;
+                } else {
+                    return {};
+                }
+                break;
+            case concat: 
+                return unconcatenate(old_lhs, rhs);
+        }
+    }
+
+    std::optional<equation> reduce_equation(const equation& equ, op op) {
+        auto lhs = new_lhs(equ.lhs, equ.rhs.back(), op);
+        if (!lhs) {
+            return {};
+        }
+        return equation{
+            *lhs,
+            equ.rhs | rv::take(equ.rhs.size() - 1) | r::to<std::vector>()
+        };
+    }
+
+    bool is_solvable_equation(const equation& equ, bool all_ops) {
+        if (equ.rhs.size() == 1) {
+            return equ.lhs == equ.rhs.front();
+        }
+        for (auto op : ops(all_ops)) {
+            auto new_equ = reduce_equation(equ, op);
+            if (new_equ && is_solvable_equation(*new_equ, all_ops)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int64_t sum_solved_equations(const std::vector<equation>& equs, bool all_ops) {
         return r::fold_left(
             equs | rv::transform(
                 [&](auto&& equ) {
-                    return (is_solvable(equ, enum_ops)) ? equ.result : 0ll;
+                    return (is_solvable_equation(equ, all_ops)) ? equ.lhs : 0ll;
                 }
             ),
-            static_cast<int64_t>(0),
+            0ll,
             std::plus<int64_t>()
         );
     }
@@ -132,11 +134,11 @@ void aoc::y2024::day_07(const std::string& title) {
         ) | r::to<std::vector>();
     
     std::println("--- Day 7: {} ---", title);
-    std::println("  part 1: {}", 
-        sum_solved_equations(inp, mults_and_add_ops)
+    std::println("  part 1: {}",
+        sum_solved_equations(inp, false)
     );
     std::println("  part 2: {}", 
-        sum_solved_equations(inp, all_ops)
+        sum_solved_equations(inp, true)
     );
     
 }
