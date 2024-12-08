@@ -46,49 +46,53 @@ namespace {
         return { std::move(antennas), bounds };
     }
 
-    int count_antinodes(const antenna_map& antennas, const bounds& bounds) {
-        point_set antinodes;
-        for (const auto& locations : antennas | rv::values) {
-            for (const auto& [u, v] : aoc::two_combinations(locations)) {
-                auto u_to_v = v - u;
-                auto v_to_u = u - v;
-                auto antinode_1 = u + v_to_u;
-                auto antinode_2 = v + u_to_v;
-                if (in_bounds(bounds, antinode_1)) {
-                    antinodes.insert(antinode_1);
-                }
-                if (in_bounds(bounds, antinode_2)) {
-                    antinodes.insert(antinode_2);
-                }
-            }
+    void antinodes_from_antennas(
+            point_set& antinodes, const point& u, const point& v, const bounds& bounds) {
+        auto u_to_v = v - u;
+        auto v_to_u = u - v;
+        auto antinode_1 = u + v_to_u;
+        auto antinode_2 = v + u_to_v;
+        if (in_bounds(bounds, antinode_1)) {
+            antinodes.insert(antinode_1);
         }
-        return static_cast<int>(antinodes.size());
+        if (in_bounds(bounds, antinode_2)) {
+            antinodes.insert(antinode_2);
+        }
     }
 
-    int count_antinodes_part2(const antenna_map& antennas, const bounds& bounds) {
+    void antinodes_with_harmonics(
+            point_set& antinodes, const point& u, const point& v, const bounds& bounds) {
+        auto u_to_v = v - u;
+        auto v_to_u = u - v;
+
+        point loc = u;
+        while (in_bounds(bounds, loc)) {
+            if (in_bounds(bounds, loc)) {
+                antinodes.insert(loc);
+            }
+            loc = loc + v_to_u;
+        }
+
+        loc = v;
+        while (in_bounds(bounds, loc)) {
+            if (in_bounds(bounds, loc)) {
+                antinodes.insert(loc);
+            }
+            loc = loc + u_to_v;
+        }
+    }
+
+    int count_antinodes(
+            const antenna_map& antennas, const bounds& bounds, 
+            const auto& find_antinodes) {
+
         point_set antinodes;
         for (const auto& locations : antennas | rv::values) {
             for (const auto& [u, v] : aoc::two_combinations(locations)) {
-                auto u_to_v = v - u;
-                auto v_to_u = u - v;
-
-                point loc = u;
-                while (in_bounds(bounds, loc)) {
-                    if (in_bounds(bounds, loc)) {
-                        antinodes.insert(loc);
-                    }
-                    loc = loc + v_to_u;
-                }
-
-                loc = v;
-                while (in_bounds(bounds, loc)) {
-                    if (in_bounds(bounds, loc)) {
-                        antinodes.insert(loc);
-                    }
-                    loc = loc + u_to_v;
-                }
+                find_antinodes(antinodes, u, v, bounds);
             }
         }
+
         return static_cast<int>(antinodes.size());
     }
 }
@@ -102,7 +106,11 @@ void aoc::y2024::day_08(const std::string& title) {
     );
 
     std::println("--- Day 8: {} ---", title);
-    std::println("  part 1: {}", count_antinodes(antennas, bounds));
-    std::println("  part 2: {}", count_antinodes_part2(antennas, bounds));
+    std::println("  part 1: {}", 
+        count_antinodes(antennas, bounds, antinodes_from_antennas)
+    );
+    std::println("  part 2: {}",
+        count_antinodes(antennas, bounds, antinodes_with_harmonics)
+    );
     
 }
