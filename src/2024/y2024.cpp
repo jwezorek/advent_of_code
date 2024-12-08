@@ -13,7 +13,7 @@ void aoc::y2024::do_advent_of_code(int day) {
         []() { day_05( "Print Queue" ); },
         []() { day_06( "Guard Gallivant" ); },
         []() { day_07( "Bridge Repair" ); },
-        []() { day_08( "<unknown>" ); },
+        []() { day_08( "Resonant Collinearity" ); },
         []() { day_09( "<unknown>" ); },
         []() { day_10( "<unknown>" ); },
         []() { day_11( "<unknown>" ); },
