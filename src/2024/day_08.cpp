@@ -48,7 +48,7 @@ namespace {
 
     int count_antinodes(const antenna_map& antennas, const bounds& bounds) {
         point_set antinodes;
-        for (const auto& [label, locations] : antennas) {
+        for (const auto& locations : antennas | rv::values) {
             for (const auto& [u, v] : aoc::two_combinations(locations)) {
                 auto u_to_v = v - u;
                 auto v_to_u = u - v;
@@ -67,7 +67,7 @@ namespace {
 
     int count_antinodes_part2(const antenna_map& antennas, const bounds& bounds) {
         point_set antinodes;
-        for (const auto& [label, locations] : antennas) {
+        for (const auto& locations : antennas | rv::values) {
             for (const auto& [u, v] : aoc::two_combinations(locations)) {
                 auto u_to_v = v - u;
                 auto v_to_u = u - v;
