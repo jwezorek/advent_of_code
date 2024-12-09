@@ -83,8 +83,8 @@ namespace {
             if (i == impl_.end() || i == std::prev(impl_.end())) {
                 return -1;
             }
-            int end_of_block = i->first + i->second.sz;
-            return std::next(i)->first - end_of_block;
+            int end_of_file = i->first + i->second.sz;
+            return std::next(i)->first - end_of_file;
         }
 
         int64_t check_sum() const {
