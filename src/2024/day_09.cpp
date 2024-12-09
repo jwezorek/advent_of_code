@@ -25,7 +25,6 @@ namespace {
         };
 
         using iterator = std::map<int, file>::const_iterator;
-        using value_type = std::map<int, file>::value_type;
 
     private:
 
