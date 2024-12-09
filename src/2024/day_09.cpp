@@ -33,7 +33,7 @@ namespace {
     public:
 
         void insert_file(int addr, int id, int sz) {
-            if (addr > last_addr()) {
+            if (addr >= tail_addr()) {
                 impl_[addr] = { id, sz };
                 return;
             }
@@ -50,14 +50,14 @@ namespace {
             impl_[addr] = { id,sz };
         }
 
-        int last_addr() {
+        int tail_addr() {
 
             if (impl_.empty()) {
                 return -1;
             }
 
             auto last = std::prev(impl_.end());
-            return last->first + last->second.sz - 1;
+            return last->first + last->second.sz;
         }
 
         iterator begin() const {
@@ -146,7 +146,7 @@ namespace {
                 continue;
             }
             dm.insert_file(space_addr, tail.id, space_sz);
-            dm.insert_file(dm.last_addr() + 1, tail.id, tail.sz - space_sz);
+            dm.insert_file(dm.tail_addr(), tail.id, tail.sz - space_sz);
 
             ++curr_block;
         }
