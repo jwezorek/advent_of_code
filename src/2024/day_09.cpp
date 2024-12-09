@@ -6,6 +6,8 @@
 #include <print>
 #include <ranges>
 #include <map>
+#include <set>
+#include <unordered_set>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -22,16 +24,9 @@ namespace {
         };
     private:
         using map = std::map<int, run>;
-
         map impl_;
 
-        
-
     public:
-
-        disk_map() {
-
-        }
 
         void insert_file(int addr, int id, int sz) {
             if (addr > last_addr()) {
@@ -86,6 +81,10 @@ namespace {
             return impl_.end();
         }
 
+        void erase(iterator i) {
+            impl_.erase(i);
+        }
+
         auto pop_back() {
             auto back_iter = std::prev(impl_.end());
             auto back = back_iter->second;
@@ -93,7 +92,7 @@ namespace {
             return back;
         }
        
-        int next_space_sz(iterator i) {
+        int next_space_sz(iterator i) const {
             if (i == impl_.end() || i == std::prev(impl_.end())) {
                 return -1;
             }
@@ -167,7 +166,33 @@ namespace {
     }
 
     void pack_by_file(disk_map& dm) {
-        //TODO
+        std::unordered_set<int> packed;
+        auto iter = std::prev(dm.end());
+        while (iter != dm.begin()) {
+
+            if (packed.contains(iter->second.id)) {
+                iter = std::prev(iter);
+                continue;
+            }
+            packed.insert(iter->second.id);
+
+            bool moved = false;
+            for (auto space_iter = dm.begin(); space_iter != iter; ++space_iter) {
+                if (dm.next_space_sz(space_iter) >= iter->second.sz) {
+                    auto file = iter->second;
+                    auto new_iter = std::prev(iter);
+                    dm.erase(iter);
+                    iter = new_iter;
+                    dm.insert_file(space_iter->first + space_iter->second.sz, file.id, file.sz);
+                    moved = true;
+                    break;
+                }
+            }
+
+            if (!moved) {
+                iter = std::prev(iter);
+            }
+        }
     }
 
     int64_t packed_by_block_checksum(const disk_map& inp) {
