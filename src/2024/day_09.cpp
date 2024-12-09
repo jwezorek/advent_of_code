@@ -6,8 +6,8 @@
 #include <print>
 #include <ranges>
 #include <map>
-#include <set>
 #include <unordered_set>
+#include <list>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -24,40 +24,46 @@ namespace {
             int sz;
         };
 
-        using iterator = std::map<int, file>::const_iterator;
+        struct node {
+            int addr;
+            file file;
+        };
+
+        using iterator = std::list<node>::const_iterator;
 
     private:
 
-        std::map<int, file> impl_;
+        std::list<node> impl_;
 
     public:
 
-        void insert_file(int addr, int id, int sz) {
-            if (addr >= tail_addr()) {
-                impl_[addr] = { id, sz };
+        void insert_at_end(int space, int id, int sz) {
+            auto addr = tail_addr() + space;
+            impl_.emplace_back(addr, file{ id,sz });
+        }
+
+        void insert(iterator prev, int id, int sz) {
+            if (prev == impl_.end()) {
+                impl_.emplace_back(tail_addr(), file{ id,sz });
                 return;
             }
 
-            if (impl_.contains(addr)) {
-                throw std::runtime_error("bad insert: front collision");
-            }
-
-            auto iter = std::prev(impl_.lower_bound(addr));
-            if (next_space_sz(iter) < sz) {
+            if (next_space_sz(prev) < sz) {
                 throw std::runtime_error("bad insert: back collision");
             }
 
-            impl_[addr] = { id,sz };
+            int addr = prev->addr + prev->file.sz;
+            impl_.insert(std::next(prev), { addr, file{ id,sz } });
         }
 
         int tail_addr() {
 
             if (impl_.empty()) {
-                return -1;
+                return 0;
             }
 
             auto last = std::prev(impl_.end());
-            return last->first + last->second.sz;
+            return last->addr + last->file.sz;
         }
 
         iterator begin() const {
@@ -74,7 +80,7 @@ namespace {
 
         auto pop_back() {
             auto back_iter = std::prev(impl_.end());
-            auto back = back_iter->second;
+            auto back = back_iter->file;
             impl_.erase(back_iter);
             return back;
         }
@@ -83,20 +89,20 @@ namespace {
             if (i == impl_.end() || i == std::prev(impl_.end())) {
                 return -1;
             }
-            int end_of_file = i->first + i->second.sz;
-            return std::next(i)->first - end_of_file;
+            int end_of_file = i->addr + i->file.sz;
+            return std::next(i)->addr - end_of_file;
         }
 
         int64_t check_sum() const {
             return r::fold_left(
                 impl_ | rv::transform(
-                    [](auto&& run)->int64_t {
+                    [](auto&& node)->int64_t {
                         return r::fold_left(
                             rv::iota(
-                                run.first, run.first + run.second.sz
+                                node.addr, node.addr + node.file.sz
                             ) | rv::transform(
                                 [&](int addr)->int64_t {
-                                    return addr * run.second.id;
+                                    return addr * node.file.id;
                                 }
                             ),
                             0ll,
@@ -115,15 +121,13 @@ namespace {
         disk_map dm;
 
         int inital_file_sz = str.front() - '0';
-        dm.insert_file(0, 0, inital_file_sz);
-        int addr = inital_file_sz;
+        dm.insert_at_end(0, 0, inital_file_sz);
+        auto iter = dm.begin();
         int id = 1;
         for (const auto& pair : str | rv::drop(1) | rv::chunk(2)) {
             int space_sz = pair[0] - '0';
             int run_sz = pair[1] - '0';
-            addr += space_sz;
-            dm.insert_file(addr, id++, run_sz);
-            addr += run_sz;
+            dm.insert_at_end(space_sz, id++, run_sz);
         }
 
         return dm;
@@ -132,21 +136,19 @@ namespace {
     void pack_by_block(disk_map& dm) {
         auto curr_block = dm.begin();
         while (dm.next_space_sz(curr_block) != -1) {
-
             auto space_sz = dm.next_space_sz(curr_block);
             if (space_sz == 0) {
                 ++curr_block;
                 continue;
             }
-            auto space_addr = curr_block->first + curr_block->second.sz;
             auto tail = dm.pop_back();
             if (tail.sz <= space_sz) {
-                dm.insert_file(space_addr, tail.id, tail.sz);
+                dm.insert(curr_block, tail.id, tail.sz);
                 ++curr_block;
                 continue;
             }
-            dm.insert_file(space_addr, tail.id, space_sz);
-            dm.insert_file(dm.tail_addr(), tail.id, tail.sz - space_sz);
+            dm.insert(curr_block, tail.id, space_sz);
+            dm.insert_at_end(0, tail.id, tail.sz - space_sz);
 
             ++curr_block;
         }
@@ -157,20 +159,20 @@ namespace {
         auto iter = std::prev(dm.end());
         while (iter != dm.begin()) {
 
-            if (packed.contains(iter->second.id)) {
+            if (packed.contains(iter->file.id)) {
                 iter = std::prev(iter);
                 continue;
             }
-            packed.insert(iter->second.id);
+            packed.insert(iter->file.id);
 
             bool moved = false;
             for (auto space_iter = dm.begin(); space_iter != iter; ++space_iter) {
-                if (dm.next_space_sz(space_iter) >= iter->second.sz) {
-                    auto file = iter->second;
+                if (dm.next_space_sz(space_iter) >= iter->file.sz) {
+                    auto file = iter->file;
                     auto new_iter = std::prev(iter);
                     dm.erase(iter);
                     iter = new_iter;
-                    dm.insert_file(space_iter->first + space_iter->second.sz, file.id, file.sz);
+                    dm.insert(space_iter, file.id, file.sz);
                     moved = true;
                     break;
                 }
