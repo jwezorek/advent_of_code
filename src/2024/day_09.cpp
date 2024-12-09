@@ -18,13 +18,18 @@ namespace {
 
     class disk_map {
     public:
-        struct run {
+
+        struct file {
             int id;
             int sz;
         };
+
+        using iterator = std::map<int, file>::const_iterator;
+        using value_type = std::map<int, file>::value_type;
+
     private:
-        using map = std::map<int, run>;
-        map impl_;
+
+        std::map<int, file> impl_;
 
     public:
 
@@ -33,13 +38,16 @@ namespace {
                 impl_[addr] = { id, sz };
                 return;
             }
+
             if (impl_.contains(addr)) {
                 throw std::runtime_error("bad insert: front collision");
             }
+
             auto iter = std::prev(impl_.lower_bound(addr));
             if (next_space_sz(iter) < sz) {
                 throw std::runtime_error("bad insert: back collision");
             }
+
             impl_[addr] = { id,sz };
         }
 
@@ -52,26 +60,6 @@ namespace {
             auto last = std::prev(impl_.end());
             return last->first + last->second.sz - 1;
         }
-
-        std::string debug() const {
-            std::stringstream ss;
-            int i = 0;
-
-            for (const auto& [addr, run] : impl_) {
-                for (int j = i; j < addr; ++j) {
-                    ss << '.';
-                }
-                for (int j = 0; j < run.sz; ++j) {
-                    ss << run.id;
-                }
-                i = addr + run.sz;
-            }
-
-            return ss.str();
-        }
-
-        using iterator = map::const_iterator;
-        using value_type = map::value_type;
 
         iterator begin() const {
             return impl_.begin();
