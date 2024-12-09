@@ -5,7 +5,7 @@
 #include <functional>
 #include <print>
 #include <ranges>
-#include <unordered_set>
+#include <map>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -13,121 +13,187 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
-    struct run {
-        int64_t id;
-        int64_t sz;
-    };
 
-    struct disk_map {
-        std::vector<run> blocks;
-        std::vector<int64_t> spaces;
+    class disk_map {
+    public:
+        struct run {
+            int id;
+            int sz;
+        };
+    private:
+        using map = std::map<int, run>;
+
+        map impl_;
+
+        
+
+    public:
+
+        disk_map() {
+
+        }
+
+        void insert_file(int addr, int id, int sz) {
+            if (addr > last_addr()) {
+                impl_[addr] = { id, sz };
+                return;
+            }
+            if (impl_.contains(addr)) {
+                throw std::runtime_error("bad insert: front collision");
+            }
+            auto iter = std::prev(impl_.lower_bound(addr));
+            if (next_space_sz(iter) < sz) {
+                throw std::runtime_error("bad insert: back collision");
+            }
+            impl_[addr] = { id,sz };
+        }
+
+        int last_addr() {
+
+            if (impl_.empty()) {
+                return -1;
+            }
+
+            auto last = std::prev(impl_.end());
+            return last->first + last->second.sz - 1;
+        }
+
+        std::string debug() const {
+            std::stringstream ss;
+            int i = 0;
+
+            for (const auto& [addr, run] : impl_) {
+                for (int j = i; j < addr; ++j) {
+                    ss << '.';
+                }
+                for (int j = 0; j < run.sz; ++j) {
+                    ss << run.id;
+                }
+                i = addr + run.sz;
+            }
+
+            return ss.str();
+        }
+
+        using iterator = map::const_iterator;
+        using value_type = map::value_type;
+
+        iterator begin() const {
+            return impl_.begin();
+        }
+
+        iterator end() const {
+            return impl_.end();
+        }
+
+        auto pop_back() {
+            auto back_iter = std::prev(impl_.end());
+            auto back = back_iter->second;
+            impl_.erase(back_iter);
+            return back;
+        }
+       
+        int next_space_sz(iterator i) {
+            if (i == impl_.end() || i == std::prev(impl_.end())) {
+                return -1;
+            }
+            int end_of_block = i->first + i->second.sz;
+            return std::next(i)->first - end_of_block;
+        }
+
+        int64_t check_sum() const {
+            return r::fold_left(
+                impl_ | rv::transform(
+                    [](auto&& run)->int64_t {
+                        return r::fold_left(
+                            rv::iota(
+                                run.first, run.first + run.second.sz
+                            ) | rv::transform(
+                                [&](int addr)->int64_t {
+                                    return addr * run.second.id;
+                                }
+                            ),
+                            0ll,
+                            std::plus<int64_t>()
+                        );
+                    }
+                ),
+                0ll,
+                std::plus<int64_t>()
+            );
+        }
     };
 
     disk_map parse_input(const std::string& inp) {
-        auto nums = inp | rv::filter(
-                [](char ch) {
-                    return ch >= '0' && ch <= '9';
-                }
-            ) | rv::transform(
-                [](char ch)->int64_t {
-                    return ch - '0';
-                }
-            ) | r::to<std::vector>();
+        auto str = (inp.back() == '\n') ? inp.substr(0, inp.size() - 1) : inp;
+        disk_map dm;
 
-        disk_map output;
-        output.blocks.emplace_back(0, nums.front());
-        for (auto [id, rng] : rv::enumerate(nums | rv::drop(1) | rv::chunk(2)) ) {
-            output.spaces.emplace_back(rng[0]);
-            output.blocks.emplace_back(id + 1, rng[1]);
+        int inital_block_sz = str.front() - '0';
+        dm.insert_file(0, 0, inital_block_sz);
+        int addr = inital_block_sz;
+        int id = 1;
+        for (const auto& pair : str | rv::drop(1) | rv::chunk(2)) {
+            int space_sz = pair[0] - '0';
+            int run_sz = pair[1] - '0';
+            addr += space_sz;
+            dm.insert_file(addr, id++, run_sz);
+            addr += run_sz;
         }
 
-        return output;
+        return dm;
     }
 
-    void pack_next_space(std::vector<run>& packing, int64_t space_sz, disk_map& dm) {
-        while (space_sz > 0) {
-            if (dm.blocks.back().sz > space_sz) {
-                auto& curr_block = dm.blocks.back();
-                curr_block.sz -= space_sz;
-                packing.emplace_back(curr_block.id, space_sz);
-                space_sz = 0;
-            } else {
-                auto& curr_block = dm.blocks.back();
-                packing.emplace_back(curr_block);
-                space_sz -= curr_block.sz;
-                dm.blocks.pop_back();
-                dm.spaces.pop_back();
+    void pack_by_block(disk_map& dm) {
+        auto curr_block = dm.begin();
+        while (dm.next_space_sz(curr_block) != -1) {
+
+            auto space_sz = dm.next_space_sz(curr_block);
+            if (space_sz == 0) {
+                ++curr_block;
+                continue;
             }
-        }
-    }
-
-    disk_map pack_disk_map(const disk_map& inp) {
-        auto dm = inp;
-        std::vector<run> packing;
-
-        int64_t curr_block = 0;
-        int64_t curr_space = 0;
-
-        while (curr_space < dm.spaces.size()) {
-            packing.push_back(dm.blocks[curr_block++]);
-            pack_next_space(packing, dm.spaces[curr_space++], dm);
-        }
-
-        if (curr_block != dm.blocks.size() - 1) {
-            throw std::runtime_error("this shouldnt happen");
-        }
-
-        if (packing.back().id == dm.blocks.back().id) {
-            packing.back().sz += dm.blocks.back().sz;
-        } else {
-            packing.emplace_back(dm.blocks.back());
-        }
-
-        return {
-            packing,
-            std::vector<int64_t>(packing.size() - 1, 0)
-        };
-    }
-
-    void print_packing(const std::vector<run>& runs) {
-        for (const auto& run : runs) {
-            auto str = std::string(run.sz, run.id + '0');
-            std::print("{}", str);
-        }
-        std::println("");
-    }
-
-    int64_t check_sum(const disk_map& dm) {
-        int64_t chksum = 0;
-        int64_t i = 0;
-        auto space_iter = dm.spaces.begin();
-        for (const auto& run : dm.blocks) {
-            for (int64_t j = 0; j < run.sz; ++j) {
-                chksum += i++ * run.id;
+            auto space_addr = curr_block->first + curr_block->second.sz;
+            auto tail = dm.pop_back();
+            if (tail.sz <= space_sz) {
+                dm.insert_file(space_addr, tail.id, tail.sz);
+                ++curr_block;
+                continue;
             }
-            if (space_iter != dm.spaces.end()) {
-                i += *(space_iter++);
-            }
+            dm.insert_file(space_addr, tail.id, space_sz);
+            dm.insert_file(dm.last_addr() + 1, tail.id, tail.sz - space_sz);
+
+            ++curr_block;
         }
-        return chksum;
     }
 
-    disk_map pack_disk_map_whole_files(const disk_map& inp) {
+    void pack_by_file(disk_map& dm) {
+        //TODO
+    }
 
+    int64_t packed_by_block_checksum(const disk_map& inp) {
+        auto disk_map = inp;
+        pack_by_block(disk_map);
+        return disk_map.check_sum();
+    }
 
+    int64_t packed_by_file_checksum(const disk_map& inp) {
+        auto disk_map = inp;
+        pack_by_file(disk_map);
+        return disk_map.check_sum();
     }
 }
 
 void aoc::y2024::day_09(const std::string& title) {
 
-    auto inp = parse_input(
+    auto disk_map = parse_input(
         aoc::file_to_string(
             aoc::input_path(2024, 9)
         )
     ); 
 
     std::println("--- Day 9: {} ---", title);
-    std::println("  part 1: {}", check_sum(pack_disk_map(inp)) );
-    std::println("  part 2: {}", 0);
+
+    std::println("  part 1: {}", packed_by_block_checksum(disk_map) );
+    std::println("  part 2: {}", packed_by_file_checksum(disk_map));
     
 }
