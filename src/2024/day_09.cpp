@@ -114,9 +114,9 @@ namespace {
         auto str = (inp.back() == '\n') ? inp.substr(0, inp.size() - 1) : inp;
         disk_map dm;
 
-        int inital_block_sz = str.front() - '0';
-        dm.insert_file(0, 0, inital_block_sz);
-        int addr = inital_block_sz;
+        int inital_file_sz = str.front() - '0';
+        dm.insert_file(0, 0, inital_file_sz);
+        int addr = inital_file_sz;
         int id = 1;
         for (const auto& pair : str | rv::drop(1) | rv::chunk(2)) {
             int space_sz = pair[0] - '0';
