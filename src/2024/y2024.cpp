@@ -15,7 +15,7 @@ void aoc::y2024::do_advent_of_code(int day) {
         []() { day_07( "Bridge Repair" ); },
         []() { day_08( "Resonant Collinearity" ); },
         []() { day_09( "Disk Fragmenter" ); },
-        []() { day_10( "<unknown>" ); },
+        []() { day_10( "Hoof It" ); },
         []() { day_11( "<unknown>" ); },
         []() { day_12( "<unknown>" ); },
         []() { day_13( "<unknown>" ); },
