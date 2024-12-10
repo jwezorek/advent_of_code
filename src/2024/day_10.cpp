@@ -20,16 +20,21 @@ namespace {
     using grid = std::vector<std::vector<int>>;
     using point_set = aoc::vec2_set<int>;
 
+    std::tuple<int, int> bounds(const grid& g) {
+        return {
+            static_cast<int>(g.front().size()),
+            static_cast<int>(g.size())
+        };
+    }
+
     auto neighbors(const point& loc, const grid& g) {
 
-        int cols = static_cast<int>(g.front().size());
-        int rows = static_cast<int>(g.size());
-
+        auto [cols, rows] = bounds(g);
         static const std::array<point, 4> deltas = { {
             {0,-1}, {1, 0}, {0,1}, {-1,0}
         }};
-
         int altitude = g[loc.y][loc.x];
+
         return deltas | rv::transform(
             [loc](auto&& delta) {
                 return loc + delta;
@@ -44,7 +49,6 @@ namespace {
                 }
                 return true;
             }
-
         );
     }
 
@@ -80,19 +84,25 @@ namespace {
     }
 
     int score_all_trailheads(const grid& g, bool all_paths) {
-        int cols = static_cast<int>(g.front().size());
-        int rows = static_cast<int>(g.size());
 
-        int score = 0;
-        for (auto [x, y] : rv::cartesian_product(rv::iota(0,cols), rv::iota(0,rows))) {
-            if (g[y][x] == 0) {
-                score += score_trailhead({ x,y }, g, all_paths);
-            }
-        }
+        auto [cols, rows] = bounds(g);
+        return r::fold_left(
+            rv::cartesian_product(
+                rv::iota(0, cols), rv::iota(0, rows)
+            ) | rv::transform(
+                [&](auto&& loc) {
+                    auto [x, y] = loc;
+                    if (g[y][x] != 0) {
+                        return 0;
+                    }
+                    return score_trailhead({ x,y }, g, all_paths);
+                }
+            ),
+            0,
+            std::plus<>()
+        );
 
-        return score;
     }
-
 }
 
 void aoc::y2024::day_10(const std::string& title) {
