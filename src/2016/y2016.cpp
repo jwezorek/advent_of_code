@@ -8,7 +8,7 @@ void aoc::y2016::do_advent_of_code(int day) {
     const static auto advent_of_code_2016 = std::vector<std::function<void()>>{
         []() { day_01( "No Time for a Taxicab" ); },
         []() { day_02( "Bathroom Security" ); },
-        []() { day_03( "<unknown>" ); },
+        []() { day_03( "Squares With Three Sides" ); },
         []() { day_04( "<unknown>" ); },
         []() { day_05( "<unknown>" ); },
         []() { day_06( "<unknown>" ); },
