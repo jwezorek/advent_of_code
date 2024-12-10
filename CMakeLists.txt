@@ -234,6 +234,33 @@ add_executable(advent_of_code
     src/2017/knot_hash.cpp
     src/2017/y2017.cpp
 
+    src/2016/day_01.cpp
+    src/2016/day_02.cpp
+    src/2016/day_03.cpp
+    src/2016/day_04.cpp
+    src/2016/day_05.cpp
+    src/2016/day_06.cpp
+    src/2016/day_07.cpp
+    src/2016/day_08.cpp
+    src/2016/day_09.cpp
+    src/2016/day_10.cpp
+    src/2016/day_11.cpp
+    src/2016/day_12.cpp
+    src/2016/day_13.cpp
+    src/2016/day_14.cpp
+    src/2016/day_15.cpp
+    src/2016/day_16.cpp
+    src/2016/day_17.cpp
+    src/2016/day_18.cpp
+    src/2016/day_19.cpp
+    src/2016/day_20.cpp
+    src/2016/day_21.cpp
+    src/2016/day_22.cpp
+    src/2016/day_23.cpp
+    src/2016/day_24.cpp
+    src/2016/day_25.cpp
+    src/2016/y2016.cpp
+
     src/2015/day_01.cpp
     src/2015/day_02.cpp
     src/2015/day_03.cpp

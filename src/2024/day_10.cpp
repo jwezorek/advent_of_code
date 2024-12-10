@@ -36,20 +36,20 @@ namespace {
         int altitude = g[loc.y][loc.x];
 
         return deltas | rv::transform(
-            [loc](auto&& delta) {
-                return loc + delta;
-            }
-        ) | rv::filter(
-            [&g, altitude, cols, rows](auto&& pt) {
-                if (pt.x < 0 || pt.y < 0 || pt.x >= cols || pt.y >= rows) {
-                    return false;
+                [loc](auto&& delta) {
+                    return loc + delta;
                 }
-                if (g[pt.y][pt.x] != altitude + 1) {
-                    return false;
+            ) | rv::filter(
+                [&g, altitude, cols, rows](auto&& pt) {
+                    if (pt.x < 0 || pt.y < 0 || pt.x >= cols || pt.y >= rows) {
+                        return false;
+                    }
+                    if (g[pt.y][pt.x] != altitude + 1) {
+                        return false;
+                    }
+                    return true;
                 }
-                return true;
-            }
-        );
+            );
     }
 
     int score_trailhead(const point& trailhead, const grid& g, bool all_paths) {
