@@ -30,15 +30,13 @@ namespace {
 
     std::vector<std::vector<int>> vertical_groups_of_3(
             const std::vector<std::vector<int>>& inp) {
-        auto flatten = rv::iota(0, 3) | rv::transform(
+        return rv::iota(0, 3) | rv::transform(
             [&](int n) {
                 return nth_column(inp, n);
             }
-        ) | rv::join | r::to<std::vector>();
-
-        return flatten | rv::chunk(3) | rv::transform(
-            [](auto rng)->std::vector<int> {
-                return { rng[0],rng[1],rng[2] };
+        ) | rv::join | rv::chunk(3) | rv::transform(
+            [](auto triple)->std::vector<int> {
+                return triple | r::to<std::vector>();
             }
         ) | r::to<std::vector>();
     }
