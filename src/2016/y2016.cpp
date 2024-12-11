@@ -12,7 +12,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_04( "Security Through Obscurity" ); },
         []() { day_05( "How About a Nice Game of Chess?" ); },
         []() { day_06( "Signals and Noise" ); },
-        []() { day_07( "<unknown>" ); },
+        []() { day_07( "Internet Protocol Version 7" ); },
         []() { day_08( "<unknown>" ); },
         []() { day_09( "<unknown>" ); },
         []() { day_10( "<unknown>" ); },
