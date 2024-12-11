@@ -19,7 +19,7 @@ namespace {
         if (str.size() % 2 == 1) {
             return {};
         }
-        int half = static_cast<int>(str.size()) / 2;
+        auto half = str.size() / 2;
         return std::array{
             aoc::string_to_int64(str.substr(0,half)),
             aoc::string_to_int64(str.substr(half,half))
@@ -41,26 +41,24 @@ namespace {
     int64_t count_after_n_blinks(const std::vector<int64_t>& inp, int n) {
         using count_map = std::unordered_map<int64_t, int64_t>;
 
-        count_map num_to_count;
+        count_map count_per_stone_number;
         for (auto v : inp) {
-            ++num_to_count[v];
+            ++count_per_stone_number[v];
         }
 
         for (int i = 0; i < n; ++i) {
-            count_map next_num_to_count;
-            for (auto [num, count] : num_to_count) {
-                auto next = do_one_blink(num);
-                for (auto new_num : next | rv::filter([](auto v) {return v >= 0; })) {
-                    next_num_to_count[new_num] += count;
+            count_map next_count_map;
+            for (auto [stone_num, count] : count_per_stone_number) {
+                auto next_nums = do_one_blink(stone_num);
+                for (auto next_num : next_nums | rv::filter([](auto v) {return v >= 0; })) {
+                    next_count_map[next_num] += count;
                 }
             }
-            num_to_count = std::move(next_num_to_count);
+            count_per_stone_number = std::move(next_count_map);
         }
 
-        return r::fold_left(
-            num_to_count | rv::values,
-            0ll,
-            std::plus<int64_t>()
+        return r::fold_left( 
+            count_per_stone_number | rv::values, 0ll, std::plus<int64_t>() 
         );
     }
 }
