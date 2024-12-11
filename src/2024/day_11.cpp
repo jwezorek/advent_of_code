@@ -40,11 +40,11 @@ namespace {
 
     int64_t count_after_n_blinks(const std::vector<int64_t>& inp, int n) {
         using count_map = std::unordered_map<int64_t, int64_t>;
-        count_map num_to_count = inp | rv::transform(
-                [](int64_t num)->count_map::value_type {
-                    return { num, 1 };
-                }
-            ) | r::to<count_map>();
+
+        count_map num_to_count;
+        for (auto v : inp) {
+            ++num_to_count[v];
+        }
 
         for (int i = 0; i < n; ++i) {
             count_map next_num_to_count;
@@ -54,7 +54,7 @@ namespace {
                     next_num_to_count[new_num] += count;
                 }
             }
-            num_to_count = next_num_to_count;
+            num_to_count = std::move(next_num_to_count);
         }
 
         return r::fold_left(
