@@ -53,28 +53,15 @@ namespace {
         if (!parse_char(s, '(')) {
             return {};
         }
-
-        auto characters = parse_int(s);
-        if (!characters) {
-            s = old_state;
-            return {};
-        }
-
-        if (!parse_char(s, 'x')) {
-            s = old_state;
-            return {};
-        }
-
-        auto repetitions = parse_int(s);
-        if (!repetitions) {
-            s = old_state;
-            return {};
-        }
         
-        if (!parse_char(s, ')')) {
-            s = old_state;
-            return {};
-        }
+        // the input does not have any malformed markers
+        // so dont bother validating any of this...
+
+        auto characters = parse_int(s); 
+        ++s.pos;
+
+        auto repetitions = parse_int(s); 
+        ++s.pos;
 
         auto start = s.pos;
         s.pos += *characters;
