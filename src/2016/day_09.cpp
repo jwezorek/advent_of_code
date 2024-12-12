@@ -13,9 +13,10 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
+
     struct marker {
-        int characters;
-        int repititions;
+        std::string str;
+        int reps;
     };
 
     struct state {
@@ -38,81 +39,84 @@ namespace {
         return {};
     }
 
-    std::optional<marker> parse_marker(state& s) {
-        auto old_state = s;
-        if (s.pos == s.end || *s.pos != '(') {
-            return {};
+    bool parse_char(state& s, char ch) {
+        if (s.pos == s.end || *s.pos != ch) {
+            return false;
         }
         ++s.pos;
+        return true;
+    }
+
+    std::optional<marker> parse_marker(state& s) {
+        auto old_state = s;
+
+        if (!parse_char(s, '(')) {
+            return {};
+        }
+
         auto characters = parse_int(s);
         if (!characters) {
             s = old_state;
             return {};
         }
-        if (s.pos == s.end || *s.pos != 'x') {
+
+        if (!parse_char(s, 'x')) {
             s = old_state;
             return {};
         }
-        ++s.pos;
+
         auto repetitions = parse_int(s);
         if (!repetitions) {
             s = old_state;
             return {};
         }
-        if (s.pos == s.end || *s.pos != ')') {
+        
+        if (!parse_char(s, ')')) {
             s = old_state;
             return {};
         }
-        ++s.pos;
 
-        return marker{ *characters, *repetitions };
+        auto start = s.pos;
+        s.pos += *characters;
+
+        return marker{ std::string(start, s.pos), *repetitions };
     }
 
-    bool has_markers(const std::string& str) {
-        state s{ str.begin(), str.end() };
+    int64_t size_expanded(const std::string& compressed, bool recursive);
+
+    int64_t size_expanded_marker(const marker& marker, bool recursive) {
+        return (!recursive) ?
+            marker.reps * marker.str.size() :
+            marker.reps * size_expanded(marker.str, true);
+    }
+
+    int64_t size_expanded(const std::string& compressed, bool recursive) {
+
+        std::vector<marker> markers;
+        state s{ compressed.begin(), compressed.end() };
+        int64_t count = 0;
+
         while (s.pos != s.end) {
             auto marker = parse_marker(s);
             if (marker) {
-                return true;
-            }
-            s.pos++;
-        }
-        return false;
-    }
-
-    std::string expand(const std::string&, bool);
-
-    std::string expand_marker(state& s, const marker& marker, bool recursive) {
-
-        if (!recursive) {
-            auto start = s.pos;
-            s.pos = s.pos + marker.characters;
-            auto block = std::string(start, s.pos);
-            return rv::repeat(block) | rv::take(
-                    marker.repititions
-                ) | rv::join | r::to<std::string>();
-        }
-
-        auto expanded = expand_marker(s, marker, false);
-        if (!has_markers(expanded)) {
-            return expanded;
-        } 
-
-        return expand(expanded, true);
-    }
-
-    std::string expand(const std::string& compressed, bool recursive_markers) {
-        state s{ compressed.begin(), compressed.end()};
-        std::stringstream uncompressed;
-        while (s.pos != s.end) {
-            auto marker = parse_marker(s);
-            if (marker) {
-                uncompressed << expand_marker(s, *marker, recursive_markers);
+                markers.push_back(*marker);
                 continue;
             }
-            uncompressed << *(s.pos++);
+            count++;
+            if (s.pos != s.end) {
+                s.pos++;
+            }
         }
-        return uncompressed.str();
+
+        return count + r::fold_left(
+            markers | rv::transform(
+                [recursive](auto&& m) {
+                    return size_expanded_marker(m, recursive);
+                }
+            ),
+            0ll,
+            std::plus<int64_t>()
+        );
     }
 }
 
@@ -124,11 +128,8 @@ void aoc::y2016::day_09(const std::string& title) {
         )
     );
 
-    //std::string test = "A(2x2)BCD(2x2)EFG";
-   // std::println("{} => {}", test, expand(test));
-
     std::println("--- Day 9: {} ---", title);
-    std::println("  part 1: {}", expand(inp, false).size() );
-    //std::println("  part 2: {}", expand(inp, true).size() );
+    std::println("  part 1: {}", size_expanded(inp, false) );
+    std::println("  part 2: {}", size_expanded(inp, true));
     
 }
