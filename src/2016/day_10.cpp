@@ -69,7 +69,6 @@ namespace {
 
     int do_part_1(const std::vector<inp_instruction>& init, const std::vector<instruction>& instrs) {
         std::vector<std::vector<int>> bots(instrs.size());
-        std::unordered_map<int, int> output;
 
         for (const auto& inp : init) {
             bots[inp.to_bot].push_back(inp.value);
@@ -93,15 +92,10 @@ namespace {
                     const auto& instr = instrs[i];
                     if (instr.low_to_bot) {
                         bots[instr.low].push_back(low);
-                    } else {
-                        output[instr.low] = low;
                     }
 
                     if (instr.high_to_bot) {
                         bots[instr.high].push_back(high);
-                    }
-                    else {
-                        output[instr.high] = high;
                     }
                 }
             }
@@ -119,12 +113,10 @@ namespace {
             bots[inp.to_bot].push_back(inp.value);
         }
 
-        bool done = true;
-        do {
+        while (!output.contains(0) || !output.contains(1) || !output.contains(2)) {
             for (size_t i = 0; i < bots.size(); ++i) {
                 auto& bot = bots[i];
                 if (bot.size() == 2) {
-                    done = false;
 
                     r::sort(bot);
                     auto low = bot.front();
@@ -134,21 +126,18 @@ namespace {
                     const auto& instr = instrs[i];
                     if (instr.low_to_bot) {
                         bots[instr.low].push_back(low);
-                    }
-                    else {
+                    } else {
                         output[instr.low] = low;
                     }
 
                     if (instr.high_to_bot) {
                         bots[instr.high].push_back(high);
-                    }
-                    else {
+                    } else {
                         output[instr.high] = high;
                     }
                 }
             }
-
-        } while (!done);
+        }
 
         return output[0] * output[1] * output[2];
     }
@@ -164,6 +153,6 @@ void aoc::y2016::day_10(const std::string& title) {
 
     std::println("--- Day 10: {} ---", title);
     std::println("  part 1: {}", do_part_1(init, instrs) );
-    //std::println("  part 2: {}", do_part_2(init, instrs) );
+    std::println("  part 2: {}", do_part_2(init, instrs) );
     
 }
