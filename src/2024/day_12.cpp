@@ -66,47 +66,31 @@ namespace {
             return has_neighbor(g, loc, wd, hgt, plant);
         };
 
-        auto nw = neighbor(loc + point{ -1,-1 });
-        auto north = neighbor(loc + point{ 0,-1 });
-        auto ne = neighbor(loc + point{ 1,-1 });
-        auto east = neighbor(loc + point{ 1,0 });
-        auto se = neighbor(loc + point{1, 1});
-        auto south = neighbor(loc + point{ 0,1 });
-        auto sw = neighbor(loc + point{ -1, 1 });
-        auto west = neighbor(loc + point{ -1,0 });
-
         int corners = 0;
+        const std::array<bool, 8> dir = { {
+            neighbor(loc + point{ 0, -1 }), //north
+            neighbor(loc + point{ 1, -1 }), //ne  
+            neighbor(loc + point{ 1,  0 }), //east 
+            neighbor(loc + point{ 1,  1 }), //se 
+            neighbor(loc + point{ 0,  1 }), //south
+            neighbor(loc + point{ -1, 1 }), //sw 
+            neighbor(loc + point{ -1, 0 }), //west 
+            neighbor(loc + point{ -1,-1 })  //nw 
+        } };
 
-        if (!west && !north) {
-            ++corners;
+        // convex corners...
+        for (int i = 0; i < 4; ++i) {
+            auto dir_1 = dir[i * 2];
+            auto dir_2 = dir[(i * 2 + 2) % 8];
+            corners += (!dir_1 && !dir_2) ? 1 : 0;
         }
 
-        if (!north && !east) {
-            ++corners;
-        }
-
-        if (!east && !south) {
-            ++corners;
-        }
-
-        if (!south && !west) {
-            ++corners;
-        }
-
-        if (north && east && !ne) {
-            ++corners;
-        }
-
-        if (east && south && !se) {
-            ++corners;
-        }
-
-        if (south && west && !sw) {
-            ++corners;
-        }
-
-        if (west && north && !nw) {
-            ++corners;
+        // concave corners...
+        for (int i = 0; i < 4; ++i) {
+            auto dir_1 = dir[i * 2];
+            auto dir_2 = dir[(i * 2 + 1) % 8];
+            auto dir_3 = dir[(i * 2 + 2) % 8];
+            corners += (dir_1 && !dir_2 && dir_3) ? 1 : 0;
         }
 
         return corners;
@@ -165,7 +149,7 @@ void aoc::y2024::day_12(const std::string& title) {
         ); 
 
     std::println("--- Day 12: {} ---", title);
-    std::println("  part 1: {}", cost_of_fence( garden, perimeter_of_plot) );
-    std::println("  part 2: {}", cost_of_fence( garden, num_sides_per_plot) );
+    std::println("  part 1: {}", cost_of_fence( garden, perimeter_of_plot ));
+    std::println("  part 2: {}", cost_of_fence( garden, num_sides_per_plot ));
     
 }
