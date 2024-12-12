@@ -36,7 +36,7 @@ namespace {
         return true;
     }
 
-    std::vector<point> neighbors(const grid& g, const point& pt, char plant) {
+    std::vector<point> neighbors(const grid& g, const point& pt) {
         auto [wd, hgt] = bounds(g);
         const static std::array<point, 4> deltas = {{
             {0,-1},{1,0},{0,1},{-1,0}
@@ -47,7 +47,7 @@ namespace {
             }
         ) | rv::filter(
             [&](auto&& loc) {
-                return has_neighbor(g, loc, wd, hgt, plant);
+                return has_neighbor(g, loc, wd, hgt, g[pt.y][pt.x]);
             }
         ) | r::to<std::vector>();
     }
@@ -55,27 +55,26 @@ namespace {
     using perimeter_fn = std::function<int(const grid& g, const point& loc)>;
 
     int perimeter_of_plot(const grid& g, const point& loc) {
-        char plant = g[loc.y][loc.x];
-        return  4 - neighbors(g,loc,plant).size();
+        return  4 - neighbors(g,loc).size();
     }
 
     int num_sides_per_plot(const grid& g, const point& loc) {
         char plant = g[loc.y][loc.x];
         auto [wd, hgt] = bounds(g);
-        auto neighbor = [&](const point& loc)->bool {
-            return has_neighbor(g, loc, wd, hgt, plant);
+        auto has_neighbor = [&](const point& loc)->bool {
+            return ::has_neighbor(g, loc, wd, hgt, plant);
         };
 
         int corners = 0;
         const std::array<bool, 8> dir = { {
-            neighbor(loc + point{ 0, -1 }), //north
-            neighbor(loc + point{ 1, -1 }), //ne  
-            neighbor(loc + point{ 1,  0 }), //east 
-            neighbor(loc + point{ 1,  1 }), //se 
-            neighbor(loc + point{ 0,  1 }), //south
-            neighbor(loc + point{ -1, 1 }), //sw 
-            neighbor(loc + point{ -1, 0 }), //west 
-            neighbor(loc + point{ -1,-1 })  //nw 
+            has_neighbor(loc + point{ 0, -1 }), //north
+            has_neighbor(loc + point{ 1, -1 }), //ne  
+            has_neighbor(loc + point{ 1,  0 }), //east 
+            has_neighbor(loc + point{ 1,  1 }), //se 
+            has_neighbor(loc + point{ 0,  1 }), //south
+            has_neighbor(loc + point{ -1, 1 }), //sw 
+            has_neighbor(loc + point{ -1, 0 }), //west 
+            has_neighbor(loc + point{ -1,-1 })  //nw 
         } };
 
         // convex corners...
@@ -104,7 +103,6 @@ namespace {
         
         int area = 0;
         int perimeter = 0;
-        char plant = g[start.y][start.x];
 
         while (!stack.empty()) {
             auto curr = stack.top();
@@ -116,7 +114,7 @@ namespace {
             visited.insert(curr);
             area++;
 
-            auto adj = neighbors(g, curr, plant);
+            auto adj = neighbors(g, curr);
             perimeter += calc_perim(g, curr);
 
             for (auto neighbor : adj) {
