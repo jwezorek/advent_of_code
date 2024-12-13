@@ -1,4 +1,3 @@
-
 #include "../util/util.h"
 #include "../util/vec2.h"
 #include "y2024.h"
@@ -15,7 +14,7 @@ namespace rv = std::ranges::views;
 
 namespace {
 
-    using vec2 = aoc::vec2<int>;
+    using vec2 = aoc::vec2<int64_t>;
 
     struct claw_game {
         vec2 button_a;
@@ -26,7 +25,7 @@ namespace {
     claw_game parse_claw_game(const std::vector<std::string>& inp) {
         auto vals = inp | rv::transform(
                 [](auto&& str) {
-                    return aoc::extract_numbers(str);
+                    return aoc::extract_numbers_int64(str);
                 }
             ) | r::to<std::vector>();
         return {
@@ -36,29 +35,48 @@ namespace {
         };
     }
 
-    std::optional<int> fewest_tokens_to_win(const claw_game& cg) {
-        std::optional<int> fewest_tokens = {};
-        for (auto [a_clicks, b_clicks] : rv::cartesian_product(rv::iota(0, 100), rv::iota(0, 100))) {
-            auto loc = a_clicks * cg.button_a + b_clicks * cg.button_b;
-            if (loc == cg.prize) {
-                int tokens = 3 * a_clicks + b_clicks;
-                if (!fewest_tokens || tokens < *fewest_tokens) {
-                    fewest_tokens = tokens;
-                }
-            }
+    std::optional<int64_t> cost_in_tokens(const claw_game& cg) {
+        auto ax = cg.button_a.x;
+        auto ay = cg.button_a.y;
+        auto bx = cg.button_b.x;
+        auto by = cg.button_b.y;
+        auto px = cg.prize.x;
+        auto py = cg.prize.y;
+
+        auto a_numer = (by * px - bx * py);
+        auto a_denom = (ay * bx - ax * by);
+        auto b_numer = (-(ay * px) + ax * py);
+        auto b_denom = (ay * bx - ax * by);
+
+        if (a_numer % a_denom != 0 || b_numer % b_denom != 0) {
+            return {};
         }
-        return fewest_tokens;
+
+        auto a = -(a_numer / a_denom);
+        auto b = -(b_numer / b_denom);
+
+        return 3 * a + b;
     }
 
-    int do_part_1(const std::vector<claw_game>& games) {
-        int fewest_tokens = 0;
+    int64_t cost_for_all_wins(const std::vector<claw_game>& games) {
+        int64_t fewest_tokens = 0;
         for (const auto& game : games) {
-            auto toks = fewest_tokens_to_win(game);
+            auto toks = cost_in_tokens(game);
             if (toks) {
                 fewest_tokens += *toks;
             }
         }
         return fewest_tokens;
+    }
+
+    std::vector<claw_game> make_part2_input(const std::vector<claw_game> games) {
+        return games | rv::transform(
+            [](auto&& cg)->claw_game {
+                auto new_cg = cg;
+                new_cg.prize = new_cg.prize + vec2{ 10000000000000, 10000000000000 };
+                return new_cg;
+            }
+        ) | r::to<std::vector>();
     }
 }
 
@@ -73,7 +91,7 @@ void aoc::y2024::day_13(const std::string& title) {
         ) | r::to<std::vector>();
  
     std::println("--- Day 13: {} ---", title);
-    std::println("  part 1: {}", do_part_1(inp) );
-    std::println("  part 2: {}", 0);
+    std::println("  part 1: {}", cost_for_all_wins(inp) );
+    std::println("  part 2: {}", cost_for_all_wins(make_part2_input(inp)) );
     
 }
