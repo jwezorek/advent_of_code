@@ -15,7 +15,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_07( "Internet Protocol Version 7" ); },
         []() { day_08( "Two-Factor Authentication" ); },
         []() { day_09( "Explosives in Cyberspace" ); },
-        []() { day_10( "<unknown>" ); },
+        []() { day_10( "Balance Bots" ); },
         []() { day_11( "<unknown>" ); },
         []() { day_12( "<unknown>" ); },
         []() { day_13( "<unknown>" ); },
