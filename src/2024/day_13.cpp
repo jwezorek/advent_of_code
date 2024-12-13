@@ -57,16 +57,18 @@ namespace {
 
         return 3 * a + b;
     }
-
+    
     int64_t cost_for_all_wins(const std::vector<claw_game>& games) {
-        int64_t fewest_tokens = 0;
-        for (const auto& game : games) {
-            auto toks = cost_in_tokens(game);
-            if (toks) {
-                fewest_tokens += *toks;
-            }
-        }
-        return fewest_tokens;
+        return r::fold_left(
+            games | rv::transform(
+                [](auto&& game)->int64_t {
+                    auto cost = cost_in_tokens(game);
+                    return cost ? *cost : 0ll;
+                }
+            ),
+            0ll,
+            std::plus<int64_t>()
+        );
     }
 
     std::vector<claw_game> make_part2_input(const std::vector<claw_game> games) {
