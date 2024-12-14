@@ -58,17 +58,38 @@ namespace {
             }
         }
 
-        std::string to_string() const {
+        std::string tokenize() const {
+
+            std::unordered_map<char, char> tbl;
+            char canon_char = 'a';
             std::stringstream ss;
-            for (const auto& [floor, floor_items] : rv::enumerate(items_on_floor)) {
-                if (floor == curr_floor) {
-                    ss << "[*] : ";
-                } else {
-                    ss << "[ ] : ";
+            ss << curr_floor;
+            for (const auto& itm_set : items_on_floor) {
+                auto itms = itm_set | r::to<std::vector>();
+                r::sort(itms,
+                    [](auto&& lhs, auto&& rhs) {
+                        if (lhs.label < rhs.label) {
+                            return true;
+                        }
+                        if (lhs.label > rhs.label) {
+                            return false;
+                        }
+                        return lhs.type < rhs.type;
+                    }
+                );
+                for (auto item : itms) {
+                    char lbl;
+                    if (!tbl.contains(item.label)) {
+                        lbl = canon_char++;
+                        tbl[item.label] = lbl;
+                    }
+                    else {
+                        lbl = tbl[item.label];
+                    }
+                    ss << lbl;
+                    ss << ((item.type == generator) ? 'G' : 'M');
                 }
-                auto itms = floor_items | rv::transform(item_to_string) | r::to<std::vector>();
-                r::sort(itms);
-                ss << (itms | rv::join_with(' ') | r::to<std::string>()) << "\n";
+                ss << '|';
             }
             return ss.str();
         }
@@ -102,8 +123,91 @@ namespace {
         return floors;
     }
 
+    std::vector<state> next_state_candidates(const state& s) {
+        std::vector<state> candidates;
+        const auto& items = s.items_on_floor[s.curr_floor];
+        std::vector<int> destinations = std::array<int, 2>{{
+                s.curr_floor + 1, s.curr_floor - 1
+            }} | rv::filter(
+                [](int floor) {
+                    return floor >= 0 && floor < 4;
+                }
+            ) | r::to<std::vector>();
+
+        auto v = aoc::two_combinations(items | r::to<std::vector>()) | r::to<std::vector>();
+        for (auto [dest, itms] : rv::cartesian_product(destinations, v)) {
+            std::array<item, 2> carried_pair = { {
+                std::get<0>(itms), get<1>(itms)
+            } };
+            auto new_state = s;
+            new_state.curr_floor = dest;
+            for (const auto& carried : carried_pair) {
+                new_state.items_on_floor[s.curr_floor].erase(carried);
+                new_state.items_on_floor[dest].insert(carried);
+            }
+            candidates.push_back(new_state);
+        }
+
+        for (auto [dest, carried] : rv::cartesian_product(destinations, items)) {
+            auto new_state = s;
+            new_state.curr_floor = dest;
+            new_state.items_on_floor[s.curr_floor].erase(carried);
+            new_state.items_on_floor[dest].insert(carried);
+            candidates.push_back(new_state);
+        }
+
+        return candidates;
+    }
+
+    bool is_legal_floor(const item_set& floor) {
+
+        auto unpaired_generators = r::count_if(
+            floor | rv::filter(
+                [](auto&& i) {
+                    return i.type == generator;
+                }
+            ),
+            [&](auto&& g) {
+                return !floor.contains({ g.label, microchip });
+            }
+        );
+
+        if (unpaired_generators == 0) {
+            return true;
+        }
+
+        auto unpaired_microchips = r::count_if(
+            floor | rv::filter(
+                [](auto&& i) {
+                    return i.type == microchip;
+                }
+            ),
+            [&](auto&& g) {
+                return !floor.contains({ g.label, generator });
+            }
+        );
+
+        return unpaired_microchips == 0;
+    }
+
+    bool is_legal_state(const state& s) {
+
+        bool good = true;
+        for (const auto& floor : s.items_on_floor) {
+            if (!is_legal_floor(floor)) {
+                good = false;
+                break;
+            }
+        }
+
+        return good;
+    }
+
     std::vector<state> next_states(const state& s) {
-        return {};
+        auto candidates = next_state_candidates(s);
+        return candidates | rv::filter(
+                is_legal_state
+            ) | r::to<std::vector>();
     }
 
     bool is_complete(const state& s) {
@@ -125,7 +229,7 @@ namespace {
                 return moves;
             }
 
-            auto state_key = curr_state.to_string();
+            auto state_key = curr_state.tokenize();
             if (visited.contains(state_key)) {
                 continue;
             }
@@ -140,6 +244,17 @@ namespace {
         return -1;
     }
 
+    state make_part2_input(const state& s) {
+        auto part_2 = s;
+
+        part_2.items_on_floor[0].emplace( 'E', microchip );
+        part_2.items_on_floor[0].emplace( 'E', generator );
+        part_2.items_on_floor[0].emplace( 'D', microchip );
+        part_2.items_on_floor[0].emplace( 'D', generator );
+
+        return part_2;
+    }
+
 }
 
 void aoc::y2016::day_11(const std::string& title) {
@@ -152,10 +267,8 @@ void aoc::y2016::day_11(const std::string& title) {
         )
     );
 
-    std::println("{}", start_state.to_string());
-
     std::println("--- Day 11: {} ---", title);
-    std::println("  part 1: {}", 0);
-    std::println("  part 2: {}", 0);
+    std::println("  part 1: {}", minimum_moves(start_state));
+    std::println("  part 2: {}", minimum_moves(make_part2_input(start_state)));
     
 }
