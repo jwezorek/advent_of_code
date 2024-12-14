@@ -79,7 +79,7 @@ namespace {
     int size_of_connected_component(
             vec_set& visited, const vec_set& robots, const vec& start) {
         const static std::array<vec, 8> deltas = { {
-            {0,-1},{1,-1},{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1}
+            {0,-1},{1,0},{0,1},{-1,0}
         }};
         std::stack<vec> stack;
         int size = 0;
