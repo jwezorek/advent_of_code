@@ -20,7 +20,7 @@ void aoc::y2024::do_advent_of_code(int day) {
         []() { day_12( "Garden Groups" ); },
         []() { day_13( "Claw Contraption" ); },
         []() { day_14( "Restroom Redoubt" ); },
-        []() { day_15( "<unknown>" ); },
+        []() { day_15( "Warehouse Woes" ); },
         []() { day_16( "<unknown>" ); },
         []() { day_17( "<unknown>" ); },
         []() { day_18( "<unknown>" ); },
