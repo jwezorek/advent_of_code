@@ -17,6 +17,9 @@ namespace {
     using point = aoc::vec2<int>;
     using point_set = aoc::vec2_set<int>;
 
+    template<typename T>
+    using point_map = aoc::vec2_map<int, T>;
+
     struct warehouse {
         bool double_wide;
         point pos;
@@ -51,31 +54,107 @@ namespace {
         };
     }
 
-    bool can_move_crate(warehouse& wh, const point& loc, const point& dir) {
-        auto new_loc = loc + dir;
-        if (wh.walls.contains(new_loc)) {
-            return false;
-        } else if (wh.crates.contains(new_loc)) {
-            return can_move_crate(wh, new_loc, dir);
+    std::optional<point> crate_at_location(warehouse& wh, const point& loc) {
+        if (wh.crates.contains(loc)) {
+            return loc;
         }
-        return true;
+        if (wh.double_wide) {
+            auto crate_loc = loc + point{ -1,0 };
+            if (wh.crates.contains(crate_loc)) {
+                return crate_loc;
+            }
+        }
+        return {};
     }
 
-    bool move_crate(warehouse& wh, const point& loc, const point& dir) {
+    bool is_wall(warehouse& wh, const point& loc) {
+        if (wh.walls.contains(loc)) {
+            return true;
+        }
+        if (wh.double_wide) {
+            if (wh.walls.contains(loc + point{ -1,0 })) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-        if (!can_move_crate(wh, loc, dir)) {
+    std::vector<point> adjacent_to_crate(
+            const warehouse& wh, const point& crate, const point& dir) {
+
+        std::vector<point> adj;
+        if (!wh.double_wide) {
+            adj.push_back(crate + dir);
+            return adj;
+        }
+
+        const static point_map<std::vector<point>> adj_deltas = {
+            {{0,-1},{{-1,-1},{0,-1},{1,-1}}},
+            {{1,0},{{2,0}}},
+            {{0,1},{{-1,1},{0,1},{1,1}}},
+            {{-1,0},{{-2,0}}}
+        };
+
+        return adj_deltas.at(dir) | rv::transform(
+                [&](auto&& delta) {
+                    return delta + crate;
+                }
+            ) | r::to<std::vector>();
+    }
+
+    std::vector<point> crates_adjacent_to_crate(
+            const warehouse& wh, const point& crate, const point& dir) {
+
+        return adjacent_to_crate(wh, crate, dir) | rv::filter(
+                [&](auto&& adj) {
+                    return wh.crates.contains(adj);
+                }
+            ) | r::to<std::vector>();
+    }
+
+    bool is_wall_adjacent_to_crate(
+            const warehouse& wh, const point& crate, const point& dir) {
+        return r::count_if(
+            adjacent_to_crate(wh, crate, dir),
+            [&](auto&& loc) {
+                return wh.walls.contains(loc);
+            }
+        ) > 0;
+    }
+
+    bool can_move_crate(warehouse& wh, const point& crate, const point& dir) {
+        if (is_wall_adjacent_to_crate(wh, crate, dir)) {
             return false;
         }
 
-        auto new_loc = loc + dir;
-        if (wh.crates.contains(new_loc)) {
-            if (!move_crate(wh, new_loc, dir)) {
+        auto crates = crates_adjacent_to_crate(wh, crate, dir);
+        for (const auto& crate : crates) {
+            if (!can_move_crate(wh, crate, dir)) {
                 return false;
             }
         }
 
-        wh.crates.erase(loc);
+        return true;
+    }
+
+    void move_crate_aux(warehouse& wh, const point& crate, const point& dir) {
+        auto crates = crates_adjacent_to_crate(wh, crate, dir);
+        for (const auto& crate : crates) {
+            move_crate_aux(wh, crate, dir);
+        }
+        auto new_loc = crate + dir;
+        wh.crates.erase(crate);
         wh.crates.insert(new_loc);
+    }
+
+    bool move_crate(warehouse& wh, const point& crate, const point& dir) {
+
+        if (!can_move_crate(wh, crate, dir)) {
+            return false;
+        }
+
+        move_crate_aux(wh, crate, dir);
+        return true;
     }
 
     void run_instruction(warehouse& wh, char instr) {
@@ -87,47 +166,16 @@ namespace {
         };
         auto dir = instr_to_dir.at(instr);
         auto new_pos = wh.pos + dir;
-        if (wh.walls.contains(new_pos)) {
+        if (is_wall(wh, new_pos)) {
             return;
         }
-        if (wh.crates.contains(new_pos)) {
-            if (!move_crate(wh, new_pos, dir)) {
+        auto blocking_crate = crate_at_location(wh, new_pos);
+        if (blocking_crate) {
+            if (!move_crate(wh, *blocking_crate, dir)) {
                 return;
             }
         }
         wh.pos = new_pos;
-    }
-
-    void display(const warehouse& wh) {
-        int wd = r::max(wh.walls | rv::transform([](auto&& p) {return p.x; })) + 1;
-        int hgt = r::max(wh.walls | rv::transform([](auto&& p) {return p.y; })) + 1;
-
-        if (wh.double_wide) {
-            wd++;
-        }
-
-        auto grid = std::vector<std::string>( hgt, std::string(wd, '.') );
-        for (int y = 0; y < hgt; ++y) {
-            for (int x = 0; x < wd; ++x) {
-                auto loc = point{ x,y };
-                std::string tile;
-                if (wh.pos == loc) {
-                    tile = "@";
-                } else if (wh.walls.contains(loc)) {
-                    tile = (wh.double_wide) ? "##" : "#";
-                }
-                else if (wh.crates.contains(loc)) {
-                    tile = (wh.double_wide) ? "[]" : "O";
-                }
-                for (int i = 0; i < tile.size(); ++i) {
-                    grid[y][x + i] = tile[i];
-                }
-            }
-        }
-
-        for (const auto& row : grid) {
-            std::println("{}", row);
-        }
     }
 
     warehouse run_instructions(const warehouse& inp, const std::string& instrs) {
@@ -169,16 +217,22 @@ void aoc::y2024::day_15(const std::string& title) {
 
     auto [warehouse, instrs] = parse_input(
         aoc::file_to_string_vector(
-            aoc::input_path(2024, 15, "test2")
+            aoc::input_path(2024, 15)
         )
     );
 
-    display(warehouse);
-    std::println("");
-    display(make_double_wide(warehouse));
-
     std::println("--- Day 15: {} ---", title);
-    std::println("  part 1: {}", score(run_instructions(warehouse, instrs)));
-    std::println("  part 2: {}", 0);
+
+    std::println("  part 1: {}", 
+        score(
+            run_instructions(warehouse, instrs)
+        )
+    );
+
+    std::println("  part 2: {}", 
+        score(
+            run_instructions(make_double_wide(warehouse), instrs)
+        )
+    );
     
 }
