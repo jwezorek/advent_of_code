@@ -170,45 +170,15 @@ namespace {
         );
     }
 
-    std::vector<point> reverse_neighbor_locs(const state& v) {
-        auto left = turn(v.dir, true);
-        auto right = turn(v.dir, false);
-        std::vector<point> adj = {
-            v.loc + dir_to_delta(left),
-            v.loc + dir_to_delta(reverse(v.dir)),
-            v.loc + dir_to_delta(right)
-        };
-        return adj;
-    }
-
-    std::vector<state> reverse_neighbors(
-            const maze& maze, const state& v, shortest_path_map dist_map) {
-        int dist_of_v = dist_map[v];
-        std::vector<state> neighbors;
-
-        for (auto u_loc : reverse_neighbor_locs(v)) {
-            for (auto dir : directions()) {
-                state u = { u_loc, dir };
-                for (auto [test, d] : neighboring_states(u, maze)) {
-                    if (test == v && dist_of_v == dist_map[u] + d) {
-                        neighbors.push_back(u);
-                    }
-                }
-            }
-        }
-
-        return neighbors;
-    }
-
     int locations_on_shortest_paths(const maze& maze) {
         auto dist_map = dijkstra_shortest_path(maze);
         int short_path_len = shortest_path_len(maze);
         std::queue<state> queue;
         auto intial_states = dist_map | rv::filter(
-                [&](auto&& pair) {
-                    return pair.first.loc == maze.end && pair.second == short_path_len;
-                }
-            ) | rv::keys;
+            [&](auto&& pair) {
+                return pair.first.loc == maze.end && pair.second == short_path_len;
+            }
+        ) | rv::keys;
         for (auto init : intial_states) {
             queue.push(init);
         }
@@ -221,9 +191,31 @@ namespace {
                 continue;
             }
             visited.insert(curr_state);
-            auto neighbors = reverse_neighbors(maze, curr_state, dist_map);
-            for (const auto& adj : neighbors) {
-                queue.push(adj);
+
+            for (auto dir : directions()) {
+                auto prev = curr_state.loc + dir_to_delta(dir);
+                if (maze.walls.contains(prev)) {
+                    continue;
+                }
+                auto preds = directions() | rv::transform(
+                        [&](auto d)->state {
+                            return { prev, d };
+                        }
+                    ) | rv::filter(
+                        [&](const state& u) {
+                            if (!dist_map.contains(u)) {
+                                return false;
+                            }
+                            int dist_from_u_to_v = 1 + 1000 * rotations(u.dir, curr_state.dir);
+                            return dist_map.contains(u) &&
+                                dist_map[u] + dist_from_u_to_v == dist_map[curr_state];
+                        }
+                    );
+                for (auto pred : preds) {
+                    if (dist_map[pred] +  dist_map[curr_state]) {
+                        queue.push(pred);
+                    }
+                };
             }
         }
 
@@ -236,6 +228,7 @@ namespace {
 
         return static_cast<int>(shortest_path_locs.size());
     }
+
 }
 
 void aoc::y2024::day_16(const std::string& title) {
