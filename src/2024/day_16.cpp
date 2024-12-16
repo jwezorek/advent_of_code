@@ -212,9 +212,7 @@ namespace {
                         }
                     );
                 for (auto pred : preds) {
-                    if (dist_map[pred] +  dist_map[curr_state]) {
-                        queue.push(pred);
-                    }
+                    queue.push(pred);
                 };
             }
         }
