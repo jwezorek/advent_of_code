@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
+#include <queue>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -61,7 +62,7 @@ namespace {
             return seed;
         }
     };
-
+    using state_set = std::unordered_set<state, state_hash>;
     using shortest_path_map = std::unordered_map<state, int, state_hash>;
 
     auto directions() {
@@ -85,6 +86,11 @@ namespace {
         return static_cast<direction>((index + 4) % 4);
     }
 
+    direction reverse(direction dir) {
+        int index = static_cast<int>(dir) + 2;
+        return static_cast<direction>(index % 4);
+    }
+
     maze parse_input(const std::vector<std::string>& inp) {
         maze maze;
         int wd = static_cast<int>(inp[0].size());
@@ -104,7 +110,6 @@ namespace {
         return maze;
     }
 
-    
     std::vector<std::tuple<state, int>> neighboring_states(const state& u, const maze& maze) {
         auto left = turn(u.dir, true);
         auto right = turn(u.dir, false);
@@ -164,6 +169,73 @@ namespace {
             )
         );
     }
+
+    std::vector<point> reverse_neighbor_locs(const state& v) {
+        auto left = turn(v.dir, true);
+        auto right = turn(v.dir, false);
+        std::vector<point> adj = {
+            v.loc + dir_to_delta(left),
+            v.loc + dir_to_delta(reverse(v.dir)),
+            v.loc + dir_to_delta(right)
+        };
+        return adj;
+    }
+
+    std::vector<state> reverse_neighbors(
+            const maze& maze, const state& v, shortest_path_map dist_map) {
+        int dist_of_v = dist_map[v];
+        std::vector<state> neighbors;
+
+        for (auto u_loc : reverse_neighbor_locs(v)) {
+            for (auto dir : directions()) {
+                state u = { u_loc, dir };
+                for (auto [test, d] : neighboring_states(u, maze)) {
+                    if (test == v && dist_of_v == dist_map[u] + d) {
+                        neighbors.push_back(u);
+                    }
+                }
+            }
+        }
+
+        return neighbors;
+    }
+
+    int locations_on_shortest_paths(const maze& maze) {
+        auto dist_map = dijkstra_shortest_path(maze);
+        int short_path_len = shortest_path_len(maze);
+        std::queue<state> queue;
+        auto intial_states = dist_map | rv::filter(
+                [&](auto&& pair) {
+                    return pair.first.loc == maze.end && pair.second == short_path_len;
+                }
+            ) | rv::keys;
+        for (auto init : intial_states) {
+            queue.push(init);
+        }
+        state_set visited;
+        while (!queue.empty()) {
+            auto curr_state = queue.front();
+            queue.pop();
+
+            if (visited.contains(curr_state)) {
+                continue;
+            }
+            visited.insert(curr_state);
+            auto neighbors = reverse_neighbors(maze, curr_state, dist_map);
+            for (const auto& adj : neighbors) {
+                queue.push(adj);
+            }
+        }
+
+        auto shortest_path_locs = visited |
+            rv::transform(
+                [](auto&& s) {
+                    return s.loc;
+                }
+            ) | r::to<point_set>();
+
+        return static_cast<int>(shortest_path_locs.size());
+    }
 }
 
 void aoc::y2024::day_16(const std::string& title) {
@@ -176,6 +248,6 @@ void aoc::y2024::day_16(const std::string& title) {
 
     std::println("--- Day 16: {} ---", title);
     std::println("  part 1: {}", shortest_path_len(inp));
-    std::println("  part 2: {}", 0);
+    std::println("  part 2: {}", locations_on_shortest_paths(inp));
     
 }
