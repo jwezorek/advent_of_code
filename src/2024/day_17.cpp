@@ -6,6 +6,8 @@
 #include <print>
 #include <ranges>
 #include <unordered_set>
+#include <unordered_map>
+#include <format>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -14,16 +16,192 @@ namespace rv = std::ranges::views;
 
 namespace {
 
+
+    struct computer_state {
+        std::array<int64_t, 3> registers;
+        std::vector<int> program;
+        std::vector<int> output;
+        int instr_ptr;
+    };
+
+    computer_state parse_input(const std::vector<std::string>& inp) {
+        auto vals = inp | rv::transform(
+            [](auto&& str) {
+                return aoc::extract_numbers_int64(str);
+            }
+        ) | r::to<std::vector>();
+
+        computer_state state;
+        state.registers[0] = vals[0].front();
+        state.registers[1] = vals[1].front();
+        state.registers[2] = vals[2].front();
+        state.program = vals[4] | rv::transform(
+                [](auto v) {return static_cast<int>(v); }
+            ) | r::to<std::vector>();
+        state.instr_ptr = 0;
+
+        return state;
+    }
+
+    enum op {
+        adv = 0,
+        bxl,
+        bst,
+        jnz,
+        bxc,
+        out,
+        bdv,
+        cdv
+    };
+
+    using op_fn = std::function<bool(computer_state&, int64_t)>;
+
+    constexpr int a_reg = 0;
+    constexpr int b_reg = 1;
+    constexpr int c_reg = 2;
+
+    struct op_info {
+        op op;
+        op_fn func;
+        bool literal_operand;
+    };
+
+    bool do_adv(computer_state& state, int64_t operand) {
+        auto numer = state.registers[a_reg];
+        auto denom = static_cast<int64_t>(1) << operand;
+        state.registers[a_reg] = numer / denom;
+        return true;
+    }
+
+    bool do_bxl(computer_state& state, int64_t operand) {
+        state.registers[b_reg] = state.registers[b_reg] ^ operand;
+        return true;
+    }
+
+    bool do_bst(computer_state& state, int64_t operand) {
+        auto test = operand % 8;
+        state.registers[b_reg] = operand % 8;
+        return true;
+    }
+
+    bool do_jnz(computer_state& state, int64_t operand) {
+        if (state.registers[a_reg] == 0) {
+            return true;
+        }
+        state.instr_ptr = operand;
+        return false;
+    }
+
+    bool do_bxc(computer_state& state, int64_t operand) {
+        state.registers[b_reg] = state.registers[b_reg] ^ state.registers[c_reg];
+        return true;
+    }
+    bool do_out(computer_state& state, int64_t operand) {
+        state.output.push_back(operand % 8);
+        return true;
+    }
+    bool do_bdv(computer_state& state, int64_t operand) {
+        auto numer = state.registers[a_reg];
+        auto denom = static_cast<int64_t>(1) << operand;
+        state.registers[b_reg] = numer / denom;
+        return true;
+    }
+    bool do_cdv(computer_state& state, int64_t operand) {
+        auto numer = state.registers[a_reg];
+        auto denom = static_cast<int64_t>(1) << operand;
+        state.registers[c_reg] = numer / denom;
+        return true;
+    }
+
+    int64_t eval_operand(const computer_state& state, int operand, bool literal_operand) {
+        if (literal_operand) {
+            return operand;
+        }
+        if (operand >= 0 && operand <= 3) {
+            return operand;
+        }
+        if (operand == 7) {
+            throw std::runtime_error("this should not happen");
+        }
+        return state.registers[operand - 4];
+    }
+
+    std::string run_computer(const computer_state& inp) {
+        const static std::unordered_map<op, op_info> op_tbl = {
+            {adv, {adv, do_adv, false}},
+            {bxl, {bxl, do_bxl, true}},
+            {bst, {bst, do_bst, false}},
+            {jnz, {jnz, do_jnz, true}},
+            {bxc, {bxc, do_bxc, true}},
+            {out, {out, do_out, false}},
+            {bdv, {bdv, do_bdv, false}},
+            {cdv, {cdv, do_cdv, false}}
+        };
+
+        auto state = inp;
+        while (state.instr_ptr < state.program.size()) {
+            const auto& op_info = op_tbl.at(static_cast<op>(state.program[state.instr_ptr]));
+            auto operand = eval_operand(state, state.program[state.instr_ptr + 1], op_info.literal_operand);
+            auto incr_ptr = op_info.func(state, operand);
+            if (incr_ptr) {
+                state.instr_ptr += 2;
+            }
+        }
+        return state.output | rv::transform(
+                [](auto&& v) { return std::to_string(v); }
+            ) | rv::join_with(',') | r::to<std::string>();
+    }
+
+    int64_t octal_to_decimal(const std::string& str) {
+        return std::stoll(str, nullptr, 8);
+    }
+
+    std::string find_magic_octal(const std::string& magic_octal, const std::vector<int>& target) {
+
+        if (target.empty()) {
+            return magic_octal;
+        }
+
+        int target_digit = target.front();
+        for (int test_digit = 0; test_digit < 8; ++test_digit) {
+            auto magic_digits = magic_octal + std::to_string(test_digit);
+            auto magic = octal_to_decimal(magic_digits);
+            auto val = (magic / (1 << (7 - test_digit))) ^ test_digit;
+            if (val % 8 == target_digit) {
+                std::string new_magic = find_magic_octal(
+                        magic_octal + std::to_string(test_digit),
+                        target | rv::drop(1) | r::to<std::vector>()
+                    );
+                if (new_magic.empty()) {
+                    continue;
+                }
+                return new_magic;
+            }
+        }
+        return "";
+    }
+    
+    int64_t do_part_2(const computer_state& inp) {
+        auto target_digits = inp.program;
+        r::reverse(target_digits);
+
+        std::string magic_number_octal = find_magic_octal("", target_digits);
+
+        return octal_to_decimal(magic_number_octal);
+    }
+
 }
 
 void aoc::y2024::day_17(const std::string& title) {
 
-    auto inp = aoc::file_to_string_vector(
+    auto inp = parse_input(
+        aoc::file_to_string_vector(
             aoc::input_path(2024, 17)
-        ); 
+        )
+    );
 
     std::println("--- Day 17: {} ---", title);
-    std::println("  part 1: {}", 0);
-    std::println("  part 2: {}", 0);
+    std::println("  part 1: {}", run_computer(inp) );
+    std::println("  part 2: {}", do_part_2(inp) );
     
 }

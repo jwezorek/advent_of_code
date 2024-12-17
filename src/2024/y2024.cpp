@@ -22,7 +22,7 @@ void aoc::y2024::do_advent_of_code(int day) {
         []() { day_14( "Restroom Redoubt" ); },
         []() { day_15( "Warehouse Woes" ); },
         []() { day_16( "Reindeer Maze" ); },
-        []() { day_17( "<unknown>" ); },
+        []() { day_17( "Chronospatial Computer" ); },
         []() { day_18( "<unknown>" ); },
         []() { day_19( "<unknown>" ); },
         []() { day_20( "<unknown>" ); },
