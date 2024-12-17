@@ -16,7 +16,6 @@ namespace rv = std::ranges::views;
 
 namespace {
 
-
     struct computer_state {
         std::array<int64_t, 3> registers;
         std::vector<int> program;
@@ -61,7 +60,6 @@ namespace {
     constexpr int c_reg = 2;
 
     struct op_info {
-        op op;
         op_fn func;
         bool literal_operand;
     };
@@ -128,14 +126,14 @@ namespace {
 
     std::string run_computer(const computer_state& inp) {
         const static std::unordered_map<op, op_info> op_tbl = {
-            {adv, {adv, do_adv, false}},
-            {bxl, {bxl, do_bxl, true}},
-            {bst, {bst, do_bst, false}},
-            {jnz, {jnz, do_jnz, true}},
-            {bxc, {bxc, do_bxc, true}},
-            {out, {out, do_out, false}},
-            {bdv, {bdv, do_bdv, false}},
-            {cdv, {cdv, do_cdv, false}}
+            {adv, {do_adv, false}},
+            {bxl, {do_bxl, true}},
+            {bst, {do_bst, false}},
+            {jnz, {do_jnz, true}},
+            {bxc, {do_bxc, true}},
+            {out, {do_out, false}},
+            {bdv, {do_bdv, false}},
+            {cdv, {do_cdv, false}}
         };
 
         auto state = inp;
@@ -164,10 +162,8 @@ namespace {
 
         int target_digit = target.front();
         for (int test_digit = 0; test_digit < 8; ++test_digit) {
-            auto magic_digits = magic_octal + std::to_string(test_digit);
-            auto magic = octal_to_decimal(magic_digits);
-            auto val = (magic / (1 << (7 - test_digit))) ^ test_digit;
-            if (val % 8 == target_digit) {
+            auto magic = octal_to_decimal(magic_octal + std::to_string(test_digit));
+            if (((magic / (1ll << (7 - test_digit))) ^ test_digit) % 8 == target_digit) {
                 std::string new_magic = find_magic_octal(
                         magic_octal + std::to_string(test_digit),
                         target | rv::drop(1) | r::to<std::vector>()
@@ -178,16 +174,14 @@ namespace {
                 return new_magic;
             }
         }
+
         return "";
     }
     
-    int64_t do_part_2(const computer_state& inp) {
-        auto target_digits = inp.program;
+    int64_t find_magic_number(const std::vector<int>& inp) {
+        auto target_digits = inp;
         r::reverse(target_digits);
-
-        std::string magic_number_octal = find_magic_octal("", target_digits);
-
-        return octal_to_decimal(magic_number_octal);
+        return octal_to_decimal(find_magic_octal("", target_digits));
     }
 
 }
@@ -202,6 +196,6 @@ void aoc::y2024::day_17(const std::string& title) {
 
     std::println("--- Day 17: {} ---", title);
     std::println("  part 1: {}", run_computer(inp) );
-    std::println("  part 2: {}", do_part_2(inp) );
+    std::println("  part 2: {}", find_magic_number(inp.program) );
     
 }
