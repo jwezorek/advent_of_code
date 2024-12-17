@@ -63,7 +63,8 @@ namespace {
         }
     };
     using state_set = std::unordered_set<state, state_hash>;
-    using shortest_path_map = std::unordered_map<state, int, state_hash>;
+    using dist_map = std::unordered_map<state, int, state_hash>;
+    using predecessor_map = std::unordered_map<state, std::vector<state>, state_hash>;
 
     auto directions() {
         return rv::iota(0, 4) | rv::transform(
@@ -126,8 +127,9 @@ namespace {
         ) | r::to<std::vector>();
     }
 
-    shortest_path_map dijkstra_shortest_path(const maze& maze) {
-        shortest_path_map dist;
+    std::tuple<dist_map, predecessor_map> dijkstra_shortest_path(const maze& maze) {
+        dist_map dist;
+        predecessor_map pred;
         aoc::priority_queue<state, state_hash> queue;
         state start_state = { maze.start, east };
         queue.insert(start_state, 0);
@@ -140,27 +142,36 @@ namespace {
                 auto dist_through_u_to_v = dist_to_u + dist_to_v;
                 auto curr_dist_to_v = dist.contains(v) ? dist.at(v) : std::numeric_limits<int>::max();
 
-                if (dist_through_u_to_v < curr_dist_to_v) {
+                if (dist_through_u_to_v <= curr_dist_to_v) {
+                    bool new_pred = dist.contains(v) && dist[v] != dist_through_u_to_v;
                     dist[v] = dist_through_u_to_v;
+                    if (new_pred) {
+                        pred[v].clear();
+                    }
+                    pred[v].push_back(u);
+
+                    if (dist_through_u_to_v == curr_dist_to_v) {
+                        continue;
+                    }
+
                     if (queue.contains(v)) {
                         queue.change_priority(v, dist_through_u_to_v);
-                    }
-                    else {
+                    } else {
                         queue.insert(v, dist_through_u_to_v);
                     }
                 }
             }
         }
 
-        return dist;
+        return { std::move(dist), std::move(pred) };
     }
 
-    int shortest_path_len(const maze& maze) {
+    int shortest_path_from_distance_map(const dist_map& dist, const point& end) {
         return r::min(
-            dijkstra_shortest_path(maze) | rv::filter(
+            dist | rv::filter(
                 [&](auto&& pair)->int {
                     const state& s = pair.first;
-                    return (s.loc == maze.end);
+                    return (s.loc ==end);
                 }
             ) | rv::transform(
                 [](auto&& pair) {
@@ -170,18 +181,26 @@ namespace {
         );
     }
 
+    int shortest_path_len(const maze& maze) {
+        auto [dist, _] = dijkstra_shortest_path(maze);
+        return shortest_path_from_distance_map(dist, maze.end);
+    }
+
     int locations_on_shortest_paths(const maze& maze) {
-        auto dist_map = dijkstra_shortest_path(maze);
-        int short_path_len = shortest_path_len(maze);
         std::queue<state> queue;
+
+        auto [dist_map, pred_map] = dijkstra_shortest_path(maze);
+        int short_path_len = shortest_path_from_distance_map(dist_map, maze.end);
         auto intial_states = dist_map | rv::filter(
             [&](auto&& pair) {
                 return pair.first.loc == maze.end && pair.second == short_path_len;
             }
         ) | rv::keys;
+
         for (auto init : intial_states) {
             queue.push(init);
         }
+
         state_set visited;
         while (!queue.empty()) {
             auto curr_state = queue.front();
@@ -192,28 +211,9 @@ namespace {
             }
             visited.insert(curr_state);
 
-            for (auto dir : directions()) {
-                auto prev = curr_state.loc + dir_to_delta(dir);
-                if (maze.walls.contains(prev)) {
-                    continue;
-                }
-                auto preds = directions() | rv::transform(
-                        [&](auto d)->state {
-                            return { prev, d };
-                        }
-                    ) | rv::filter(
-                        [&](const state& u) {
-                            if (!dist_map.contains(u)) {
-                                return false;
-                            }
-                            int dist_from_u_to_v = 1 + 1000 * rotations(u.dir, curr_state.dir);
-                            return dist_map.contains(u) &&
-                                dist_map[u] + dist_from_u_to_v == dist_map[curr_state];
-                        }
-                    );
-                for (auto pred : preds) {
-                    queue.push(pred);
-                };
+            const auto& preds = pred_map[curr_state];
+            for (auto pred : preds) {
+                queue.push(pred);
             }
         }
 
