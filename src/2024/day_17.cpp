@@ -53,7 +53,7 @@ namespace {
         cdv
     };
 
-    using op_fn = std::function<bool(computer_state&, int64_t)>;
+    using op_fn = std::function<void(computer_state&, int64_t)>;
 
     constexpr int a_reg = 0;
     constexpr int b_reg = 1;
@@ -64,51 +64,45 @@ namespace {
         bool literal_operand;
     };
 
-    bool do_adv(computer_state& state, int64_t operand) {
+    void do_adv(computer_state& state, int64_t operand) {
         auto numer = state.registers[a_reg];
         auto denom = static_cast<int64_t>(1) << operand;
         state.registers[a_reg] = numer / denom;
-        return true;
     }
 
-    bool do_bxl(computer_state& state, int64_t operand) {
+    void do_bxl(computer_state& state, int64_t operand) {
         state.registers[b_reg] = state.registers[b_reg] ^ operand;
-        return true;
     }
 
-    bool do_bst(computer_state& state, int64_t operand) {
-        auto test = operand % 8;
+    void do_bst(computer_state& state, int64_t operand) {
         state.registers[b_reg] = operand % 8;
-        return true;
     }
 
-    bool do_jnz(computer_state& state, int64_t operand) {
+    void do_jnz(computer_state& state, int64_t operand) {
         if (state.registers[a_reg] == 0) {
-            return true;
+            return;
         }
         state.instr_ptr = operand;
-        return false;
     }
 
-    bool do_bxc(computer_state& state, int64_t operand) {
+    void do_bxc(computer_state& state, int64_t operand) {
         state.registers[b_reg] = state.registers[b_reg] ^ state.registers[c_reg];
-        return true;
     }
-    bool do_out(computer_state& state, int64_t operand) {
+
+    void do_out(computer_state& state, int64_t operand) {
         state.output.push_back(operand % 8);
-        return true;
     }
-    bool do_bdv(computer_state& state, int64_t operand) {
+
+    void do_bdv(computer_state& state, int64_t operand) {
         auto numer = state.registers[a_reg];
         auto denom = static_cast<int64_t>(1) << operand;
         state.registers[b_reg] = numer / denom;
-        return true;
     }
-    bool do_cdv(computer_state& state, int64_t operand) {
+
+    void do_cdv(computer_state& state, int64_t operand) {
         auto numer = state.registers[a_reg];
         auto denom = static_cast<int64_t>(1) << operand;
         state.registers[c_reg] = numer / denom;
-        return true;
     }
 
     int64_t eval_operand(const computer_state& state, int operand, bool literal_operand) {
@@ -125,6 +119,7 @@ namespace {
     }
 
     std::string run_computer(const computer_state& inp) {
+
         const static std::unordered_map<op, op_info> op_tbl = {
             {adv, {do_adv, false}},
             {bxl, {do_bxl, true}},
@@ -142,11 +137,13 @@ namespace {
             auto operand = eval_operand(
                 state, state.program[state.instr_ptr + 1], op_info.literal_operand
             );
-            auto incr_ptr = op_info.func(state, operand);
-            if (incr_ptr) {
+            auto old_instr_ptr = state.instr_ptr;
+            op_info.func(state, operand);
+            if (old_instr_ptr == state.instr_ptr) {
                 state.instr_ptr += 2;
             }
         }
+
         return state.output | rv::transform(
                 [](auto&& v) { return std::to_string(v); }
             ) | rv::join_with(',') | r::to<std::string>();
