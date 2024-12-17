@@ -139,7 +139,9 @@ namespace {
         auto state = inp;
         while (state.instr_ptr < state.program.size()) {
             const auto& op_info = op_tbl.at(static_cast<op>(state.program[state.instr_ptr]));
-            auto operand = eval_operand(state, state.program[state.instr_ptr + 1], op_info.literal_operand);
+            auto operand = eval_operand(
+                state, state.program[state.instr_ptr + 1], op_info.literal_operand
+            );
             auto incr_ptr = op_info.func(state, operand);
             if (incr_ptr) {
                 state.instr_ptr += 2;
@@ -150,11 +152,11 @@ namespace {
             ) | rv::join_with(',') | r::to<std::string>();
     }
 
-    int64_t octal_to_decimal(const std::string& str) {
+    int64_t oct_to_dec(const std::string& str) {
         return std::stoll(str, nullptr, 8);
     }
 
-    std::string find_magic_octal(const std::string& magic_octal, const std::vector<int>& target) {
+    std::string find_magic(const std::string& magic_octal, const std::vector<int>& target) {
 
         if (target.empty()) {
             return magic_octal;
@@ -162,16 +164,15 @@ namespace {
 
         int target_digit = target.front();
         for (int test_digit = 0; test_digit < 8; ++test_digit) {
-            auto magic = octal_to_decimal(magic_octal + std::to_string(test_digit));
-            if (((magic / (1ll << (7 - test_digit))) ^ test_digit) % 8 == target_digit) {
-                std::string new_magic = find_magic_octal(
-                        magic_octal + std::to_string(test_digit),
-                        target | rv::drop(1) | r::to<std::vector>()
-                    );
-                if (new_magic.empty()) {
+            auto test = magic_octal + std::to_string(test_digit);
+            auto transformed_digit = 
+                ((oct_to_dec(test) / (1 << (7 - test_digit))) ^ test_digit) % 8;
+            if (transformed_digit == target_digit) {
+                auto result = find_magic( test, target | rv::drop(1) | r::to<std::vector>() );
+                if (result.empty()) {
                     continue;
                 }
-                return new_magic;
+                return result;
             }
         }
 
@@ -181,7 +182,7 @@ namespace {
     int64_t find_magic_number(const std::vector<int>& inp) {
         auto target_digits = inp;
         r::reverse(target_digits);
-        return octal_to_decimal(find_magic_octal("", target_digits));
+        return oct_to_dec(find_magic("", target_digits));
     }
 
 }
