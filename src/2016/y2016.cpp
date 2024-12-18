@@ -17,7 +17,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_09( "Explosives in Cyberspace" ); },
         []() { day_10( "Balance Bots" ); },
         []() { day_11( "Radioisotope Thermoelectric Generators" ); },
-        []() { day_12( "<unknown>" ); },
+        []() { day_12( "Leonardo's Monorail" ); },
         []() { day_13( "<unknown>" ); },
         []() { day_14( "<unknown>" ); },
         []() { day_15( "<unknown>" ); },
