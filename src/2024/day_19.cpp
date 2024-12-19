@@ -28,25 +28,25 @@ namespace {
         };
     }
 
-    auto next_states(const strings& words, size_t i, const std::string& str) {
-        return words |
+    auto next_states(const strings& towels, size_t i, const std::string& design) {
+        return towels |
             rv::filter(
-                [&str,i](const auto& word)->bool {
-                    if (word.size() > str.size() - i) {
+                [&design,i](const auto& towel)->bool {
+                    if (towel.size() > design.size() - i) {
                         return false;
                     }
-                    auto beg = str.begin();
-                    std::string_view sv(&*(str.begin() + i), word.size());
-                    return sv == word;
+                    auto beg = design.begin();
+                    std::string_view sv(design.data() + i, towel.size());
+                    return sv == towel;
                 }
             ) | rv::transform(
-                [=](auto&& word)->size_t {
-                    return i + word.size();
+                [=](auto&& towel)->size_t {
+                    return i + towel.size();
                 }
             );
     }
 
-    bool test_design(const strings& words, const std::string& str) {
+    bool is_valid_design(const strings& towels, const std::string& design) {
         std::unordered_set<size_t> visited;
         std::stack<size_t> stack;
         stack.push( 0 );
@@ -55,7 +55,7 @@ namespace {
             auto curr_state = stack.top();
             stack.pop();
 
-            if (curr_state == str.size()) {
+            if (curr_state == design.size()) {
                 return true;
             }
 
@@ -63,7 +63,7 @@ namespace {
                 continue;
             }
             visited.insert(curr_state);
-            for (auto next : next_states(words, curr_state, str)) {
+            for (auto next : next_states(towels, curr_state, design)) {
                 stack.push(next);
             }
         }
@@ -71,27 +71,31 @@ namespace {
         return false;
     }
 
-    uint64_t count_all_paths(std::unordered_map<size_t, uint64_t>& count, const strings& words, size_t i, const std::string& str) {
-        if (i == str.size()) {
+    using count_map = std::unordered_map<size_t, uint64_t>;
+
+    uint64_t count_all_arrangements(
+            count_map& count, const strings& towels, size_t i, const std::string& design) {
+
+        if (i == design.size()) {
             return 1;
         }
 
         uint64_t sum = 0;
-        for (auto j : next_states(words, i, str)) {
+        for (auto j : next_states(towels, i, design)) {
             if (count.contains(j)) {
                 sum += count[j];
                 continue;
             }
-            sum += count_all_paths(count, words, j, str);
+            sum += count_all_arrangements(count, towels, j, design);
         }
 
         count[i] = sum;
         return sum;
     }
 
-    uint64_t count_all_paths(const strings& words, const std::string& str) {
+    uint64_t count_all_arrangements(const strings& words, const std::string& str) {
         std::unordered_map<size_t, uint64_t> count;
-        return count_all_paths(count, words, 0, str);
+        return count_all_arrangements(count, words, 0, str);
     }
 }
 
@@ -109,7 +113,7 @@ void aoc::y2024::day_19(const std::string& title) {
         r::count_if(
             designs,
             [&](const std::string& design) {
-                return test_design(towels, design);
+                return is_valid_design(towels, design);
             }
         )
     );
@@ -118,7 +122,7 @@ void aoc::y2024::day_19(const std::string& title) {
         r::fold_left(
             designs | rv::transform(
                 [&](auto&& design) {
-                    return count_all_paths(towels, design);
+                    return count_all_arrangements(towels, design);
                 }
             ),
             0,
