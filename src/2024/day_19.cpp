@@ -62,6 +62,7 @@ namespace {
                 continue;
             }
             visited.insert(curr_state);
+
             for (auto next : next_states(towels, curr_state, design)) {
                 stack.push(next);
             }
@@ -79,12 +80,12 @@ namespace {
             return 1;
         }
 
+        if (count.contains(i)) {
+            return count[i];
+        }
+
         uint64_t sum = 0;
         for (auto j : next_states(towels, i, design)) {
-            if (count.contains(j)) {
-                sum += count[j];
-                continue;
-            }
             sum += count_all_arrangements(count, towels, j, design);
         }
 
