@@ -24,7 +24,7 @@ void aoc::y2024::do_advent_of_code(int day) {
         []() { day_16( "Reindeer Maze" ); },
         []() { day_17( "Chronospatial Computer" ); },
         []() { day_18( "RAM Run" ); },
-        []() { day_19( "<unknown>" ); },
+        []() { day_19( "Linen Layout" ); },
         []() { day_20( "<unknown>" ); },
         []() { day_21( "<unknown>" ); },
         []() { day_22( "<unknown>" ); },
