@@ -35,7 +35,6 @@ namespace {
                     if (towel.size() > design.size() - i) {
                         return false;
                     }
-                    auto beg = design.begin();
                     std::string_view sv(design.data() + i, towel.size());
                     return sv == towel;
                 }
