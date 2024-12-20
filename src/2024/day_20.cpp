@@ -28,6 +28,7 @@ namespace {
         point start;
         point end;
         point_set walls;
+        point_set empty;
         int wd;
         int hgt;
     };
@@ -41,44 +42,25 @@ namespace {
             auto tile = inp[y][x];
             if (tile == '#') {
                 rt.walls.insert(point{ x,y });
+                continue;
             } else if (tile == 'S') {
                 rt.start = { x,y };
             } else if (tile == 'E') {
                 rt.end = { x,y };
             }
+            rt.empty.insert(point{ x,y });
         }
 
         return rt;
     }
 
     struct cheat {
-        point cheat1;
-        point cheat2;
+        point entrance;
+        point exit;
     };
 
     bool in_bounds(const point& loc, int wd, int hgt) {
         return loc.x >= 0 && loc.y >= 0 && loc.x < wd && loc.y < hgt;
-    }
-
-    std::vector<cheat> find_simple_cheats(const racetrack& rt) {
-        const static std::array<point, 4> deltas = { {
-            {0,-1},{1,0},{0,1},{-1,0}
-        } };
-        std::vector<cheat> cheats;
-        for (const auto& [wall,delta] : rv::cartesian_product(rt.walls, deltas)) {
-            auto src = (-1 * delta) + wall;
-            auto dest = delta + wall;
-
-            if (!in_bounds(src, rt.wd, rt.hgt) || !in_bounds(dest, rt.wd, rt.hgt)) {
-                continue;
-            }
-            
-            if (!rt.walls.contains(src) && !rt.walls.contains(dest)) {
-                cheats.emplace_back(wall, dest);
-            }
-        }
-
-        return cheats;
     }
 
     auto adjacent_locs(const racetrack& rt, const point& loc) {
@@ -127,24 +109,47 @@ namespace {
     }
 
     int shortest_path_with_cheat(const point_map<int>& from_start, const point_map<int>& to_end, cheat cheat) {
-        const static std::array<point, 4> deltas = { { {0,-1},{1,0},{0,1},{-1,0} } };
-        auto entrance_to_cheat = r::min(
-            deltas | rv::transform(
-                [&](auto&& delta) {
-                    return cheat.cheat1 + delta;
+
+        auto from_start_len = from_start.at(cheat.entrance);
+        auto cheat_len = manhattan_distance(cheat.entrance, cheat.exit);
+        auto to_end_len = to_end.at(cheat.exit);
+
+        return  from_start_len + cheat_len + to_end_len;
+    }
+
+    std::vector<point> manhattan_dist_neighborhood(int sz) {
+        return rv::cartesian_product(rv::iota(-sz, sz + 1), rv::iota(-sz, sz + 1)) |
+            rv::transform(
+                [](auto&& tup)->point {
+                    auto [x, y] = tup;
+                    return { x,y };
                 }
             ) | rv::filter(
-                [&](auto&& pt) {
-                    return from_start.contains(pt);
+                [sz](auto&& pt) {
+                    if (pt == point{ 0, 0 }) {
+                        return false;
+                    }
+                    return manhattan_distance({ 0,0 }, pt) <= sz;
                 }
-            ),
-            [&](auto&& lhs, auto&& rhs) {
-                return from_start.at(lhs) < from_start.at(rhs);
+            ) | r::to<std::vector>();
+    }
+
+    std::vector<cheat> find_cheats(const racetrack& rt, int max_dist) {
+        auto neighborhood = manhattan_dist_neighborhood(max_dist);
+
+        return rv::cartesian_product(
+            rt.empty, neighborhood
+        ) | rv::transform(
+            [](auto&& pair)->cheat {
+                const auto& [start_loc, delta] = pair;
+                return { start_loc, start_loc + delta };
             }
-        );
-        return from_start.at(entrance_to_cheat) +
-            manhattan_distance(cheat.cheat1, cheat.cheat2) +
-            to_end.at(cheat.cheat2);
+        ) | rv::filter(
+            [&](auto&& cheat) {
+                return in_bounds(cheat.exit, rt.wd, rt.hgt) &&
+                    rt.empty.contains(cheat.exit);
+            }
+        ) | r::to<std::vector>();
     }
 
     int64_t count_timesaving_cheats(
@@ -165,61 +170,6 @@ namespace {
             }
         );
     }
-
-    std::vector<point> manhattan_dist_neighborhood(int sz) {
-        return rv::cartesian_product(rv::iota(-sz, sz + 1), rv::iota(-sz, sz + 1)) |
-            rv::transform(
-                [](auto&& tup)->point {
-                    auto [x, y] = tup;
-                    return { x,y };
-                }
-            ) | rv::filter(
-                [sz](auto&& pt) {
-                    if (pt == point{0, 0}) {
-                        return false;
-                    }
-                    return manhattan_distance({ 0,0 }, pt) < sz;
-                }
-            ) | r::to<std::vector>();
-    }
-
-    bool adjacent_to_empty_loc(const racetrack& rt, const point& loc) {
-        const static std::array<point, 4> deltas = {{ {0,-1},{1,0},{0,1},{-1,0} }};
-        for (const auto& delta : deltas) {
-            auto adj = loc + delta;
-            if (in_bounds(adj, rt.wd, rt.hgt) && !rt.walls.contains(adj)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    std::vector<cheat> find_cheats(const racetrack& rt, int max_dist) {
-        auto cheat_starts = rt.walls | rv::filter(
-            [&](auto&& wall) {
-                if (wall.x == 0 && wall.y == 0 && wall.x == rt.wd - 1 && wall.y == rt.hgt - 1) {
-                    return false;
-                }
-                return adjacent_to_empty_loc(rt, wall);
-            }
-        ) | r::to<std::vector>();
-
-        auto neighborhood = manhattan_dist_neighborhood(max_dist);
-
-        return rv::cartesian_product(
-            cheat_starts, neighborhood
-        ) | rv::transform(
-            [](auto&& pair)->cheat {
-                const auto& [start_loc, delta] = pair;
-                return { start_loc, start_loc + delta };
-            }
-        ) | rv::filter(
-            [&](auto&& cheat) {
-                return in_bounds(cheat.cheat2, rt.wd, rt.hgt) && 
-                    !rt.walls.contains(cheat.cheat2);
-            }
-        ) | r::to<std::vector>();
-    }
 }
 
 void aoc::y2024::day_20(const std::string& title) {
@@ -231,6 +181,7 @@ void aoc::y2024::day_20(const std::string& title) {
     );
 
     std::println("--- Day 20: {} ---", title);
+
     std::println("  part 1: {}", count_timesaving_cheats(inp, find_cheats(inp, 2), 100) );
     std::println("  part 2: {}", count_timesaving_cheats(inp, find_cheats(inp, 20), 100) );
     
