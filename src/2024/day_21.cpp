@@ -13,6 +13,7 @@
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
 
+/*------------------------------------------------------------------------------------------------*/
 
 namespace {
     using point = aoc::vec2<int>;
@@ -44,57 +45,6 @@ namespace {
         return keyboard.at(loc);
     }
 
-    point key_to_loc(char key, keyboard_layout layout) {
-        static std::unordered_map<char, point> key_to_loc_numeric = {
-            { '7' , {0,0} } , { '8' , {1,0} } ,{ '9' , {2,0} },
-            { '4' , {0,1} } , { '5' , {1,1} } ,{ '6' , {2,1} },
-            { '1' , {0,2} } , { '2' , {1,2} } ,{ '3' , {2,2} },
-            { '0' , {1,3} } , { 'A' , {2,3} }
-        };
-        static std::unordered_map<char, point> key_to_loc_directional = {
-            {'^',{1,0}}, {'A',{2,0}},
-            {'<',{0,1}}, {'v',{1,1}}, {'>', {2,1}}
-        };
-        const auto& keyboard = (layout == numeric) ? key_to_loc_numeric : key_to_loc_directional;
-        return keyboard.at(key);
-    }
-
-    template <typename T> int sgn(T val) {
-        return (T(0) < val) - (val < T(0));
-    }
-
-    auto inclusive_range(int from, int to) {
-        auto delta = sgn(to - from);
-        return rv::iota(
-            0, std::abs(to - from) + 1
-        ) | rv::transform(
-            [delta, from](int i) {
-                return i * delta + from;
-            }
-        );
-    }
-
-    point directional_key_to_delta(char key) {
-        static const std::unordered_map<char, point> delta_tbl = {
-            {'^' , { 0,-1}},
-            {'>' , { 1, 0}},
-            { 'v', { 0, 1}},
-            {'<' , {-1, 0}}
-        };
-        return delta_tbl.at(key);
-    }
-
-    bool can_move(const point& loc, const std::string& seq, keyboard_layout kbd) {
-        auto pt = loc;
-        for (char key : seq) {
-            pt = pt + directional_key_to_delta(key);
-            if (!loc_to_key(pt, kbd)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     std::string shortest_key_seq(char src_key, char dst_key, keyboard_layout kbd) {
 
         static const auto num_index = [](char c) {
@@ -113,6 +63,7 @@ namespace {
                 case 'v': return 3;
                 case '>': return 4;
             };
+            std::unreachable();
         };
 
         if (kbd == numeric) {
@@ -127,7 +78,7 @@ namespace {
                 {">vvvA", "vvA", "vv>A", "vv>>A", "vA", "v>A", "v>>A", "A", ">A", ">>A", ">>vvvA"},
                 {"vvvA", "<vvA", "vvA", "vv>A", "<vA", "vA", "v>A", "<A", "A", ">A", "vvv>A"},
                 {"<vvvA", "<<vvA", "<vvA", "vvA", "<<vA", "<vA", "vA", "<<A", "<A", "A", "vvvA"},
-                {"<A", "^<<A", "<^A", "^A", "^^<<A", "<^^A", "^^A", "^^^<<A", "<^^^A", "^^^A", "A"},
+                {"<A", "^<<A", "<^A", "^A", "^^<<A", "<^^A", "^^A", "^^^<<A", "<^^^A", "^^^A", "A"}
             };
             return numeric_tbl[num_index(src_key)][num_index(dst_key)];
         } else {
@@ -136,7 +87,7 @@ namespace {
                 {"<A", "A", "v<<A", "<vA", "vA"},
                 {">^A", ">>^A", "A", ">A", ">>A"},
                 {"^A", "^>A", "<A", "A", ">A"},
-                {"<^A", "^A", "<<A", "<A", "A"},
+                {"<^A", "^A", "<<A", "<A", "A"}
             };
             return directional_tbl[dir_index(src_key)][dir_index(dst_key)];
         }
@@ -144,7 +95,7 @@ namespace {
 
     using atom_counts = std::unordered_map<std::string, int64_t>;
 
-    atom_counts directional_kbd_seq(const std::string& seq) {
+    atom_counts count_atoms_in_directional_kbd_seq(const std::string& seq) {
         atom_counts counts;
         char key = 'A';
         for (auto next_key : seq) {
@@ -154,7 +105,8 @@ namespace {
         return counts;
     }
 
-    atom_counts numeric_kbd_seq(int num_directional_kbds, const std::string& code) {
+    atom_counts count_atoms_in_numeric_kbd_seq(int num_directional_kbds, const std::string& code) {
+
         if (num_directional_kbds == 1) {
             atom_counts counts;
             char key = 'A';
@@ -164,19 +116,21 @@ namespace {
             }
             return counts;
         }
+
         atom_counts output;
-        auto n_minus_1_counts = numeric_kbd_seq(num_directional_kbds - 1, code);
+        auto n_minus_1_counts = count_atoms_in_numeric_kbd_seq(num_directional_kbds - 1, code);
         for (const auto& [n_minus_1_atom, n_minus_1_count] : n_minus_1_counts) {
-            auto next_level_counts = directional_kbd_seq(n_minus_1_atom);
+            auto next_level_counts = count_atoms_in_directional_kbd_seq(n_minus_1_atom);
             for (const auto [next_level_atom, next_level_count] : next_level_counts) {
                 output[next_level_atom] += next_level_count * n_minus_1_count;
             }
         }
+
         return output;
     }
 
     int64_t fewest_keypresses(int num_directional_kbds, const std::string& code) {
-        auto counts = numeric_kbd_seq(num_directional_kbds, code);
+        auto counts = count_atoms_in_numeric_kbd_seq(num_directional_kbds, code);
         return r::fold_left(
             counts | rv::transform(
                 [](auto&& pair)->int64_t {
