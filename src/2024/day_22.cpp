@@ -52,21 +52,6 @@ namespace {
         );
     }
 
-    std::vector<std::tuple<int8_t,int8_t>> price_and_change_seq(int64_t seed) {
-        auto pseudo_rand_seq = iterate(
-                seed, pseudorandom_step
-            ) | rv::take(2001) | r::to<std::vector>();
-        return pseudo_rand_seq | rv::transform(
-            [](auto num) {
-                return num % 10;
-            }
-        ) | rv::adjacent_transform<2>(
-            [](auto i, auto j)->std::tuple<int8_t, int8_t> {
-                return { j, static_cast<int8_t>(j - i) };
-            }
-        ) | r::to<std::vector>();
-    }
-
     using quad = std::array<int8_t, 4>;
 
     quad make_quad(auto&& rng) {
@@ -89,22 +74,31 @@ namespace {
     template<typename T>
     using quad_map = std::unordered_map<quad, T, hash_quad>;
 
-    quad_map<int64_t> quad_to_earnings(const std::vector<std::tuple<int8_t, int8_t>>& prices_and_changes) {
-        quad_map<int64_t> q_to_e;
-        for (auto seq : prices_and_changes | rv::slide(4)) {
-            auto quad = make_quad(seq | rv::values | r::to<std::vector>());
-            auto price = std::get<0>(seq[3]);
-            if (!q_to_e.contains(quad)) {
-                q_to_e[quad] = price;
+    quad_map<int64_t> price_per_quad(int64_t seed) {
+        auto pseudo_rand_seq = iterate(
+                seed, pseudorandom_step
+            ) | rv::take(2001) | r::to<std::vector>();
+        return pseudo_rand_seq | rv::transform(
+            [](auto num) {
+                return num % 10;
             }
-        }
-        return q_to_e;
+        ) | rv::adjacent_transform<2>(
+            [](auto i, auto j)->std::tuple<int8_t, int8_t> {
+                return { j, static_cast<int8_t>(j - i) };
+            }
+        ) | rv::slide(4) | rv::transform(
+            [](auto&& seq)->quad_map<int64_t>::value_type {
+                auto quad = make_quad(seq | rv::values | r::to<std::vector>());
+                auto price = std::get<0>(seq[3]);
+                return { quad, price };
+            }
+        ) | r::to<quad_map<int64_t>>();
     }
 
     int64_t do_part_2(const std::vector<int64_t>& secrets) {
         quad_map<int64_t> unified;
         for (auto secret : secrets) {
-            auto q_to_e = quad_to_earnings(price_and_change_seq(secret));
+            auto q_to_e = price_per_quad(secret);
             for (const auto& [q, e] : q_to_e) {
                 unified[q] += e;
             }
