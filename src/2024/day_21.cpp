@@ -1,4 +1,3 @@
-
 #include "../util/util.h"
 #include "../util/vec2.h"
 #include "y2024.h"
@@ -14,7 +13,6 @@
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
 
-/*------------------------------------------------------------------------------------------------*/
 
 namespace {
     using point = aoc::vec2<int>;
@@ -46,52 +44,37 @@ namespace {
         return keyboard.at(loc);
     }
 
-    const std::vector<char>& keys(keyboard_layout layout) {
-        const static std::vector<std::vector<char>> layout_keys = {
-            { '0','1','2','3','4','5','6','7','8','9','A' },
-            { '^','<','v','>','A'}
+    point key_to_loc(char key, keyboard_layout layout) {
+        static std::unordered_map<char, point> key_to_loc_numeric = {
+            { '7' , {0,0} } , { '8' , {1,0} } ,{ '9' , {2,0} },
+            { '4' , {0,1} } , { '5' , {1,1} } ,{ '6' , {2,1} },
+            { '1' , {0,2} } , { '2' , {1,2} } ,{ '3' , {2,2} },
+            { '0' , {1,3} } , { 'A' , {2,3} }
         };
-        return layout_keys.at(static_cast<size_t>(layout));
+        static std::unordered_map<char, point> key_to_loc_directional = {
+            {'^',{1,0}}, {'A',{2,0}},
+            {'<',{0,1}}, {'v',{1,1}}, {'>', {2,1}}
+        };
+        const auto& keyboard = (layout == numeric) ? key_to_loc_numeric : key_to_loc_directional;
+        return keyboard.at(key);
     }
 
-    using keyboards = std::vector<keyboard_layout>;
+    template <typename T> int sgn(T val) {
+        return (T(0) < val) - (val < T(0));
+    }
 
-    struct state {
-        std::string typed;
-        std::vector<point> kbd_locs;
-
-        bool operator==(const state& s) const {
-            if (typed != s.typed) {
-                return false;
+    auto inclusive_range(int from, int to) {
+        auto delta = sgn(to - from);
+        return rv::iota(
+            0, std::abs(to - from) + 1
+        ) | rv::transform(
+            [delta, from](int i) {
+                return i * delta + from;
             }
-            for (const auto& [lhs, rhs] : rv::zip(kbd_locs, s.kbd_locs)) {
-                if (lhs != rhs) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    };
+        );
+    }
 
-    struct state_hash {
-        size_t operator()(const state& s) const {
-            size_t seed = 0;
-            boost::hash_combine(seed, s.typed);
-            for (const auto& pt : s.kbd_locs) {
-                boost::hash_combine(seed, pt.x);
-                boost::hash_combine(seed, pt.y);
-            }
-            return seed;
-        }
-    };
-
-    using state_set = std::unordered_set<state, state_hash>;
-
-    std::optional<point> key_to_delta(keyboard_layout layout, char key) {
-        if (key == 'A') {
-            return {};
-        }
-
+    point directional_key_to_delta(char key) {
         static const std::unordered_map<char, point> delta_tbl = {
             {'^' , { 0,-1}},
             {'>' , { 1, 0}},
@@ -100,95 +83,105 @@ namespace {
         };
         return delta_tbl.at(key);
     }
- 
-    std::optional<state> next_state(const keyboards& layouts, const state& s, char key, int level) {
-        if (level == layouts.size() - 1) {
-            auto new_state = s;
-            new_state.typed = s.typed + std::string{ key };
-            return new_state;
+
+    bool can_move(const point& loc, const std::string& seq, keyboard_layout kbd) {
+        auto pt = loc;
+        for (char key : seq) {
+            pt = pt + directional_key_to_delta(key);
+            if (!loc_to_key(pt, kbd)) {
+                return false;
+            }
         }
-        auto delta = key_to_delta(layouts.at(level), key);
-        if (delta) {
-            auto new_pos = s.kbd_locs[level] + *delta;
-            if (loc_to_key(new_pos, layouts.at(level + 1))) {
-                auto new_state = s;
-                new_state.kbd_locs[level] = s.kbd_locs[level] + *delta;
-                return new_state;
-            } 
-            return {};
-        }
-        return next_state(layouts, s, *loc_to_key(s.kbd_locs[level], layouts.at(level + 1)), level + 1);
+        return true;
     }
 
-    bool is_prefix(const std::string& typed, const std::string& code) {
-        if (typed.size() > code.size()) {
-            return false;
+    std::string shortest_key_seq(char src_key, char dst_key, keyboard_layout kbd) {
+
+        static const auto num_index = [](char c) {
+            if (c == 'A') {
+                return 10;
+            } else {
+                return c - '0';
+            }
+        };
+
+        static const auto dir_index = [] (char c) {
+            switch (c) {
+                case '^': return 0;
+                case 'A': return 1;
+                case '<': return 2;
+                case 'v': return 3;
+                case '>': return 4;
+            };
+        };
+
+        if (kbd == numeric) {
+            static const std::string numeric_tbl[11][11] = {
+                {"A", "^<A", "^A", ">^A", "^^<A", "^^A", ">^^A", "^^^<A", "^^^A", ">^^^A", ">A"},
+                {">vA", "A", ">A", ">>A", "^A", "^>A", "^>>A", "^^A", "^^>A", "^^>>A", ">>vA"},
+                {"<vA", "<A", "A", ">A", "<^A", "^A", "^>A", "<^^A", "^^A", "^^>A", "v>A"},
+                {"<vA", "<<A", "<A", "A", "<<^A", "<^A", "^A", "<<^^A", "<^^A", "^^A", "vA"},
+                {">vvA", "vA", "v>A", "v>>A", "A", ">A", ">>A", "^A", "^>A", "^>>A", ">>vvA"},
+                {"vvA", "<vA", "vA", "v>A", "<A", "A", ">A", "<^A", "^A", "^>A", "vv>A"},
+                {"<vvA", "<<vA", "<vA", "vA", "<<A", "<A", "A", "<<^A", "<A", "^A", "vvA"},
+                {">vvvA", "vvA", "vv>A", "vv>>A", "vA", "v>A", "v>>A", "A", ">A", ">>A", ">>vvvA"},
+                {"vvvA", "<vvA", "vvA", "vv>A", "<vA", "vA", "v>A", "<A", "A", ">A", "vvv>A"},
+                {"<vvvA", "<<vvA", "<vvA", "vvA", "<<vA", "<vA", "vA", "<<A", "<A", "A", "vvvA"},
+                {"<A", "^<<A", "<^A", "^A", "^^<<A", "<^^A", "^^A", "^^^<<A", "<^^^A", "^^^A", "A"},
+            };
+            return numeric_tbl[num_index(src_key)][num_index(dst_key)];
+        } else {
+            static const std::string directional_tbl[5][5] = {
+                {"A", ">A", "v<A", "vA", "v>A"},
+                {"<A", "A", "v<<A", "<vA", "vA"},
+                {">^A", ">>^A", "A", ">A", ">>A"},
+                {"^A", "^>A", "<A", "A", ">A"},
+                {"<^A", "^A", "<<A", "<A", "A"},
+            };
+            return directional_tbl[dir_index(src_key)][dir_index(dst_key)];
         }
-        return code.compare(0, typed.size(), typed) == 0;
     }
 
-    std::vector<state> next_states(const keyboards& layouts, const state& s, const std::string& code) {
-        std::vector<state> output;
-        for (auto key : keys(layouts.front())) {
-            auto new_state = next_state(layouts, s, key, 0);
-            if (new_state && is_prefix(new_state->typed, code)) {
-                output.push_back(*new_state);
+    using atom_counts = std::unordered_map<std::string, int64_t>;
+
+    atom_counts directional_kbd_seq(const std::string& seq) {
+        atom_counts counts;
+        char key = 'A';
+        for (auto next_key : seq) {
+            ++counts[shortest_key_seq(key, next_key, directional)];
+            key = next_key;
+        }
+        return counts;
+    }
+
+    atom_counts numeric_kbd_seq(int num_directional_kbds, const std::string& code) {
+        if (num_directional_kbds == 1) {
+            atom_counts counts;
+            char key = 'A';
+            for (auto next_key : code) {
+                ++counts[shortest_key_seq(key, next_key, numeric)];
+                key = next_key;
+            }
+            return counts;
+        }
+        atom_counts output;
+        auto n_minus_1_counts = numeric_kbd_seq(num_directional_kbds - 1, code);
+        for (const auto& [n_minus_1_atom, n_minus_1_count] : n_minus_1_counts) {
+            auto next_level_counts = directional_kbd_seq(n_minus_1_atom);
+            for (const auto [next_level_atom, next_level_count] : next_level_counts) {
+                output[next_level_atom] += next_level_count * n_minus_1_count;
             }
         }
         return output;
     }
-    
-    std::string to_string(const state& s) {
-        std::stringstream ss;
-        ss << "[ ";
-        ss << "\"" << s.typed << "\" : { "; 
-        for (auto pt : s.kbd_locs) {
-            ss << "( " << pt.x << " , " << pt.y << " ) ";
-        }
-        ss << "} ]";
 
-        return ss.str();
-    }
-
-    int64_t shortest_path(const state& initial_state, const std::vector<keyboard_layout>& keyboards, const std::string& code) {
-        state_set visited;
-        std::queue<std::tuple<state, int64_t>> queue;
-        queue.emplace(initial_state, 0);
-
-        while (!queue.empty()) {
-            auto [curr_state, key_punches] = queue.front();
-            queue.pop();
-
-            if (visited.contains(curr_state)) {
-                continue;
-            }
-            visited.insert(curr_state);
-
-            if (curr_state.typed == code) {
-                return key_punches;
-            }
-
-            for (const auto& next : next_states(keyboards, curr_state, code)) {
-                queue.emplace(next, key_punches+1);
-            }
-        }
-
-        return -1;
-    }
-
-    int64_t complexity(const state& initial_state, const std::vector<keyboard_layout>& keyboards, const std::string& code) {
-        int64_t value = aoc::extract_numbers(code).front();
-        return value * shortest_path(initial_state, keyboards, code);
-    }
-
-    int64_t sum_of_complexities(
-            const state& initial_state, const std::vector<keyboard_layout>& keyboards,
-            const std::vector<std::string>& codes) {
-
+    int64_t fewest_keypresses(int num_directional_kbds, const std::string& code) {
+        auto counts = numeric_kbd_seq(num_directional_kbds, code);
         return r::fold_left(
-            codes | rv::transform(
-                [&](auto&& code) {
-                    return complexity(initial_state, keyboards, code);
+            counts | rv::transform(
+                [](auto&& pair)->int64_t {
+                    auto [atom, count] = pair;
+                    return atom.size() * count;
                 }
             ),
             0ll,
@@ -196,38 +189,33 @@ namespace {
         );
     }
 
-    state make_initial_state(int num_keyboards) {
-        auto locs = rv::repeat(
-                point{ 2,0 }
-            ) | rv::take(
-                num_keyboards - 2
-            ) | r::to<std::vector>();
-        locs.push_back({ 2,3 });
-        return {
-            {},
-            std::move(locs)
-        };
+    int64_t complexity(int num_directional_kbds, const std::string& code) {
+        int64_t value = aoc::extract_numbers(code).front();
+        return value * fewest_keypresses(num_directional_kbds, code);
     }
 
-    std::vector<keyboard_layout> make_keyboards(int num_keyboards) {
-        auto kbds = rv::repeat(
-                directional
-            ) | rv::take(
-                num_keyboards - 1
-            ) | r::to<std::vector>();
-        kbds.push_back(numeric);
-        return kbds;
+    int64_t sum_of_complexities(int num_directional_kbds, const std::vector<std::string>& codes) {
+
+        return r::fold_left(
+            codes | rv::transform(
+                [&](auto&& code) {
+                    return complexity(num_directional_kbds, code);
+                }
+            ),
+            0ll,
+            std::plus<int64_t>()
+        );
     }
 }
 
 void aoc::y2024::day_21(const std::string& title) {
 
     auto inp = aoc::file_to_string_vector(
-            aoc::input_path(2024, 21)
-        );
+        aoc::input_path(2024, 21)
+    );
 
     std::println("--- Day 21: {} ---", title);
-    std::println("  part 1: {}", sum_of_complexities(make_initial_state(4), make_keyboards(4), inp));
-    std::println("  part 2: {}", sum_of_complexities(make_initial_state(8), make_keyboards(8), inp));
-    
+    std::println("  part 1: {}", sum_of_complexities(3, inp));
+    std::println("  part 2: {}", sum_of_complexities(26, inp));
+
 }
