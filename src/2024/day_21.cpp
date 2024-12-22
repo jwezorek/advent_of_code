@@ -27,24 +27,6 @@ namespace {
         directional
     };
 
-    std::optional<char> loc_to_key(const point& loc, keyboard_layout layout) {
-        point_map<char> numeric_keypad_map = {
-            { {0,0} , '7' } , { {1,0} , '8' } ,{ {2,0} , '9' },
-            { {0,1} , '4' } , { {1,1} , '5' } ,{ {2,1} , '6' },
-            { {0,2} , '1' } , { {1,2} , '2' } ,{ {2,2} , '3' },
-            { {1,3} , '0' } , { {2,3} , 'A' }
-        };
-        point_map<char> directional_keypad_map = {
-            {{1,0},'^'}, {{2,0},'A'},
-            {{0,1},'<'}, {{1,1},'v'}, {{2,1},'>'}
-        };
-        const auto& keyboard = (layout == numeric) ? numeric_keypad_map : directional_keypad_map;
-        if (!keyboard.contains(loc)) {
-            return {};
-        }
-        return keyboard.at(loc);
-    }
-
     std::string shortest_key_seq(char src_key, char dst_key, keyboard_layout kbd) {
 
         static const auto num_index = [](char c) {

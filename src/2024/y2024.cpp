@@ -27,7 +27,7 @@ void aoc::y2024::do_advent_of_code(int day) {
         []() { day_19( "Linen Layout" ); },
         []() { day_20( "Race Condition" ); },
         []() { day_21( "Keypad Conundrum" ); },
-        []() { day_22( "<unknown>" ); },
+        []() { day_22( "Monkey Market" ); },
         []() { day_23( "<unknown>" ); },
         []() { day_24( "<unknown>" ); },
         []() { day_25( "<unknown>" ); }
