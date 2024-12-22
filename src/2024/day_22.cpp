@@ -5,7 +5,8 @@
 #include <functional>
 #include <print>
 #include <ranges>
-#include <unordered_set>
+#include <unordered_map>
+#include <boost/functional/hash.hpp>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -14,18 +15,28 @@ namespace rv = std::ranges::views;
 
 namespace {
 
-    int64_t mix(int64_t u, int64_t v) {
-        return u ^ v;
+    auto iterate(auto seed, auto iter_fn) {
+        return rv::iota(0) | rv::transform(
+            [state = std::move(seed), fn = std::move(iter_fn)](auto i) mutable {
+                auto current = state;
+                state = fn(state);
+                return current;
+            }
+        );
     }
 
-    int64_t prune(int64_t u) {
-        return u % 16777216;
+    auto nth_item(auto&& range, size_t n) {
+        decltype(*range.begin()) v;
+        for (auto i : range | rv::take(n)) {
+            v = i;
+        }
+        return v;
     }
 
-    int64_t do_one_generation(int64_t v) {
-        v = prune(mix(v * 64, v));
-        v = prune(mix(v / 32, v));
-        v = prune(mix(v * 2048, v));
+    int64_t pseudorandom_step(int64_t v) {
+        v = ((v *   64) ^ v) % 16777216;
+        v = ((v /   32) ^ v) % 16777216;
+        v = ((v * 2048) ^ v) % 16777216;
         return v;
     }
 
@@ -33,15 +44,72 @@ namespace {
         return r::fold_left(
             secrets | rv::transform(
                 [](auto secret) {
-                    for (int i = 0; i < 2000; ++i) {
-                        secret = do_one_generation(secret);
-                    }
-                    return secret;
+                    return nth_item(iterate(secret, pseudorandom_step), 2001);
                 }
             ),
             0ll,
             std::plus<int64_t>()
         );
+    }
+
+    std::vector<std::tuple<int8_t,int8_t>> price_and_change_seq(int64_t seed) {
+        auto pseudo_rand_seq = iterate(
+                seed, pseudorandom_step
+            ) | rv::take(2001) | r::to<std::vector>();
+        return pseudo_rand_seq | rv::transform(
+            [](auto num) {
+                return num % 10;
+            }
+        ) | rv::adjacent_transform<2>(
+            [](auto i, auto j)->std::tuple<int8_t, int8_t> {
+                return { j, static_cast<int8_t>(j - i) };
+            }
+        ) | r::to<std::vector>();
+    }
+
+    using quad = std::array<int8_t, 4>;
+
+    quad make_quad(auto&& rng) {
+        quad q;
+        r::copy(rng, q.begin());
+        return q;
+    }
+
+    struct hash_quad {
+        size_t operator()(const quad& q) const {
+            size_t seed = 0;
+            boost::hash_combine(seed, q[0]);
+            boost::hash_combine(seed, q[1]);
+            boost::hash_combine(seed, q[2]);
+            boost::hash_combine(seed, q[3]);
+            return seed;
+        }
+    };
+
+    template<typename T>
+    using quad_map = std::unordered_map<quad, T, hash_quad>;
+
+    quad_map<int64_t> quad_to_earnings(const std::vector<std::tuple<int8_t, int8_t>>& prices_and_changes) {
+        quad_map<int64_t> q_to_e;
+        for (auto seq : prices_and_changes | rv::slide(4)) {
+            auto quad = make_quad(seq | rv::values | r::to<std::vector>());
+            auto price = std::get<0>(seq[3]);
+            if (!q_to_e.contains(quad)) {
+                q_to_e[quad] = price;
+            }
+        }
+        return q_to_e;
+    }
+
+    int64_t do_part_2(const std::vector<int64_t>& secrets) {
+        quad_map<int64_t> unified;
+        for (auto secret : secrets) {
+            auto q_to_e = quad_to_earnings(price_and_change_seq(secret));
+            for (const auto& [q, e] : q_to_e) {
+                unified[q] += e;
+            }
+        }
+        return r::max(unified | rv::values);
     }
 }
 
@@ -57,6 +125,6 @@ void aoc::y2024::day_22(const std::string& title) {
 
     std::println("--- Day 22: {} ---", title);
     std::println("  part 1: {}", do_part_1(inp) );
-    std::println("  part 2: {}", 0);
+    std::println("  part 2: {}", do_part_2(inp) );
     
 }
