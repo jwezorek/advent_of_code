@@ -17,7 +17,7 @@ namespace {
 
     auto iterate(auto seed, auto iter_fn) {
         return rv::iota(0) | rv::transform(
-            [state = std::move(seed), fn = std::move(iter_fn)](auto i) mutable {
+            [state = std::move(seed), fn = std::move(iter_fn)](auto) mutable {
                 auto current = state;
                 state = fn(state);
                 return current;
@@ -26,6 +26,15 @@ namespace {
     }
 
     auto nth_item(auto&& range, size_t n) {
+
+        // rv::take(n) / rv::drop(n) don't work
+        // because iterate above is defined as transforming
+        // an itoa sequence but since it just ignores
+        // the argument to transform's lambda, manipulating
+        // the transformed sequence doesn't do what we
+        // want. Don't know if there is way to do this
+        // without caching everything.
+
         decltype(*range.begin()) v;
         for (auto i : range | rv::take(n)) {
             v = i;
@@ -79,8 +88,8 @@ namespace {
                 seed, pseudorandom_step
             ) | rv::take(2001) | r::to<std::vector>();
         return pseudo_rand_seq | rv::transform(
-            [](auto num) {
-                return num % 10;
+            [](auto num)->int8_t {
+                return static_cast<int8_t>(num % 10ll);
             }
         ) | rv::adjacent_transform<2>(
             [](auto i, auto j)->std::tuple<int8_t, int8_t> {
