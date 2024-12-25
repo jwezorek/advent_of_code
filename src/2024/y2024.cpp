@@ -30,7 +30,7 @@ void aoc::y2024::do_advent_of_code(int day) {
         []() { day_22( "Monkey Market" ); },
         []() { day_23( "LAN Party" ); },
         []() { day_24( "Crossed Wires" ); },
-        []() { day_25( "<unknown>" ); }
+        []() { day_25( "Code Chronicle" ); }
     };
     
     auto index = day - 1;
