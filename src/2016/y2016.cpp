@@ -19,7 +19,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_11( "Radioisotope Thermoelectric Generators" ); },
         []() { day_12( "Leonardo's Monorail" ); },
         []() { day_13( "A Maze of Twisty Little Cubicles" ); },
-        []() { day_14( "<unknown>" ); },
+        []() { day_14( "One-Time Pad" ); },
         []() { day_15( "<unknown>" ); },
         []() { day_16( "<unknown>" ); },
         []() { day_17( "<unknown>" ); },
