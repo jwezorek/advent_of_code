@@ -21,7 +21,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_13( "A Maze of Twisty Little Cubicles" ); },
         []() { day_14( "One-Time Pad" ); },
         []() { day_15( "Timing is Everything" ); },
-        []() { day_16( "<unknown>" ); },
+        []() { day_16( "Dragon Checksum" ); },
         []() { day_17( "<unknown>" ); },
         []() { day_18( "<unknown>" ); },
         []() { day_19( "<unknown>" ); },

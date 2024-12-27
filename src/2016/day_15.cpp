@@ -29,7 +29,7 @@ namespace {
         };
     }
 
-    int do_part_1(const std::vector<disc>& discs) {
+    int brute_force(const std::vector<disc>& discs) {
         int time = 0;
         bool done = false;
         do {
@@ -58,13 +58,13 @@ void aoc::y2016::day_15(const std::string& title) {
     ) | r::to<std::vector>();
 
     std::println("--- Day 15: {} ---", title);
-    std::println("  part 1: {}", do_part_1(inp) );
+    std::println("  part 1: {}", brute_force(inp) );
 
     inp.emplace_back(
         inp.back().index + 1,
         11,
         0
     );
-    std::println("  part 2: {}", do_part_1(inp) );
+    std::println("  part 2: {}", brute_force(inp) );
     
 }
