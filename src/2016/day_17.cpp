@@ -53,28 +53,26 @@ namespace {
         return ch >= 'b' && ch <= 'f';
     }
 
-    std::vector<state> next_states(const state& s, const vault& vault) {
+    auto next_states(const state& s, const vault& vault) {
         static const std::array<char, 4> directions = { 'U','D','L','R' };
-        auto open_directions = rv::enumerate(
-            md5(vault.passcode + s.path) | rv::take(4)
-        ) | rv::transform(
-            [&](auto&& pair)->char {
-                const auto& [index, hash_code] = pair;
-                return (is_open_char(hash_code)) ? directions[index] : ' ';
-            }
-        ) | rv::filter(
-            [](char ch) {return ch != ' '; }
-        ) | r::to<std::string>();
-
-        return open_directions | rv::transform(
-                [&](char dir)->state {
+        return rv::zip(
+                md5(vault.passcode + s.path) | rv::take(4), directions
+            ) | rv::transform(
+                [&](auto&& pair)->char {
+                    const auto& [hash_code, dir] = pair;
+                    return (is_open_char(hash_code)) ? dir : ' ';
+                }
+            ) | rv::filter(
+                [](char ch) {return ch != ' '; }
+            ) | rv::transform(
+                [s](char dir)->state {
                     return { s.loc + dir_to_delta(dir), s.path + dir };
                 }
             ) | rv::filter(
                 [&](auto&& new_state) {
                     return in_bounds(new_state.loc, vault.bounds);
                 }
-            ) | r::to<std::vector>();
+            );
     }
 
     std::string shortest_path(const vault& vault) {
