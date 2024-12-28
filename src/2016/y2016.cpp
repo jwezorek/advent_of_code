@@ -26,7 +26,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_18( "Like a Rogue" ); },
         []() { day_19( "An Elephant Named Joseph" ); },
         []() { day_20( "Firewall Rules" ); },
-        []() { day_21( "<unknown>" ); },
+        []() { day_21( "Scrambled Letters and Hash" ); },
         []() { day_22( "<unknown>" ); },
         []() { day_23( "<unknown>" ); },
         []() { day_24( "<unknown>" ); },
