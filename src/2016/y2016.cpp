@@ -23,7 +23,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_15( "Timing is Everything" ); },
         []() { day_16( "Dragon Checksum" ); },
         []() { day_17( "Two Steps Forward" ); },
-        []() { day_18( "<unknown>" ); },
+        []() { day_18( "Like a Rogue" ); },
         []() { day_19( "<unknown>" ); },
         []() { day_20( "<unknown>" ); },
         []() { day_21( "<unknown>" ); },
