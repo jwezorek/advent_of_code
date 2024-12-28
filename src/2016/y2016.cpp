@@ -24,7 +24,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_16( "Dragon Checksum" ); },
         []() { day_17( "Two Steps Forward" ); },
         []() { day_18( "Like a Rogue" ); },
-        []() { day_19( "<unknown>" ); },
+        []() { day_19( "An Elephant Named Joseph" ); },
         []() { day_20( "<unknown>" ); },
         []() { day_21( "<unknown>" ); },
         []() { day_22( "<unknown>" ); },
