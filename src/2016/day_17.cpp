@@ -120,19 +120,17 @@ namespace {
 
 void aoc::y2016::day_17(const std::string& title) {
 
-    auto inp = aoc::file_to_string(
+    auto vault = ::vault{
+        aoc::file_to_string(
             aoc::input_path(2016, 17)
-        ); 
-
-    vault v{
-        inp,
+        ),
         {0,0},
         {3,3},
         {4,4}
     };
 
     std::println("--- Day 17: {} ---", title);
-    std::println("  part 1: {}", shortest_path(v) );
-    std::println("  part 2: {}", longest_path(v) );
+    std::println("  part 1: {}", shortest_path(vault) );
+    std::println("  part 2: {}", longest_path(vault) );
     
 }
