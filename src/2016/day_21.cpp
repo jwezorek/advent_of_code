@@ -208,9 +208,67 @@ namespace {
         }
         return str;
     }
+
+    std::string inverse_rotate_position(const command& cmd, const std::string& inp) {
+        auto size = inp.size();
+
+        for (size_t index = 0; index < size; ++index) {
+
+            int rotations = 1 + index + (index >= 4 ? 1 : 0);
+            rotations %= size; 
+
+            std::string candidate = rot(inp, true, rotations);
+
+            int verify_rotations = 1 + candidate.find(cmd.arg1 + 'a');
+            verify_rotations += (candidate.find(cmd.arg1 + 'a') >= 4 ? 1 : 0);
+            verify_rotations %= size;
+
+            std::string verification = rot(candidate, false, verify_rotations);
+            if (verification == inp) {
+                return candidate; // Found the original string
+            }
+        }
+
+        throw std::runtime_error("Unable to reverse rotation; input may be invalid.");
+    }
+
+    std::string inverse_rotate(const command& cmd, const std::string& inp) {
+        bool reverseDirection = cmd.arg1 != 0;
+        return rot(inp, reverseDirection, cmd.arg2);
+    }
+
+    std::string inverse_move(const command& cmd, const std::string& inp) {
+        auto out = inp;
+        auto ch = inp.at(cmd.arg2); 
+        out.erase(out.begin() + cmd.arg2); 
+        out.insert(out.begin() + cmd.arg1, ch); 
+        return out;
+    }
+
+    std::string perform_inverse_command(const command& cmd, const std::string& inp) {
+        const static std::unordered_map<command_op, command_fn> tbl = {
+            { swap_position, do_swap_position },
+            { swap_letter, do_swap_letter },
+            { rotate_position, inverse_rotate_position },
+            { rotate, inverse_rotate },
+            { reverse, do_reverse },
+            { move, inverse_move }
+        };
+        return tbl.at(cmd.op)(cmd, inp);
+    }
+
+    std::string descramble(const std::vector<command>& cmds, const std::string& inp) {
+        auto reverse_cmds = cmds;
+        r::reverse(reverse_cmds);
+
+        auto str = inp;
+        for (const auto& cmd : reverse_cmds) {
+            str = perform_inverse_command(cmd, str);
+        }
+
+        return str;
+    }
 }
-
-
 
 void aoc::y2016::day_21(const std::string& title) {
 
@@ -222,6 +280,6 @@ void aoc::y2016::day_21(const std::string& title) {
 
     std::println("--- Day 21: {} ---", title);
     std::println("  part 1: {}", scramble(inp, "abcdefgh"));
-    std::println("  part 2: {}", 0);
+    std::println("  part 2: {}", descramble(inp, "fbgdceah"));
     
 }
