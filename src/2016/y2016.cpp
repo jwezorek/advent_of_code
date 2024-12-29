@@ -29,7 +29,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_21( "Scrambled Letters and Hash" ); },
         []() { day_22( "Grid Computing" ); },
         []() { day_23( "Safe Cracking" ); },
-        []() { day_24( "<unknown>" ); },
+        []() { day_24( "Air Duct Spelunking" ); },
         []() { day_25( "<unknown>" ); }
     };
     
