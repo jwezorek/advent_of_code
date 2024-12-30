@@ -30,7 +30,7 @@ void aoc::y2016::do_advent_of_code(int day) {
         []() { day_22( "Grid Computing" ); },
         []() { day_23( "Safe Cracking" ); },
         []() { day_24( "Air Duct Spelunking" ); },
-        []() { day_25( "<unknown>" ); }
+        []() { day_25( "Clock Signal" ); }
     };
     
     auto index = day - 1;
