@@ -16,6 +16,20 @@ add_executable(advent_of_code
     src/util/util.cpp
     src/util/make_year.cpp
 
+    src/2025/day_01.cpp
+    src/2025/day_02.cpp
+    src/2025/day_03.cpp
+    src/2025/day_04.cpp
+    src/2025/day_05.cpp
+    src/2025/day_06.cpp
+    src/2025/day_07.cpp
+    src/2025/day_08.cpp
+    src/2025/day_09.cpp
+    src/2025/day_10.cpp
+    src/2025/day_11.cpp
+    src/2025/day_12.cpp
+    src/2025/y2025.cpp
+
     src/2024/day_01.cpp
     src/2024/day_02.cpp
     src/2024/day_03.cpp

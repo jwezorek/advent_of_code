@@ -1,3 +1,4 @@
+#include "2025/y2025.h"
 #include "2024/y2024.h"
 #include "2023/y2023.h"
 #include "2022/y2022.h"
@@ -10,12 +11,11 @@
 #include "2015/y2015.h"
 #include "util/util.h"
 #include "util/make_year.h"
-#include <iostream>
-#include <vector>
 #include <functional>
 #include <string>
 #include <print>
 #include <ranges>
+#include <optional>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -35,7 +35,8 @@ namespace {
             {2021, aoc::y2021::do_advent_of_code},
             {2022, aoc::y2022::do_advent_of_code},
             {2023, aoc::y2023::do_advent_of_code},
-            {2024, aoc::y2024::do_advent_of_code}
+            {2024, aoc::y2024::do_advent_of_code},
+            {2025, aoc::y2025::do_advent_of_code}
         };
         if (!years.contains(year)) {
             std::println("'Advent of Code {}' not found.", year);
@@ -47,23 +48,67 @@ namespace {
     bool is_integer(const std::string& str) {
         return r::find_if(str, [](auto ch) {return !std::isdigit(ch); }) == str.end();
     }
+
+    std::optional<std::tuple<int, int>> parse_create_args(int argc, char* argv[]) {
+        if (argc < 3 || argc > 4) {
+            return {};
+        }
+        auto args = rv::iota(1, argc) | rv::transform(
+                [&](auto i) -> std::string {
+                    return argv[i];
+                }
+            ) | rv::filter(
+                is_integer
+            ) | rv::transform(
+                [](const std::string& str) {
+                    return std::stoi(str);
+                }
+            ) | r::to<std::vector>();
+
+        if (args.empty()) {
+            return {};
+        }
+
+        if (args.size() == 1) {
+            args.push_back(25);
+        }
+
+        return { { args[0], args[1] } };
+        
+    }
+
 }
 
 int main(int argc, char* argv[]) {
 
-    if (argc < 3) {
-        std::string arg = argv[1];
-        if (is_integer(arg)) {
-            auto success = aoc::make_year_stubs(std::stoi(argv[1]));
-            if (success) {
-                std::print("stubbed in year {}... \n", arg);
-                return 0;
-            } else {
-                std::print("failed to stub in year {}... \n", arg);
-                return -1;
-            }
+    if (argc < 3 || argc > 4) {
+        std::print(
+            "expects either a year and a day\n",
+            "or 'create' and a year with an optional number of days\n"
+            "to generate day template .cpp files...\n"
+        );
+        return -1;
+    }
+
+    if (std::string{ argv[1] } == "create") {
+
+        auto args = parse_create_args(argc, argv);
+        if (!args) {
+
+            std::print(
+                "expects 'create [year] (num days)'..."
+            );
+            return -1;
         }
-        std::print( "specify day and year\n" );
+
+        auto [year, num_days] = *args;
+
+        auto success = aoc::make_year_stubs(year, num_days);
+        if (success) {
+            std::print("stubbed in year {}... \n", year);
+            return 0;
+        } 
+        std::print("failed to stub in year {}... \n", year);
         return -1;
     }
 

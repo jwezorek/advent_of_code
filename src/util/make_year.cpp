@@ -159,7 +159,7 @@ namespace aoc {
         return temp;
     }
 
-    bool stub_in_year(const fs::path path, int year) {
+    bool stub_in_year(const fs::path path, int year, int num_days) {
 
         if (!fs::is_empty(path)) {
             return false;
@@ -171,7 +171,7 @@ namespace aoc {
         auto year_header_file = std::format("y{}.h", year);
         write_to_text_file(path / year_header_file, fill_in_template(k_year_header, year));
 
-        for (int day = 1; day <= 25; ++day) {
+        for (int day = 1; day <= num_days; ++day) {
             auto day_fname = (day < 10) ? 
                 std::format("day_0{}.cpp", day) :
                 std::format("day_{}.cpp", day);
@@ -185,12 +185,12 @@ namespace aoc {
     }
 }
 
-bool aoc::make_year_stubs(int year) {
+bool aoc::make_year_stubs(int year, int num_days) {
 
     auto year_dir = src_directory() / std::to_string(year);
     if (fs::exists(year_dir)) {
         return false;
     }
     fs::create_directory(year_dir);
-    return stub_in_year(fs::path(year_dir), year);
+    return stub_in_year(fs::path(year_dir), year, num_days);
 }
