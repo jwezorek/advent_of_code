@@ -40,9 +40,8 @@ namespace {
                 (new_val == 0) ? curr.count + 1 : curr.count
             };
         } else {
-            auto complete_rotations = std::abs(rot) / mod;
             auto rot_remainder = rot % mod;
-            auto zero_count = curr.count + complete_rotations;
+            auto zero_count = curr.count + std::abs(rot) / mod;
             
             if (std::abs(rot_remainder) > 0) {
                 auto unwrapped = curr.val + rot_remainder;
