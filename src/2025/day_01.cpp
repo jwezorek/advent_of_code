@@ -5,7 +5,6 @@
 #include <functional>
 #include <print>
 #include <ranges>
-#include <unordered_set>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -34,23 +33,41 @@ namespace {
 
     state apply_rotation(const state& curr, int rot, int mod, bool part_1) {
 
+        auto new_val = wrap(curr.val + rot, mod);
         if (part_1) {
-            auto new_val = wrap(curr.val + rot, mod);
             return {
                 new_val,
                 (new_val == 0) ? curr.count + 1 : curr.count
             };
-        }
+        } else {
+            auto complete_rotations = std::abs(rot) / mod;
+            auto rot_remainder = rot % mod;
+            auto zero_count = curr.count + complete_rotations;
+            
+            if (std::abs(rot_remainder) > 0) {
+                auto unwrapped = curr.val + rot_remainder;
+                if (unwrapped >= mod && curr.val != 0) {
+                    zero_count++;
+                } else if (unwrapped <= 0 && curr.val != 0) {
+                    zero_count++;
+                }
+            }
 
-        // just brute force this by doing n part_1 style steps of a single unit
-        // because I couldnt figure out the math here...
-        auto sign = rot < 0 ? -1 : 1;
-        state s = curr;
-        for (int i = 0; i < std::abs(rot); i++) {
-            s = apply_rotation(s, sign, mod, true);
+            return {
+                new_val,
+                zero_count
+            };
         }
+    }
 
-        return s;
+    int count_zeros(const std::vector<int>& rotations, bool part_1) {
+        return r::fold_left(
+            rotations,
+            state{ 50, 0 },
+            [part_1](const state& s, int rot)->state {
+                return apply_rotation(s, rot, 100, part_1);
+            }
+        ).count;
     }
 }
 
@@ -63,24 +80,7 @@ void aoc::y2025::day_01(const std::string& title) {
     );
 
     std::println("--- Day 1: {} ---", title);
-    std::println("  part 1: {}",
-        r::fold_left(
-            inp,
-            state{ 50, 0 },
-            [](const state& s, int rot)->state {
-                return apply_rotation(s, rot, 100, true);
-            }
-        ).count
-    );
-
-    std::println("  part 2: {}",
-        r::fold_left(
-            inp,
-            state{ 50, 0 },
-            [](const state& s, int rot)->state {
-                return apply_rotation(s, rot, 100, false);
-            }
-        ).count
-    );
+    std::println("  part 1: {}", count_zeros(inp, true) );
+    std::println("  part 2: {}", count_zeros(inp, false) );
 
 }
