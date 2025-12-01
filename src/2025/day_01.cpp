@@ -43,9 +43,9 @@ namespace {
             auto rot_remainder = rot % mod;
             auto zero_count = curr.count + std::abs(rot) / mod;
             
-            if (rot_remainder != 0) {
+            if (rot_remainder != 0 && curr.val != 0) {
                 auto unwrapped = curr.val + rot_remainder;
-                if (curr.val != 0 && (unwrapped >= mod || unwrapped <= 0)) {
+                if (unwrapped >= mod || unwrapped <= 0) {
                     ++zero_count;
                 }
             }
