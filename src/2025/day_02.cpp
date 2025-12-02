@@ -20,7 +20,7 @@ namespace {
         int64_t end;
     };
 
-    bool all_equal(const auto& r) {
+    bool all_equal( auto&& r) {
         return r::adjacent_find(r, std::not_equal_to{}) == r.end();
     }
 
@@ -31,10 +31,10 @@ namespace {
                 continue;
             }
             auto pieces = str | rv::chunk(i) | rv::transform(
-                    [](auto group) {
-                        return std::string(group.begin(), group.end());
-                    }
-                ) | r::to<std::vector>();
+                [](auto group) {
+                    return std::string(group.begin(), group.end());
+                }
+            );
 
             if (all_equal(pieces)) {
                 return true;
