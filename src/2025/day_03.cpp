@@ -29,8 +29,9 @@ namespace {
             return std::string(1, digits[start]);
         }
         
-        int num_digits = digits.size();
-        std::string remaining_digits = digits.substr(start + 1, num_digits - start - 1);
+        std::string remaining_digits = digits.substr(
+            start + 1, digits.size() - start - 1
+        );
 
         std::stringstream ss;
         ss << digits[start];
