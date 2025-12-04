@@ -15,15 +15,7 @@ namespace rv = std::ranges::views;
 
 namespace {
     using point = aoc::vec2<int>;
-    using grid = std::vector<std::string>;
     using point_set = aoc::vec2_set<int>;
-
-    std::tuple<int, int> bounds(const grid& g) {
-        return {
-            static_cast<int>(g.front().size()),
-            static_cast<int>(g.size())
-        };
-    }
 
     auto adjacent_cells(const point& loc) {
         const static std::array<point, 8> directions = {{
@@ -38,17 +30,9 @@ namespace {
         );
     }
 
-    int neighbor_count(const point& loc, const point_set& locs) {
-        return r::count_if(
-            adjacent_cells(loc),
-            [&](const auto& adj) {
-                return locs.contains(adj);
-            }
-        );
-    }
-
-    point_set to_point_set(const grid& g) {
-        auto [wd, hgt] = bounds(g);
+    point_set to_point_set(const std::vector<std::string>& g) {
+        auto wd = g.front().size();
+        auto hgt = g.size();
         point_set set;
         for (int y = 0; y < hgt; ++y) {
             for (int x = 0; x < wd; ++x) {
@@ -63,7 +47,13 @@ namespace {
     point_set do_one_generation(const point_set& locs) {
         point_set next_gen;
         for (const auto& loc : locs) {
-            if (neighbor_count(loc, locs) >= 4) {
+            auto neighbor_count = r::count_if(
+                adjacent_cells(loc),
+                [&](const auto& adj) {
+                    return locs.contains(adj);
+                }
+            );
+            if (neighbor_count >= 4) {
                 next_gen.insert(loc);
             }
         }
