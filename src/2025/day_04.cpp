@@ -31,17 +31,20 @@ namespace {
     }
 
     point_set to_point_set(const std::vector<std::string>& g) {
-        auto wd = g.front().size();
-        auto hgt = g.size();
-        point_set set;
-        for (int y = 0; y < hgt; ++y) {
-            for (int x = 0; x < wd; ++x) {
-                if (g[y][x] == '@') {
-                    set.insert({ x,y });
+        int wd = g.front().size();
+        int hgt = g.size();
+        return rv::cartesian_product(rv::iota(0, wd), rv::iota(0, hgt)) |
+            rv::filter(
+                [&](auto&& tup) {
+                    auto [x, y] = tup;
+                    return g[y][x] == '@';
                 }
-            }
-        }
-        return set;
+            ) | rv::transform(
+                [](auto&& tup)->point {
+                    auto [x, y] = tup;
+                    return { x,y };
+                }
+            ) | r::to<point_set>();
     }
 
     point_set do_one_generation(const point_set& locs) {
