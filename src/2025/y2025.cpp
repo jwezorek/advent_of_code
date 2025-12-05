@@ -10,7 +10,7 @@ void aoc::y2025::do_advent_of_code(int day) {
         []() { day_02( "Gift Shop" ); },
         []() { day_03( "Lobby" ); },
         []() { day_04( "Printing Department" ); },
-        []() { day_05( "<unknown>" ); },
+        []() { day_05( "Cafeteria" ); },
         []() { day_06( "<unknown>" ); },
         []() { day_07( "<unknown>" ); },
         []() { day_08( "<unknown>" ); },
