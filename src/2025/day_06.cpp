@@ -26,7 +26,6 @@ namespace {
 
     std::vector<column_loc> column_locations(const std::string& inp) {
         std::vector<column_loc> columns;
-        int prev = 0;
         for (const auto& [i, ch] : rv::enumerate(inp)) {
             if (ch == ' ') {
                 continue;
@@ -42,10 +41,9 @@ namespace {
 
     std::vector<column> parse_input(const std::vector<std::string>& inp) {
         std::string operations = inp.back();
-        auto cols = column_locations(operations);
-        auto arg_mat = inp | rv::take(inp.size() - 1) | r::to<std::vector>();
+        auto arg_mat = inp | rv::take(inp.size() - 1);
 
-        return cols | rv::transform(
+        return  column_locations(operations) | rv::transform(
                 [&](const column_loc& col)->column {
                     return {
                         arg_mat | rv::transform(
