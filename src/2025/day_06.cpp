@@ -70,7 +70,7 @@ namespace {
 
     using eval_column_fn = std::function<int64_t(const column&)>;
 
-    int64_t simple_eval(const column& p) {
+    int64_t eval_column_horz(const column& p) {
         auto op = [&](int64_t lhs, const std::string& item)->int64_t {
             int64_t rhs = aoc::string_to_int64(item);
             if (p.is_addition) {
@@ -97,29 +97,26 @@ namespace {
         );
     }
 
-    int64_t transpose_nth(std::vector<std::string> mat, int n) {
-        auto str = mat | rv::transform(
+    std::string transpose_nth(std::vector<std::string> mat, int n) {
+        return mat | rv::transform(
             [&](const auto& row)->char {
                 return row.at(n);
             }
         ) | r::to<std::string>();
-        return aoc::string_to_int64(str);
     }
 
-    int64_t eval_part_2(const column& p) {
+    int64_t eval_column_vert(const column& p) {
         int n = static_cast<int>(p.args.front().size());
-        auto vals = rv::iota(0, n) |
+        auto transposed = column{
+            rv::iota(0, n) |
             rv::transform(
-                [&](auto i)->int64_t {
+                [&](auto i)->std::string {
                     return transpose_nth(p.args, i);
                 }
-            ) | r::to<std::vector>();
-
-        if (p.is_addition) {
-            return r::fold_left(vals, 0, std::plus<int64_t>());
-        } else {
-            return r::fold_left(vals, 1, std::multiplies<int64_t>());
-        }
+            ) | r::to<std::vector>(),
+            p.is_addition
+        };
+        return eval_column_horz(transposed);
     }
 }
 
@@ -132,7 +129,7 @@ void aoc::y2025::day_06(const std::string& title) {
     );
 
     std::println("--- Day 6: {} ---", title);
-    std::println("  part 1: {}", sum_of_columns(inp, simple_eval) );
-    std::println("  part 2: {}", sum_of_columns(inp, eval_part_2));
+    std::println("  part 1: {}", sum_of_columns(inp, eval_column_horz) );
+    std::println("  part 2: {}", sum_of_columns(inp, eval_column_vert));
     
 }
