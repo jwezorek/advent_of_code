@@ -40,19 +40,6 @@ namespace {
         return columns;
     }
 
-    std::string extract_column(const std::string& row, const column_loc& col) {
-        return row.substr(col.x, col.wd);
-    }
-
-    std::vector<std::string> extract_column(
-            const std::vector<std::string>& matrix, const column_loc& col) {
-        return matrix | rv::transform(
-            [&](auto&& row) {
-                return extract_column(row, col);
-            }
-        ) | r::to<std::vector>();
-    }
-
     std::vector<column> parse_input(const std::vector<std::string>& inp) {
         std::string operations = inp.back();
         auto cols = column_locations(operations);
@@ -61,7 +48,11 @@ namespace {
         return cols | rv::transform(
                 [&](const column_loc& col)->column {
                     return {
-                        extract_column(arg_mat, col),
+                        arg_mat | rv::transform(
+                            [&](auto&& row) {
+                                return row.substr(col.x, col.wd);
+                            }
+                        ) | r::to<std::vector>(),
                         operations.at(col.x) == '+'
                     };
                 }
@@ -89,6 +80,24 @@ namespace {
         );
     }
 
+    int64_t eval_column_vert(const column& p) {
+        int n = static_cast<int>(p.args.front().size());
+        auto transposed = column{
+            rv::iota(0, n) |
+            rv::transform(
+                [&](auto i)->std::string {
+                    return p.args | rv::transform(
+                        [&](const auto& row)->char {
+                            return row.at(i);
+                        }
+                    ) | r::to<std::string>();
+                }
+            ) | r::to<std::vector>(),
+            p.is_addition
+        };
+        return eval_column_horz(transposed);
+    }
+
     int64_t sum_of_columns(const std::vector<column>& inp, eval_column_fn fn) {
         return r::fold_left(
             inp | rv::transform(fn),
@@ -97,27 +106,6 @@ namespace {
         );
     }
 
-    std::string transpose_nth(std::vector<std::string> mat, int n) {
-        return mat | rv::transform(
-            [&](const auto& row)->char {
-                return row.at(n);
-            }
-        ) | r::to<std::string>();
-    }
-
-    int64_t eval_column_vert(const column& p) {
-        int n = static_cast<int>(p.args.front().size());
-        auto transposed = column{
-            rv::iota(0, n) |
-            rv::transform(
-                [&](auto i)->std::string {
-                    return transpose_nth(p.args, i);
-                }
-            ) | r::to<std::vector>(),
-            p.is_addition
-        };
-        return eval_column_horz(transposed);
-    }
 }
 
 void aoc::y2025::day_06(const std::string& title) {
