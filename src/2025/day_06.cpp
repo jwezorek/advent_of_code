@@ -5,7 +5,7 @@
 #include <functional>
 #include <print>
 #include <ranges>
-#include <unordered_set>
+#include <sstream>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -13,46 +13,72 @@ namespace rv = std::ranges::views;
 /*------------------------------------------------------------------------------------------------*/
 
 namespace {
-    struct problem {
-        std::vector<int64_t> args;
+
+    struct column_loc {
+        int x;
+        int wd;
+    };
+
+    struct column {
+        std::vector<std::string> args;
         bool is_addition;
     };
 
-    std::vector<problem> parse_input(const std::vector<std::string>& inp) {
-        auto args_matrix = inp | rv::take(inp.size() - 1) | rv::transform([](auto&& str) {
-            return aoc::extract_numbers_int64(str, true);
-                })
-            | r::to<std::vector>();
+    std::vector<column_loc> column_locations(const std::string& inp) {
+        std::vector<column_loc> columns;
+        int prev = 0;
+        for (const auto& [i, ch] : rv::enumerate(inp)) {
+            if (ch == ' ') {
+                continue;
+            }
+            if (!columns.empty()) {
+                columns.back().wd = i - columns.back().x - 1;
+            }
+            columns.emplace_back(i, 0);
+        }
+        columns.back().wd = inp.size() - columns.back().x;
+        return columns;
+    }
 
-        auto ops = aoc::split(aoc::collapse_whitespace(inp.back()), ' ');
-        int n = static_cast<int>(args_matrix.front().size());
+    std::string extract_column(const std::string& row, const column_loc& col) {
+        return row.substr(col.x, col.wd);
+    }
 
-        return rv::iota(0, n) | 
-            rv::transform(
-                [&](int i) -> problem {
+    std::vector<std::string> extract_column(
+            const std::vector<std::string>& matrix, const column_loc& col) {
+        return matrix | rv::transform(
+            [&](auto&& row) {
+                return extract_column(row, col);
+            }
+        ) | r::to<std::vector>();
+    }
+
+    std::vector<column> parse_input(const std::vector<std::string>& inp) {
+        std::string operations = inp.back();
+        auto cols = column_locations(operations);
+        auto arg_mat = inp | rv::take(inp.size() - 1) | r::to<std::vector>();
+
+        return cols | rv::transform(
+                [&](const column_loc& col)->column {
                     return {
-                        args_matrix | rv::transform(
-                            [&](const auto& row) { 
-                                return row.at(i); 
-                            }
-                        ) | r::to<std::vector>(),
-
-
-                     ops[i] == "+"
+                        extract_column(arg_mat, col),
+                        operations.at(col.x) == '+'
                     };
                 }
             ) | r::to<std::vector>();
     }
 
-    using eval_problem_fn = std::function<int64_t(const problem&)>;
+    using eval_column_fn = std::function<int64_t(const column&)>;
 
-    int64_t simple_eval(const problem& p) {
-        std::function<int64_t(int64_t, int64_t)> op;
-        if (p.is_addition) {
-            op = std::plus<int64_t>();
-        } else {
-            op = std::multiplies<int64_t>();
-        }
+    int64_t simple_eval(const column& p) {
+        auto op = [&](int64_t lhs, const std::string& item)->int64_t {
+            int64_t rhs = aoc::string_to_int64(item);
+            if (p.is_addition) {
+                return lhs + rhs;
+            } else {
+                return lhs * rhs;
+            }
+        };
 
         int64_t start_val = p.is_addition ? 0 : 1;
 
@@ -63,7 +89,7 @@ namespace {
         );
     }
 
-    int64_t sum_of_columns(const std::vector<problem>& inp, eval_problem_fn fn) {
+    int64_t sum_of_columns(const std::vector<column>& inp, eval_column_fn fn) {
         return r::fold_left(
             inp | rv::transform(fn),
             0,
@@ -71,12 +97,29 @@ namespace {
         );
     }
 
-    int64_t eval_part_2(const problem& p) {
-        auto strings = p.args | rv::transform(
-                [](auto v) {return std::to_string(v); }
+    int64_t transpose_nth(std::vector<std::string> mat, int n) {
+        auto str = mat | rv::transform(
+            [&](const auto& row)->char {
+                return row.at(n);
+            }
+        ) | r::to<std::string>();
+        return aoc::string_to_int64(str);
+    }
+
+    int64_t eval_part_2(const column& p) {
+        int n = static_cast<int>(p.args.front().size());
+        auto vals = rv::iota(0, n) |
+            rv::transform(
+                [&](auto i)->int64_t {
+                    return transpose_nth(p.args, i);
+                }
             ) | r::to<std::vector>();
-        auto max_digits = r::max(strings | rv::transform([](auto&& s) {return s.size(); }));
-        return 0;
+
+        if (p.is_addition) {
+            return r::fold_left(vals, 0, std::plus<int64_t>());
+        } else {
+            return r::fold_left(vals, 1, std::multiplies<int64_t>());
+        }
     }
 }
 
