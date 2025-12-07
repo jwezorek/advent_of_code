@@ -27,13 +27,8 @@ namespace {
 
         int id = 0;
         for (auto y = 0; y < hgt; ++y) {
-            for (int x = 0; x < wd; ++x) {
-                auto ch = inp[y][x];
-                if (ch == 'S') {
-                    splitters[point{ x,y }] = id++;
-                    continue;
-                }
-                if (ch == '^') {
+            for (auto x = 0; x < wd; ++x) {
+                if (inp[y][x] != '.') {
                     splitters[point{ x,y }] = id++;
                 }
             }
@@ -42,7 +37,7 @@ namespace {
         return splitters;
     }
 
-    std::optional<int> next_splitter(const point& loc, const point_map& loc_to_id, int hgt) {
+    std::optional<int> splitter_below(const point& loc, const point_map& loc_to_id, int hgt) {
         auto u = loc;
         while (u.y < hgt && !loc_to_id.contains(u)) {
             u = u + point{ 0,1 };
@@ -62,13 +57,13 @@ namespace {
         for (const auto& [loc, id] : loc_to_id) {
             if (id == 0) {
                 // vertex 0 is the src. 
-                // it just has one child directly below it...
-                auto next = next_splitter(loc + point{0,1}, loc_to_id, hgt);
+                // it only has one child directly below it...
+                auto next = splitter_below(loc + point{0,1}, loc_to_id, hgt);
                 g[id].push_back(*next);
                 continue;
             }
-            g[id].push_back(next_splitter(loc - point{ 1,0 }, loc_to_id, hgt).value_or(n));
-            g[id].push_back(next_splitter(loc + point{ 1,0 }, loc_to_id, hgt).value_or(n));
+            g[id].push_back( splitter_below(loc - point{ 1,0 }, loc_to_id, hgt ).value_or(n));
+            g[id].push_back( splitter_below(loc + point{ 1,0 }, loc_to_id, hgt ).value_or(n));
         }
 
         return g;
