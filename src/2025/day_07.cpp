@@ -61,7 +61,8 @@ namespace {
         graph g(n+1);
         for (const auto& [loc, id] : loc_to_id) {
             if (id == 0) {
-                // the src just has one child directly below it...
+                // vertex 0 is the src. 
+                // it just has one child directly below it...
                 auto next = next_splitter(loc + point{0,1}, loc_to_id, hgt);
                 g[id].push_back(*next);
                 continue;
@@ -104,16 +105,9 @@ namespace {
             }
 
             const auto& adj_list = dag[u];
-            auto sum = (adj_list.empty()) ? int64_t{ 1 } :
-                r::fold_left(
-                    adj_list | rv::transform(
-                        [&](int adj)->int64_t {
-                            return self(adj);
-                        }
-                    ),
-                    int64_t{ 0 },
-                    std::plus<int64_t>()
-                );
+            auto sum = (adj_list.empty()) ? 
+                int64_t{ 1 } :
+                r::fold_left(adj_list | rv::transform( self ), 0, std::plus<int64_t>());
 
             memos[u] = sum;
             return sum;
