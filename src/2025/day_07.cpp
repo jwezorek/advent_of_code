@@ -73,7 +73,7 @@ namespace {
         return g;
     }
 
-    int reachable_vertice(const graph& dag) {
+    int reachable_vertices(const graph& dag) {
         std::stack<int> stack;
         std::unordered_set<int> visited;
 
@@ -135,7 +135,7 @@ void aoc::y2025::day_07(const std::string& title) {
     std::println("--- Day 7: {} ---", title);
 
     // -2 in part 1, because the src and sink are not splitters
-    std::println("  part 1: {}", reachable_vertice(g) - 2); 
+    std::println("  part 1: {}", reachable_vertices(g) - 2); 
     std::println("  part 2: {}", count_paths_in_dag(g) );
     
 }
