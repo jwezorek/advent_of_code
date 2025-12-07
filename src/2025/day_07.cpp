@@ -92,7 +92,7 @@ namespace {
             }
             visited.insert(curr);
 
-            if (curr != 0) {
+            if (curr != 0) { // the 'S' node does not split the beam.
                 ++count;
             }
 
@@ -104,33 +104,31 @@ namespace {
         return count;
     }
 
-    int64_t count_paths_aux(const graph& g, int u, std::unordered_map<int, int64_t>& memos) {
-
-        if (memos.contains(u)) {
-            return memos.at(u);
-        }
-
-        const auto& adj_list = g[u];
-        int n = adj_list.size();
-        int64_t sum = 0;
-
-        if (n == 0) {
-            sum = 2;
-        } else if (n == 1) {
-            int other_branch = (u == 0) ? 0 : 1;
-            sum = other_branch + count_paths_aux(g, adj_list[0], memos);
-        } else if (n == 2) {
-            sum = count_paths_aux(g, adj_list[0], memos) +
-                count_paths_aux(g, adj_list[1], memos);
-        }
-
-        memos[u] = sum;
-        return sum;
-    }
-
     int64_t count_paths(const graph& g) {
         std::unordered_map<int, int64_t> memos;
-        return count_paths_aux(g, 0, memos);
+        auto count_paths_aux = [&](this const auto& self, int u) {
+            if (memos.contains(u)) {
+                return memos.at(u);
+            }
+
+            const auto& adj_list = g[u];
+            int n = adj_list.size();
+            int64_t sum = 0;
+
+            if (n == 0) {
+                sum = 2;  // two paths through a splitter...
+            } else if (n == 1) {
+                int other_branch = (u == 0) ? 0 : 1; // the 'S' node does not have two branches
+                sum = other_branch + self(adj_list[0]);
+            } else if (n == 2) {
+                sum = self(adj_list[0]) + self(adj_list[1]);
+            }
+
+            memos[u] = sum;
+            return sum;
+        };
+
+        return count_paths_aux(0);
     }
 }
 
