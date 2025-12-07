@@ -57,31 +57,26 @@ namespace {
         point_map loc_to_id = splitter_locations(inp);
         int hgt = static_cast<int>(inp.size());
 
-        graph g(loc_to_id.size());
+        int n = loc_to_id.size(); // vertex n will be the sink...
+        graph g(n+1);
         for (const auto& [loc, id] : loc_to_id) {
             if (id == 0) {
+                // the src just has one child directly below it...
                 auto next = next_splitter(loc + point{0,1}, loc_to_id, hgt);
                 g[id].push_back(*next);
                 continue;
             }
-            auto left = next_splitter(loc - point{ 1,0 }, loc_to_id, hgt);
-            if (left) {
-                g[id].push_back(*left);
-            }
-            auto right = next_splitter(loc + point{ 1,0 }, loc_to_id, hgt);
-            if (right) {
-                g[id].push_back(*right);
-            }
+            g[id].push_back(next_splitter(loc - point{ 1,0 }, loc_to_id, hgt).value_or(n));
+            g[id].push_back(next_splitter(loc + point{ 1,0 }, loc_to_id, hgt).value_or(n));
         }
 
         return g;
     }
 
-    int count_reachable_splitters(const graph& g) {
+    int reachable_vertice(const graph& dag) {
         std::stack<int> stack;
         std::unordered_set<int> visited;
 
-        int count = 0;
         stack.push(0);
         while (!stack.empty()) {
             auto curr = stack.top();
@@ -92,37 +87,33 @@ namespace {
             }
             visited.insert(curr);
 
-            if (curr != 0) { // the 'S' node does not split the beam.
-                ++count;
-            }
-
-            for (const auto& adj : g[curr]) {
+            for (const auto& adj : dag[curr]) {
                 stack.push(adj);
             }
         }
 
-        return count;
+        return visited.size();
     }
 
-    int64_t count_paths(const graph& g) {
+    int64_t count_paths_in_dag(const graph& dag) {
         std::unordered_map<int, int64_t> memos;
+
         auto count_paths_aux = [&](this const auto& self, int u) {
             if (memos.contains(u)) {
                 return memos.at(u);
             }
 
-            const auto& adj_list = g[u];
-            int n = adj_list.size();
-            int64_t sum = 0;
-
-            if (n == 0) {
-                sum = 2;  // two paths through a splitter...
-            } else if (n == 1) {
-                int other_branch = (u == 0) ? 0 : 1; // the 'S' node does not have two branches
-                sum = other_branch + self(adj_list[0]);
-            } else if (n == 2) {
-                sum = self(adj_list[0]) + self(adj_list[1]);
-            }
+            const auto& adj_list = dag[u];
+            auto sum = (adj_list.empty()) ? int64_t{ 1 } :
+                r::fold_left(
+                    adj_list | rv::transform(
+                        [&](int adj)->int64_t {
+                            return self(adj);
+                        }
+                    ),
+                    int64_t{ 0 },
+                    std::plus<int64_t>()
+                );
 
             memos[u] = sum;
             return sum;
@@ -142,7 +133,9 @@ void aoc::y2025::day_07(const std::string& title) {
     );
 
     std::println("--- Day 7: {} ---", title);
-    std::println("  part 1: {}", count_reachable_splitters(g));
-    std::println("  part 2: {}", count_paths(g) );
+
+    // -2 in part 1, because the src and sink are not splitters
+    std::println("  part 1: {}", reachable_vertice(g) - 2); 
+    std::println("  part 2: {}", count_paths_in_dag(g) );
     
 }
