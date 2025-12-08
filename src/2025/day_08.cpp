@@ -67,6 +67,22 @@ namespace {
             return output;
         }
 
+        int num_clusters() const {
+            int count = 0;
+            point_set seen;
+            for (const auto& u : graph_ | rv::keys) {
+                if (seen.contains(u)) {
+                    continue;
+                }
+                auto cluster = find_cluster(u);
+                for (const auto& member : cluster) {
+                    seen.insert(member);
+                }
+                ++count;
+            }
+            return count;
+        }
+
     };
 
     struct pair {
@@ -82,7 +98,7 @@ namespace {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    std::vector<pair> closest_pairs_bruteforce( const std::vector<point>& pts,
+    std::vector<pair> closest_pairs( const std::vector<point>& pts,
             std::optional<std::size_t> k = std::nullopt) {
 
         auto n = pts.size();
@@ -114,7 +130,7 @@ namespace {
     }
 
     int64_t do_part_1(const std::vector<point>& inp, int k) {
-        auto closest = closest_pairs_bruteforce(inp, k);
+        auto closest = closest_pairs(inp, k);
 
         clustering clust;
         for (const auto& p : closest) {
@@ -130,15 +146,16 @@ namespace {
 
     int64_t do_part_2(const std::vector<point>& inp) {
         auto n = inp.size();
-        auto closest = closest_pairs_bruteforce(inp);
+        auto closest = closest_pairs(inp);
 
         clustering clust;
         for (const auto& p : closest) {
             clust.connect(inp[p.i], inp[p.j]);
-
-            auto clusters = clust.clusters();
-            if (clusters.size() == 1 && clusters.front().size() == n) {
-                return inp[p.i].x * inp[p.j].x;
+            if (clust.num_clusters() == 1) {
+                auto cluster = clust.clusters().front();
+                if (cluster.size() == n) {
+                    return inp[p.i].x * inp[p.j].x;
+                }
             }
         }
 
