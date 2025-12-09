@@ -88,8 +88,7 @@ namespace {
 
     class rectilinear_polygon {
         polygon poly_;
-        rtree horz_edges_;  // horizontal interior edges of polygon
-        rtree vert_edges_;  // vertical interior edges of polygon
+        rtree edges_;
 
         static std::vector<edge> edges(const std::vector<point>& pts) {
             auto verts = pts;
@@ -109,16 +108,13 @@ namespace {
             }
 
             std::vector<edge_value> hits;
-
-            if (e.is_horz) {
-                // Horizontal edge intersects vertical edges
-                vert_edges_.query(bgi::intersects(*qb), std::back_inserter(hits));
-            } else {
-                // Vertical edge intersects horizontal edges
-                horz_edges_.query(bgi::intersects(*qb), std::back_inserter(hits));
-            }
-
-            return !hits.empty();
+            edges_.query(bgi::intersects(*qb), std::back_inserter(hits));
+            return r::find_if(
+                hits,
+                [&](auto&& v) {
+                    return v.second.is_horz != e.is_horz;
+                }
+            ) != hits.end();
         }
 
     public:
@@ -130,11 +126,7 @@ namespace {
 
             for (const auto& e : edges(pts)) {
                 if (auto ib = interior_bounds(e)) {
-                    if (e.is_horz) {
-                        horz_edges_.insert({ *ib, e });
-                    } else {
-                        vert_edges_.insert({ *ib, e });
-                    }
+                    edges_.insert({ *ib, e });
                 }
             }
         }
