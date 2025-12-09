@@ -35,7 +35,6 @@ namespace {
 
     using box = bg::model::box<point>;
     using edge_value = std::pair<box, edge>;
-
     using rtree = bgi::rtree<edge_value, bgi::quadratic<16>>;
     using polygon = bg::model::polygon<point, false, true>;
 
@@ -82,8 +81,8 @@ namespace {
         }
 
         return (e.is_horz) ?
-            box{ point{lo, e.row_or_col}, point{hi, e.row_or_col} }:
-            box{ point{ e.row_or_col, lo}, point{ e.row_or_col, hi} };
+            box{ point{ lo, e.row_or_col }, point{ hi, e.row_or_col } }:
+            box{ point{ e.row_or_col, lo }, point{ e.row_or_col, hi } };
     }
 
     class rectilinear_polygon {
@@ -149,13 +148,17 @@ namespace {
         }
     };
 
+    int64_t area(const box& b) {
+        auto diff = b.max_corner() - b.min_corner();
+        return (diff.x + 1) * (diff.y + 1);
+    }
+
     int64_t largest_area_rectangle(const std::vector<point>& inp) {
         return r::max(
             aoc::two_combinations(inp) | rv::transform(
                 [](auto&& pair)->int64_t {
                     const auto& [a, b] = pair;
-                    auto diff = a - b;
-                    return (std::abs(diff.x) + 1) * (std::abs(diff.y) + 1);
+                    return area(to_box(a, b));
                 }
             )
         );
@@ -173,8 +176,7 @@ namespace {
             ) | rv::transform(
                 [](auto&& pair)->int64_t {
                     const auto& [a, b] = pair;
-                    auto diff = a - b;
-                    return (std::abs(diff.x) + 1) * (std::abs(diff.y) + 1);
+                    return area(to_box(a,b));
                 }
             )
         );
