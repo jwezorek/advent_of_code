@@ -63,38 +63,27 @@ namespace {
         }};
     }
 
-    std::array<edge, 2> box_vert_edges(const box& b) {
+    std::array<edge, 4> box_edges(const box& b) {
         auto mn = b.min_corner();
         auto mx = b.max_corner();
         return {{
-            to_edge(mn, point{mn.x, mx.y}),
-            to_edge(mx, point{mx.x, mn.y})
-        }};
-    }
-
-    std::array<edge, 2> box_horz_edges(const box& b) {
-        auto mn = b.min_corner();
-        auto mx = b.max_corner();
-        return {{
-            to_edge(mn, point{mx.x, mn.y}),
-            to_edge(mx, point{mn.x, mx.y})
+            to_edge(mn, point{mn.x, mx.y}), to_edge(mx, point{mx.x, mn.y}),
+            to_edge(mn, point{mx.x, mn.y}), to_edge(mx, point{mn.x, mx.y})
         }};
     }
 
     std::optional<box> interior_bounds(const edge& e) {
-        if (e.is_horz) {
-            int64_t x1 = std::min(e.from, e.to) + 1;
-            int64_t x2 = std::max(e.from, e.to) - 1;
-            if (x2 < x1) return std::nullopt;
-            int64_t y = e.row_or_col;
-            return box{ point{x1,y}, point{x2,y} };
-        } else {
-            int64_t y1 = std::min(e.from, e.to) + 1;
-            int64_t y2 = std::max(e.from, e.to) - 1;
-            if (y2 < y1) return std::nullopt;
-            int64_t x = e.row_or_col;
-            return box{ point{x, y1}, point{x, y2} };
+
+        auto lo = std::min(e.from, e.to) + 1;
+        auto hi = std::max(e.from, e.to) - 1;
+
+        if (hi < lo) {
+            return {};
         }
+
+        return (e.is_horz) ?
+            box{ point{lo, e.row_or_col}, point{hi, e.row_or_col} }:
+            box{ point{ e.row_or_col, lo}, point{ e.row_or_col, hi} };
     }
 
     class rectilinear_polygon {
@@ -113,42 +102,22 @@ namespace {
                 ) | r::to<std::vector>();
         }
 
-        bool intersects_vert_edge_of_poly(const edge& e) const {
-            // e must be horizontal
-            if (!e.is_horz) {
-                return false;
+        bool intersects_edge_of_poly(const edge& e) const {
+            auto qb = interior_bounds(e);
+            if (!qb) {
+                return false; 
             }
-
-            int64_t y = e.row_or_col;
-            int64_t x1 = std::min(e.from, e.to);
-            int64_t x2 = std::max(e.from, e.to);
-
-            // rectangle interior edge
-            if (x2 - x1 <= 2) {
-                return false;
-            }
-            box q{ point{x1 + 1,y}, point{x2 - 1,y} };
 
             std::vector<edge_value> hits;
-            vert_edges_.query(bgi::intersects(q), std::back_inserter(hits));
-            return !hits.empty();
-        }
 
-        bool intersects_horz_edge_of_poly(const edge& e) const {
-            // e must be vertical
-            if (e.is_horz) return false;
-
-            int64_t x = e.row_or_col;
-            int64_t y1 = std::min(e.from, e.to);
-            int64_t y2 = std::max(e.from, e.to);
-
-            if (y2 - y1 <= 2) {
-                return false;
+            if (e.is_horz) {
+                // Horizontal edge intersects vertical edges
+                vert_edges_.query(bgi::intersects(*qb), std::back_inserter(hits));
+            } else {
+                // Vertical edge intersects horizontal edges
+                horz_edges_.query(bgi::intersects(*qb), std::back_inserter(hits));
             }
-            box q{ point{x, y1 + 1}, point{x, y2 - 1} };
 
-            std::vector<edge_value> hits;
-            horz_edges_.query(bgi::intersects(q), std::back_inserter(hits));
             return !hits.empty();
         }
 
@@ -178,14 +147,8 @@ namespace {
                 }
             }
 
-            for (auto& e : box_vert_edges(b)) {
-                if (intersects_horz_edge_of_poly(e)) {
-                    return false;
-                }
-            }
-
-            for (auto& e : box_horz_edges(b)) {
-                if (intersects_vert_edge_of_poly(e)) {
+            for (auto& e : box_edges(b)) {
+                if (intersects_edge_of_poly(e)) {
                     return false;
                 }
             }
