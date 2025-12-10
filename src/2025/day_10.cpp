@@ -8,6 +8,11 @@
 #include <algorithm>
 #include <unordered_set>
 
+#include <CbcModel.hpp>
+#include <OsiClpSolverInterface.hpp>
+#include <CoinModel.hpp>
+#include <CoinPackedMatrix.hpp>
+
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
 
@@ -107,6 +112,68 @@ namespace {
             std::plus<>()
         );
     }
+
+    int64_t solve_with_cbc(const machine& m) {
+        int n_cols = static_cast<int>(m.wiring.size());  // vars
+        int n_rows = static_cast<int>(m.joltage.size()); // constraints
+
+        OsiClpSolverInterface solver;
+
+        // build the matrix...
+        CoinPackedMatrix matrix(true, 0, 0);
+        matrix.setDimensions(n_rows, 0);
+
+        for (int c = 0; c < n_cols; ++c) {
+            CoinPackedVector col;
+            for (int r : m.wiring[c]) {
+                if (r < n_rows) {
+                    col.insert(r, 1.0); // coefficient is 1.0 (press adds 1 jolt)
+                }
+            }
+            matrix.appendCol(col);
+        }
+
+        // Ax = Target. Lower bound = Upper bound = Target.
+        std::vector<double> row_lb(n_rows);
+        std::vector<double> row_ub(n_rows);
+        for (int i = 0; i < n_rows; ++i) {
+            row_lb[i] = static_cast<double>(m.joltage[i]);
+            row_ub[i] = static_cast<double>(m.joltage[i]);
+        }
+
+        // 0 <= x <= Infinity. minimize sum(x).
+        std::vector<double> col_lb(n_cols, 0.0);
+        std::vector<double> col_ub(n_cols, solver.getInfinity());
+        std::vector<double> obj(n_cols, 1.0); // Cost is 1 per press
+
+        solver.loadProblem(matrix, col_lb.data(), col_ub.data(), obj.data(), row_lb.data(), row_ub.data());
+
+        // set integer Constraints
+        for (int i = 0; i < n_cols; ++i) {
+            solver.setInteger(i);
+        }
+        solver.messageHandler()->setLogLevel(0);
+
+        CbcModel model(solver);
+        model.setLogLevel(0);
+        model.branchAndBound();
+
+        if (model.isProvenOptimal()) {
+            double obj_val = model.getObjValue();
+            return static_cast<int64_t>(std::round(obj_val));
+        }
+
+        return 0;
+    }
+
+    int64_t fewest_total_joltage_presses(const std::vector<machine>& inp) {
+        int64_t sum = 0;
+        for (int i = 0; i < inp.size(); ++i) {
+            auto fewest = solve_with_cbc(inp[i]);
+            sum += fewest;
+        }
+        return sum;
+    }
 }
 
 void aoc::y2025::day_10(const std::string& title) {
@@ -119,6 +186,6 @@ void aoc::y2025::day_10(const std::string& title) {
 
     std::println("--- Day 10: {} ---", title);
     std::println("  part 1: {}", fewest_total_button_presses(inp) );
-    std::println("  part 2: {}", 0);
+    std::println("  part 2: {}", fewest_total_joltage_presses(inp) );
     
 }

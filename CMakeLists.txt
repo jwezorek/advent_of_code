@@ -1,16 +1,31 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 
 project(advent_of_code VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Boost 1.80 REQUIRED)
-if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS}) 
-endif()
+# --- 1. Find Boost ---
+find_package(Boost CONFIG REQUIRED)
 
+# --- 2. Find Eigen ---
 find_package(Eigen3 3.3 REQUIRED)
 
+# --- 3. Find Coin-OR Libraries via PkgConfig ---
+find_package(PkgConfig REQUIRED)
+
+# We need ALL of these modules to resolve the symbols:
+# - cbc: The main solver (CbcModel)
+# - osi-clp: The interface (OsiClpSolverInterface)
+# - coinutils: The data structures (CoinPackedMatrix)
+pkg_check_modules(COIN_DEPS REQUIRED 
+    cbc 
+    osi-clp 
+    osi
+    coinutils
+    IMPORTED_TARGET
+)
+
+# --- 2. Define Executable (Create the target FIRST) ---
 add_executable(advent_of_code
     src/main.cpp
     src/util/util.cpp
@@ -305,5 +320,9 @@ add_executable(advent_of_code
     src/2015/md5.h
 )
 
-target_link_libraries(advent_of_code PRIVATE Eigen3::Eigen)
-
+# --- 5. Link Libraries ---
+target_link_libraries(advent_of_code PRIVATE 
+    Boost::headers
+    Eigen3::Eigen
+    PkgConfig::COIN_DEPS  # Links cbc, osi-clp, and coinutils
+)
