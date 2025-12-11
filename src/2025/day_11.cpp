@@ -78,7 +78,7 @@ namespace {
                 return memo[memo_tok];
             }
 
-            if (current == sink && inclusions.size() == 2) {
+            if (current == sink && inclusions.size() == must_include.size()) {
                 return 1;
             }
 
