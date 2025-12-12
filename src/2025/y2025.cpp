@@ -17,7 +17,7 @@ void aoc::y2025::do_advent_of_code(int day) {
         []() { day_09( "Movie Theater" ); },
         []() { day_10( "Factory" ); },
         []() { day_11( "Reactor" ); },
-        []() { day_12( "<unknown>" ); },
+        []() { day_12( "Christmas Tree Farm" ); },
     };
     
     auto index = day - 1;
